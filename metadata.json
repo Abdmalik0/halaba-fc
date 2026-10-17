@@ -1,0 +1,8 @@
+{
+  "name": "HALABA City FC - Official Club Website",
+  "description": "Official website of HALABA City FC (Berberewochu / በርበሬዎቹ). Latest news, fixtures, results, league standings, squad, and official supporter membership registration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
