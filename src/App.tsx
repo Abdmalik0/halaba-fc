@@ -1,5 +1,3 @@
-import { db } from '../firebase'; // Import the db connection you created in Step 2
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'; // Import Firebase database tools
 import React, { useState } from 'react';
 import { ClubProvider, useClub } from './context/ClubContext';
 import { Navbar } from './components/Navbar';
