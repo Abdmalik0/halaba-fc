@@ -33,7 +33,10 @@ import {
   Radio,
   Clock,
   Play,
-  Pause
+  Pause,
+  Upload,
+  Link,
+  Image as ImageIcon
 } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
@@ -104,6 +107,24 @@ export const AdminPage: React.FC = () => {
   const [newsContentEn, setNewsContentEn] = useState('');
   const [newsCategory, setNewsCategory] = useState<NewsCategory>('CLUB_NEWS');
   const [newsImageUrl, setNewsImageUrl] = useState('');
+  const [imageSourceMode, setImageSourceMode] = useState<'url' | 'upload'>('url');
+
+  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size exceeds 5MB limit. Please select a smaller photo file.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        if (loadEvent.target?.result) {
+          setNewsImageUrl(loadEvent.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Match Modal state
   const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
@@ -1294,31 +1315,142 @@ export const AdminPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-neutral-300 uppercase mb-1">
-                  Category & Image URL
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <select
-                    value={newsCategory}
-                    onChange={(e) => setNewsCategory(e.target.value as any)}
-                    className="px-3 py-2 bg-neutral-950 rounded-lg border border-neutral-800 text-white text-sm"
-                  >
-                    <option value="CLUB_NEWS">Club News</option>
-                    <option value="MATCH_REPORTS">Match Reports</option>
-                    <option value="TRANSFERS">Transfers</option>
-                    <option value="INTERVIEWS">Interviews</option>
-                    <option value="ACADEMY">Youth Academy</option>
-                    <option value="COMMUNITY">Community</option>
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+                  <div>
+                    <label className="block font-bold text-neutral-300 uppercase mb-1">
+                      Category *
+                    </label>
+                    <select
+                      value={newsCategory}
+                      onChange={(e) => setNewsCategory(e.target.value as any)}
+                      className="w-full px-3 py-2 bg-neutral-950 rounded-lg border border-neutral-800 text-white text-sm focus:outline-none focus:border-red-500"
+                    >
+                      <option value="CLUB_NEWS">Club News</option>
+                      <option value="MATCH_REPORTS">Match Reports</option>
+                      <option value="TRANSFERS">Transfers</option>
+                      <option value="INTERVIEWS">Interviews</option>
+                      <option value="ACADEMY">Youth Academy</option>
+                      <option value="COMMUNITY">Community</option>
+                    </select>
+                  </div>
 
-                  <input
-                    type="text"
-                    value={newsImageUrl}
-                    onChange={(e) => setNewsImageUrl(e.target.value)}
-                    placeholder="Image URL (optional)"
-                    className="px-3 py-2 bg-neutral-950 rounded-lg border border-neutral-800 text-white text-sm"
-                  />
+                  <div>
+                    <label className="block font-bold text-neutral-300 uppercase mb-1">
+                      Featured Image (Link URL or Device Upload)
+                    </label>
+
+                    {/* Unified Link + Device Upload Input */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                          <Link className="w-3.5 h-3.5 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          <input
+                            type="text"
+                            value={newsImageUrl.startsWith('data:') ? 'Photo loaded from local device' : newsImageUrl}
+                            onChange={(e) => {
+                              setNewsImageUrl(e.target.value);
+                            }}
+                            placeholder="Paste image link URL (https://...)"
+                            className="w-full pl-8 pr-3 py-2 bg-neutral-950 rounded-lg border border-neutral-800 text-white text-xs sm:text-sm focus:outline-none focus:border-red-500"
+                          />
+                        </div>
+
+                        {/* Direct Browse / Upload button on the input */}
+                        <label
+                          htmlFor="news-image-unified-file-input"
+                          className="px-3 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 hover:text-white rounded-lg border border-neutral-700 text-xs font-sports font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors shrink-0"
+                          title="Select image from local device"
+                        >
+                          <Upload className="w-3.5 h-3.5 text-red-400" />
+                          <span>Browse Device</span>
+                          <input
+                            id="news-image-unified-file-input"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageFileUpload}
+                            className="hidden"
+                          />
+                        </label>
+
+                        {newsImageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setNewsImageUrl('')}
+                            className="p-2 rounded-lg bg-neutral-800 hover:bg-red-950 text-neutral-400 hover:text-red-400 transition-colors shrink-0"
+                            title="Clear image"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Drag & Drop File Zone */}
+                      <label
+                        htmlFor="news-image-unified-file-input"
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const file = e.dataTransfer.files?.[0];
+                          if (file) {
+                            if (file.size > 5 * 1024 * 1024) {
+                              alert('File size exceeds 5MB limit. Please select a smaller photo file.');
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.onload = (loadEv) => {
+                              if (loadEv.target?.result) {
+                                setNewsImageUrl(loadEv.target.result as string);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="py-1.5 px-3 rounded-lg border border-dashed border-neutral-800 hover:border-neutral-700 bg-neutral-950/70 hover:bg-neutral-950 text-neutral-400 text-xxs flex items-center justify-between cursor-pointer transition-colors"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <ImageIcon className="w-3.5 h-3.5 text-neutral-500" />
+                          <span>Or drag & drop photo here from your device</span>
+                        </span>
+                        <span className="text-red-400 font-bold uppercase font-sports">Choose File</span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Attached Image Preview */}
+                {newsImageUrl && (
+                  <div className="mt-2.5 p-2.5 bg-neutral-950 rounded-xl border border-neutral-800 flex items-center justify-between gap-3 animate-in fade-in">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img
+                        src={newsImageUrl}
+                        alt="Preview"
+                        className="w-14 h-11 object-cover rounded-lg border border-neutral-700 shrink-0"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80';
+                        }}
+                      />
+                      <div className="min-w-0">
+                        <span className="text-xxs font-bold uppercase text-emerald-400 flex items-center gap-1 font-sports">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          <span>Image Attached</span>
+                        </span>
+                        <span className="text-xxs text-neutral-400 truncate block max-w-xs sm:max-w-md mt-0.5">
+                          {newsImageUrl.startsWith('data:')
+                            ? 'Photo uploaded from device (ready to publish)'
+                            : newsImageUrl}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setNewsImageUrl('')}
+                      className="px-2.5 py-1 rounded bg-neutral-900 hover:bg-red-950 border border-neutral-800 text-neutral-400 hover:text-red-400 text-xxs font-bold uppercase transition-colors shrink-0"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div>

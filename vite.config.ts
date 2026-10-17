@@ -3,9 +3,9 @@ import react from '@vitejs/plugin-react';
 import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 
-export default defineConfig(() => {
+export default defineConfig(({ command }) => {
   return {
-    base: '/halaba-fc/', // Required for GitHub Pages
+    base: command === 'build' ? '/halaba-fc/' : '/', // Required for GitHub Pages build
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

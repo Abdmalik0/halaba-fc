@@ -14,7 +14,12 @@ import {
   Phone,
   Mail,
   MapPin,
-  AlertCircle
+  AlertCircle,
+  Upload,
+  Link,
+  Camera,
+  X,
+  Trash2
 } from 'lucide-react';
 
 export const MembershipPage: React.FC = () => {
@@ -32,6 +37,25 @@ export const MembershipPage: React.FC = () => {
   const [cityOrRegion, setCityOrRegion] = useState('');
   const [preferredLang, setPreferredLang] = useState<Language>(language);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [photoMode, setPhotoMode] = useState<'url' | 'upload'>('upload');
+
+  const handlePhotoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size exceeds 5MB limit. Please choose a smaller photo.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        if (loadEvent.target?.result) {
+          setPhotoUrl(loadEvent.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Status & Feedback
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -42,6 +66,7 @@ export const MembershipPage: React.FC = () => {
     fullName: string;
     membershipType: MembershipTier;
     cityOrRegion: string;
+    photoUrl?: string;
   } | null>(null);
 
   const validate = () => {
@@ -89,6 +114,7 @@ export const MembershipPage: React.FC = () => {
           fullName,
           membershipType: selectedTier,
           cityOrRegion,
+          photoUrl: photoUrl || undefined,
         });
         window.scrollTo({ top: 300, behavior: 'smooth' });
       }
@@ -106,6 +132,7 @@ export const MembershipPage: React.FC = () => {
     setPhone('');
     setEmail('');
     setCityOrRegion('');
+    setPhotoUrl('');
     setAgreeTerms(false);
     setErrors({});
   };
@@ -185,21 +212,37 @@ export const MembershipPage: React.FC = () => {
                 </div>
 
                 {/* Card Center: Member Info */}
-                <div className="py-4 space-y-1">
-                  <span className="text-xxs uppercase tracking-wider text-neutral-400 block">
-                    Member Name
-                  </span>
-                  <h3 className="font-sports font-black text-2xl text-white uppercase tracking-wide">
-                    {registrationResult.fullName}
-                  </h3>
-                  <div className="flex items-center gap-4 text-xs text-neutral-300 pt-1">
-                    <span>
-                      <strong className="text-neutral-500">Region:</strong> {registrationResult.cityOrRegion}
+                {/* Card Center: Member Info & Photo */}
+                <div className="py-4 flex items-center justify-between gap-4">
+                  <div className="space-y-1 min-w-0">
+                    <span className="text-xxs uppercase tracking-wider text-neutral-400 block font-sports font-bold">
+                      Member Name
                     </span>
-                    <span>
-                      <strong className="text-neutral-500">Season:</strong> 2025/2026
-                    </span>
+                    <h3 className="font-sports font-black text-2xl text-white uppercase tracking-wide truncate">
+                      {registrationResult.fullName}
+                    </h3>
+                    <div className="flex items-center gap-4 text-xs text-neutral-300 pt-1">
+                      <span>
+                        <strong className="text-neutral-500">Region:</strong> {registrationResult.cityOrRegion}
+                      </span>
+                      <span>
+                        <strong className="text-neutral-500">Season:</strong> 2026/2027
+                      </span>
+                    </div>
                   </div>
+
+                  {registrationResult.photoUrl ? (
+                    <img
+                      src={registrationResult.photoUrl}
+                      alt={registrationResult.fullName}
+                      className="w-14 h-16 object-cover rounded-xl border-2 border-amber-400 shadow-md shrink-0"
+                    />
+                  ) : (
+                    <div className="w-14 h-16 rounded-xl bg-neutral-900 border border-neutral-700 flex flex-col items-center justify-center text-neutral-500 shrink-0">
+                      <Camera className="w-6 h-6 text-neutral-600" />
+                      <span className="text-xxs font-mono mt-0.5">ID PHOTO</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Card Bottom: Reference & Barcode/QR Graphic */}
