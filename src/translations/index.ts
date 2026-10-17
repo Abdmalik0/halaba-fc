@@ -192,6 +192,13 @@ export const translations = {
     statusRejected: 'Rejected',
     exportCsv: 'Export CSV',
 
+    // Live Auto-Update
+    liveAutoSyncActive: 'Live Auto-Update Active',
+    liveAutoSyncPaused: 'Live Auto-Update Paused',
+    nextSyncIn: 'Next Refresh',
+    syncingStatus: 'Syncing...',
+    syncNowBtn: 'Sync Now',
+
     // Footer
     footerRights: 'All Rights Reserved. Official Website of HALABA City FC (Berberewochu).',
     footerMotto: 'Red & Green Forever • Strength, Pride, Passion',
@@ -390,6 +397,13 @@ export const translations = {
     statusRejected: 'ውድቅ የተደረገ',
     exportCsv: 'በ-CSV አውርድ',
 
+    // Live Auto-Update
+    liveAutoSyncActive: 'ቀጥታ አውቶማቲክ ማደስ ነቅቷል',
+    liveAutoSyncPaused: 'ቀጥታ ማደስ ቆሟል',
+    nextSyncIn: 'ቀጣይ ማደስ',
+    syncingStatus: 'በማደስ ላይ...',
+    syncNowBtn: 'አሁን አድስ',
+
     // Footer
     footerRights: 'መብቱ በህግ የተጠበቀ ነው። የሀላባ ከተማ እግርኳስ ክለብ (በርበሬዎቹ) ይፋዊ ድረ-ገጽ።',
     footerMotto: 'ቀይና አረንጓዴ ለዘላለም • ጥንካሬ፣ ክብር፣ ፍቅር',
@@ -587,6 +601,13 @@ export const translations = {
     statusPending: 'Eeggannoo Irra',
     statusRejected: 'Kufaa Ta’e',
     exportCsv: 'CSV Baasi',
+
+    // Live Auto-Update
+    liveAutoSyncActive: 'Haromsa Kallattii Hojjechaa Jira',
+    liveAutoSyncPaused: 'Haromsa Dhaabbateera',
+    nextSyncIn: 'Haromsa Itti Aanu',
+    syncingStatus: 'Haromsaa jira...',
+    syncNowBtn: 'Amma Haromsi',
 
     // Footer
     footerRights: 'Mirgi Qopheessaa Seeraan Eegameera. Weebsaayitii Seeraa HALABA City FC (Berberewochu).',

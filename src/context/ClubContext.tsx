@@ -9,6 +9,7 @@ import {
   StaffMember,
   MembershipApplication,
   MembershipTier,
+  LiveNotification,
 } from '../types';
 import {
   initialClubInfo,
@@ -36,6 +37,27 @@ interface ClubContextType {
   setSelectedArticleId: (id: string | null) => void;
   selectedMatchId: string | null;
   setSelectedMatchId: (id: string | null) => void;
+
+  // Club Dossier
+  isDossierOpen: boolean;
+  openDossier: () => void;
+  closeDossier: () => void;
+
+  // Live Notifications
+  liveNotifications: LiveNotification[];
+  dismissNotification: (id: string) => void;
+
+  // Live Auto-Update & Simulation Engine
+  isAutoSyncEnabled: boolean;
+  toggleAutoSync: () => void;
+  autoSyncInterval: number;
+  setAutoSyncInterval: (interval: number) => void;
+  secondsUntilNextSync: number;
+  isSyncing: boolean;
+  lastSyncTime: Date;
+  syncNow: () => void;
+  simulateLiveMatchAction: () => void;
+  advanceLeagueMatchday: () => void;
 
   // Club Info
   clubInfo: ClubInfo;
@@ -199,7 +221,18 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // News
   const [news, setNews] = useState<NewsArticle[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.NEWS);
-    return saved ? JSON.parse(saved) : initialNews;
+    if (!saved) return initialNews;
+    try {
+      const parsed: NewsArticle[] = JSON.parse(saved);
+      return parsed.map((item) => {
+        if (item.id === 'news-1' && (item.imageUrl?.includes('match_action') || !item.imageUrl?.includes('squad_lineup'))) {
+          return { ...item, imageUrl: initialNews[0].imageUrl };
+        }
+        return item;
+      });
+    } catch {
+      return initialNews;
+    }
   });
 
   const addNewsArticle = (art: Omit<NewsArticle, 'id'>) => {
@@ -339,6 +372,204 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
   };
 
+  // Club Dossier Modal
+  const [isDossierOpen, setIsDossierOpen] = useState(false);
+  const openDossier = () => setIsDossierOpen(true);
+  const closeDossier = () => setIsDossierOpen(false);
+
+  // Live Notifications
+  const [liveNotifications, setLiveNotifications] = useState<LiveNotification[]>([]);
+  const dismissNotification = (id: string) => {
+    setLiveNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  // Live Auto-Sync & Simulation Engine
+  const [isAutoSyncEnabled, setIsAutoSyncEnabled] = useState(true);
+  const [autoSyncInterval, setAutoSyncIntervalState] = useState(30);
+  const [secondsUntilNextSync, setSecondsUntilNextSync] = useState(30);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date>(() => new Date());
+
+  const toggleAutoSync = () => setIsAutoSyncEnabled((prev) => !prev);
+  const setAutoSyncInterval = (interval: number) => {
+    setAutoSyncIntervalState(interval);
+    setSecondsUntilNextSync(interval);
+  };
+
+  const syncNow = () => {
+    setIsSyncing(true);
+    setTimeout(() => {
+      setIsSyncing(false);
+      setLastSyncTime(new Date());
+      setSecondsUntilNextSync(autoSyncInterval);
+      const syncNotif: LiveNotification = {
+        id: `sync-${Date.now()}`,
+        type: 'sync',
+        title: 'League Feed Updated',
+        message: 'Federation verified scores and standings synced successfully.',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      };
+      setLiveNotifications((prev) => [syncNotif, ...prev.slice(0, 9)]);
+    }, 450);
+  };
+
+  const simulateLiveMatchAction = () => {
+    setMatches((prevMatches) => {
+      let live = prevMatches.find((m) => m.status === 'LIVE');
+      const updatedMatches = [...prevMatches];
+
+      if (!live) {
+        const upcomingIdx = updatedMatches.findIndex((m) => m.status === 'UPCOMING');
+        if (upcomingIdx >= 0) {
+          const m = updatedMatches[upcomingIdx];
+          const newLiveMatch: Match = {
+            ...m,
+            status: 'LIVE',
+            liveMinute: 54,
+            livePeriod: '2H',
+            score: { home: 1, away: 0 },
+            scorers: [
+              { player: 'Dawit Fekadu', minute: 34, team: 'home' }
+            ],
+            liveEvents: [
+              { id: `evt-${Date.now()}-1`, minute: 34, text: 'GOAL! Dawit Fekadu scores with a curled effort into the top corner!', type: 'goal', team: 'home' },
+              { id: `evt-${Date.now()}-2`, minute: 46, text: 'Second half underway under the roaring Halaba crowd.', type: 'whistle' }
+            ]
+          };
+          updatedMatches[upcomingIdx] = newLiveMatch;
+          live = newLiveMatch;
+
+          const notif: LiveNotification = {
+            id: `notif-${Date.now()}`,
+            type: 'match_start',
+            title: `🔴 LIVE NOW: ${m.homeTeam.name} vs ${m.awayTeam.name}`,
+            message: 'Halaba Stadium lights up as second half action kicks off!',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          };
+          setLiveNotifications((prev) => [notif, ...prev.slice(0, 9)]);
+        }
+      } else {
+        const liveIdx = updatedMatches.findIndex((m) => m.id === live!.id);
+        const currentMin = live.liveMinute || 55;
+        const nextMin = Math.min(90, currentMin + Math.floor(Math.random() * 8) + 4);
+        const isHalabaGoal = Math.random() > 0.35;
+        const currentScore = live.score || { home: 1, away: 0 };
+        const newScore = {
+          home: isHalabaGoal ? currentScore.home + 1 : currentScore.home,
+          away: !isHalabaGoal ? currentScore.away + 1 : currentScore.away,
+        };
+        const scorerName = isHalabaGoal
+          ? ['Dawit Fekadu', 'Mulugeta Wolde', 'Biniam Fikre', 'Yared Bayeh'][Math.floor(Math.random() * 4)]
+          : 'Opponent Striker';
+
+        const newEvents = [
+          ...(live.liveEvents || []),
+          {
+            id: `evt-${Date.now()}`,
+            minute: nextMin,
+            text: `GOAL! (${nextMin}') - ${scorerName} scores for ${isHalabaGoal ? live.homeTeam.name : live.awayTeam.name}!`,
+            type: 'goal' as const,
+            team: (isHalabaGoal ? 'home' : 'away') as 'home' | 'away'
+          }
+        ];
+
+        const updatedLiveMatch: Match = {
+          ...live,
+          liveMinute: nextMin,
+          score: newScore,
+          liveEvents: newEvents,
+          status: nextMin >= 90 ? 'FINISHED' : 'LIVE',
+          scorers: [
+            ...(live.scorers || []),
+            {
+              player: scorerName,
+              minute: nextMin,
+              team: isHalabaGoal ? 'home' : 'away',
+            }
+          ]
+        };
+
+        updatedMatches[liveIdx] = updatedLiveMatch;
+
+        const notif: LiveNotification = {
+          id: `notif-${Date.now()}`,
+          type: nextMin >= 90 ? 'match_end' : 'goal',
+          title: nextMin >= 90 ? `🏁 FULL TIME: ${newScore.home} - ${newScore.away}` : `⚽ GOAL! (${nextMin}') ${scorerName}`,
+          message: `${live.homeTeam.name} ${newScore.home} - ${newScore.away} ${live.awayTeam.name}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        };
+        setLiveNotifications((prev) => [notif, ...prev.slice(0, 9)]);
+
+        if (isHalabaGoal) {
+          updateStanding('halaba', {
+            goalsFor: 7,
+            goalDifference: 5,
+            points: 10,
+          });
+        }
+      }
+
+      localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(updatedMatches));
+      return updatedMatches;
+    });
+  };
+
+  const advanceLeagueMatchday = () => {
+    setStandings((prevStandings) => {
+      const updated = prevStandings.map((st) => {
+        if (!st.isHalaba) {
+          const randWin = Math.random() > 0.5;
+          const p = st.played + 1;
+          const w = randWin ? st.won + 1 : st.won;
+          const d = !randWin && Math.random() > 0.5 ? st.drawn + 1 : st.drawn;
+          const l = !randWin && d === st.drawn ? st.lost + 1 : st.lost;
+          const pts = w * 3 + d;
+          return {
+            ...st,
+            played: p,
+            won: w,
+            drawn: d,
+            lost: l,
+            points: pts,
+          };
+        }
+        return st;
+      });
+
+      updated.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
+      const reordered = updated.map((t, idx) => ({ ...t, position: idx + 1 }));
+      localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(reordered));
+
+      const notif: LiveNotification = {
+        id: `notif-${Date.now()}`,
+        type: 'standings',
+        title: '🏆 League Table Recalculated',
+        message: 'Premier League Matchday 3 fixtures updated. Check full standings!',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      };
+      setLiveNotifications((prev) => [notif, ...prev.slice(0, 9)]);
+
+      return reordered;
+    });
+  };
+
+  // Background timer effect for live auto-sync
+  useEffect(() => {
+    if (!isAutoSyncEnabled) return;
+
+    const timer = setInterval(() => {
+      setSecondsUntilNextSync((prev) => {
+        if (prev <= 1) {
+          setLastSyncTime(new Date());
+          return autoSyncInterval;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isAutoSyncEnabled, autoSyncInterval]);
+
   const resetAllDataToDefault = () => {
     localStorage.clear();
     setMatches(initialMatches);
@@ -363,6 +594,21 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSelectedArticleId,
         selectedMatchId,
         setSelectedMatchId,
+        isDossierOpen,
+        openDossier,
+        closeDossier,
+        liveNotifications,
+        dismissNotification,
+        isAutoSyncEnabled,
+        toggleAutoSync,
+        autoSyncInterval,
+        setAutoSyncInterval,
+        secondsUntilNextSync,
+        isSyncing,
+        lastSyncTime,
+        syncNow,
+        simulateLiveMatchAction,
+        advanceLeagueMatchday,
         clubInfo,
         updateClubInfo,
         matches,

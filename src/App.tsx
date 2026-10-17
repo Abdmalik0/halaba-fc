@@ -13,7 +13,6 @@ import { AdminPage } from './pages/AdminPage';
 import { MatchDetailsModal } from './components/MatchDetailsModal';
 import { ArticleModal } from './components/ArticleModal';
 import { ClubDossierModal } from './components/ClubDossierModal';
-import { LiveSyncBar } from './components/LiveSyncBar';
 import { LiveNotificationToast } from './components/LiveNotificationToast';
 
 const MainApp: React.FC = () => {
@@ -30,9 +29,6 @@ const MainApp: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-neutral-950 text-neutral-100 selection:bg-red-600 selection:text-white font-sans">
       {/* Top Navigation */}
       <Navbar />
-
-      {/* Real-time Match & Standings Auto-Update Bar */}
-      <LiveSyncBar />
 
       {/* Floating Live Goal & Standings Notifications */}
       <LiveNotificationToast />

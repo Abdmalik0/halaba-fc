@@ -360,7 +360,7 @@ export const initialNews: NewsArticle[] = [
     category: 'MATCH_REPORTS',
     date: '2026-10-16',
     author: 'Halaba FC Media Team',
-    imageUrl: ClubImages.matchAction,
+    imageUrl: ClubImages.squadLineup,
     isFeatured: true,
     readTime: '4 min read',
   },

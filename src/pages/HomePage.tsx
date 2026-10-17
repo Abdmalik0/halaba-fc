@@ -264,8 +264,8 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </div>
 
                 {/* Scoreline */}
-                <div className="py-6 flex items-center justify-around">
-                  <div className="flex flex-col items-center text-center w-2/5">
+                <div className="py-6 flex items-center justify-between gap-2 sm:gap-4">
+                  <div className="flex-1 min-w-0 flex flex-col items-center text-center">
                     {latestResult.homeTeam.isHalaba ? (
                       <HalabaCrest size={68} showGlow />
                     ) : (
@@ -273,19 +273,21 @@ export const HomePage: React.FC<HomePageProps> = ({
                         {latestResult.homeTeam.name.substring(0, 3).toUpperCase()}
                       </div>
                     )}
-                    <span className="font-sports font-bold text-base text-white mt-2">
+                    <span className="font-sports font-bold text-base text-white mt-2 truncate max-w-full">
                       {latestResult.homeTeam.name}
                     </span>
                   </div>
 
-                  <div className="flex flex-col items-center px-4">
-                    <div className="font-sports font-black text-3xl sm:text-4xl text-emerald-400 tracking-widest bg-neutral-950 px-4 py-1 rounded-xl border border-neutral-800">
-                      {latestResult.score?.home} - {latestResult.score?.away}
+                  <div className="flex flex-col items-center justify-center shrink-0 px-2 sm:px-4">
+                    <div className="font-sports font-black text-3xl sm:text-4xl text-emerald-400 whitespace-nowrap bg-neutral-950 px-5 py-1.5 rounded-xl border border-neutral-800 tracking-wider flex items-center justify-center gap-2 select-none shadow-md">
+                      <span>{latestResult.score?.home ?? 0}</span>
+                      <span className="text-neutral-500 font-normal text-2xl sm:text-3xl">-</span>
+                      <span>{latestResult.score?.away ?? 0}</span>
                     </div>
-                    <span className="text-xs text-neutral-400 mt-1">Full Time</span>
+                    <span className="text-xs text-neutral-400 mt-1 font-medium whitespace-nowrap">Full Time</span>
                   </div>
 
-                  <div className="flex flex-col items-center text-center w-2/5">
+                  <div className="flex-1 min-w-0 flex flex-col items-center text-center">
                     {latestResult.awayTeam.isHalaba ? (
                       <HalabaCrest size={68} showGlow />
                     ) : (
@@ -293,7 +295,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                         {latestResult.awayTeam.name.substring(0, 3).toUpperCase()}
                       </div>
                     )}
-                    <span className="font-sports font-bold text-base text-white mt-2">
+                    <span className="font-sports font-bold text-base text-white mt-2 truncate max-w-full">
                       {latestResult.awayTeam.name}
                     </span>
                   </div>
@@ -372,6 +374,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <img
                     src={article.imageUrl}
                     alt={title}
+                    referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-black/70 text-emerald-400 backdrop-blur-md">
