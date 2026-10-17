@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { db } from '../firebase';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import {
   Language,
   ClubInfo,
@@ -205,9 +207,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return item;
     });
-    // Sort by points desc, then goal difference desc
     updated.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
-    // Re-assign position numbers
     const reordered = updated.map((t, idx) => ({ ...t, position: idx + 1 }));
     setStandings(reordered);
     localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(reordered));
@@ -218,7 +218,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(initialStandings));
   };
 
-  // News
+  // News State
   const [news, setNews] = useState<NewsArticle[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.NEWS);
     if (!saved) return initialNews;
@@ -234,6 +234,37 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return initialNews;
     }
   });
+
+  // REAL-TIME FIREBASE FIRESTORE SYNC FOR NEWS
+  useEffect(() => {
+    const q = query(collection(db, "news"), orderBy("createdAt", "desc"));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const liveArticles: NewsArticle[] = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          title: typeof data.title === 'object' ? data.title : { en: data.title || '', am: data.title || '', om: data.title || '' },
+          summary: typeof data.summary === 'object' ? data.summary : { en: data.summary || '', am: data.summary || '', om: data.summary || '' },
+          content: typeof data.content === 'object' ? data.content : { en: data.content || '', am: data.content || '', om: data.content || '' },
+          category: data.category || 'CLUB_NEWS',
+          date: data.date || new Date().toISOString().slice(0, 10),
+          author: data.author || 'Club Administration',
+          imageUrl: data.imageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
+          readTime: data.readTime || '3 min read',
+        } as NewsArticle;
+      });
+
+      if (liveArticles.length > 0) {
+        setNews(liveArticles);
+        localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(liveArticles));
+      }
+    }, (error) => {
+      console.error("Firebase real-time news error:", error);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const addNewsArticle = (art: Omit<NewsArticle, 'id'>) => {
     const newArticle: NewsArticle = {
@@ -303,7 +334,6 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     membershipType: MembershipTier;
     preferredLanguage: Language;
   }): Promise<{ success: boolean; referenceNumber: string }> => {
-    // Generate official reference number format: HCFC-2026-M####
     const randNum = Math.floor(1000 + Math.random() * 9000);
     const referenceNumber = `HCFC-2026-M${randNum}`;
 
@@ -319,10 +349,9 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       membershipType: data.membershipType,
       preferredLanguage: data.preferredLanguage,
       registeredAt: new Date().toISOString(),
-      status: 'APPROVED', // Default approved or pending
+      status: 'APPROVED',
     };
 
-    // Simulate real backend processing delay
     await new Promise((resolve) => setTimeout(resolve, 600));
 
     const updated = [newApplication, ...memberships];
@@ -353,7 +382,6 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const loginAdmin = (user: string, pass: string): boolean => {
-    // Authorized club staff credentials (also shown as quick demo helper)
     if (
       (user.trim().toLowerCase() === 'admin' || user.trim().toLowerCase() === 'staff' || user.trim().toLowerCase() === 'halaba') &&
       (pass === 'halaba1966' || pass === 'admin123' || pass === 'berbere')
