@@ -1,3 +1,5 @@
+import { db } from '../firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import React, { useState } from 'react';
 import { useClub } from '../context/ClubContext';
 import { HalabaCrest } from '../components/HalabaCrest';
@@ -188,44 +190,64 @@ export const AdminPage: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  // Save News Article
-  const handleSaveArticle = (e: React.FormEvent) => {
+  // Save News Article (Connected to Firebase Cloud)
+  const handleSaveArticle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newsTitleEn.trim()) return;
 
-    if (editingArticleId) {
-      updateNewsArticle(editingArticleId, {
-        title: { en: newsTitleEn, am: newsTitleAm || newsTitleEn, om: newsTitleOm || newsTitleEn },
-        summary: { en: newsSummaryEn, am: newsSummaryAm || newsSummaryEn, om: newsSummaryOm || newsSummaryEn },
-        content: { en: newsContentEn, am: newsContentEn, om: newsContentEn },
-        category: newsCategory,
-        imageUrl: newsImageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
-      });
-    } else {
-      addNewsArticle({
-        title: { en: newsTitleEn, am: newsTitleAm || newsTitleEn, om: newsTitleOm || newsTitleEn },
-        summary: { en: newsSummaryEn, am: newsSummaryAm || newsSummaryEn, om: newsSummaryOm || newsSummaryEn },
-        content: { en: newsContentEn, am: newsContentEn, om: newsContentEn },
-        category: newsCategory,
-        date: new Date().toISOString().slice(0, 10),
-        author: 'Club Administration',
-        imageUrl: newsImageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
-        readTime: '3 min read',
-      });
+    try {
+      if (editingArticleId) {
+        // Keep your existing local update function for edits
+        updateNewsArticle(editingArticleId, {
+          title: { en: newsTitleEn, am: newsTitleAm || newsTitleEn, om: newsTitleOm || newsTitleEn },
+          summary: { en: newsSummaryEn, am: newsSummaryAm || newsSummaryEn, om: newsSummaryOm || newsSummaryEn },
+          content: { en: newsContentEn, am: newsContentEn, om: newsContentEn },
+          category: newsCategory,
+          imageUrl: newsImageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
+        });
+      } else {
+        // Save NEW article to Firebase Cloud Database (visible globally on all devices)
+        await addDoc(collection(db, "news"), {
+          title: { en: newsTitleEn, am: newsTitleAm || newsTitleEn, om: newsTitleOm || newsTitleEn },
+          summary: { en: newsSummaryEn, am: newsSummaryAm || newsSummaryEn, om: newsSummaryOm || newsSummaryEn },
+          content: { en: newsContentEn, am: newsContentEn, om: newsContentEn },
+          category: newsCategory,
+          date: new Date().toISOString().slice(0, 10),
+          author: 'Club Administration',
+          imageUrl: newsImageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
+          readTime: '3 min read',
+          createdAt: serverTimestamp(),
+        });
+
+        // Also update local state as a backup fallback
+        addNewsArticle({
+          title: { en: newsTitleEn, am: newsTitleAm || newsTitleEn, om: newsTitleOm || newsTitleEn },
+          summary: { en: newsSummaryEn, am: newsSummaryAm || newsSummaryEn, om: newsSummaryOm || newsSummaryEn },
+          content: { en: newsContentEn, am: newsContentEn, om: newsContentEn },
+          category: newsCategory,
+          date: new Date().toISOString().slice(0, 10),
+          author: 'Club Administration',
+          imageUrl: newsImageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
+          readTime: '3 min read',
+        });
+      }
+
+      // Reset modal state (Exactly as you had it before)
+      setIsNewsModalOpen(false);
+      setEditingArticleId(null);
+      setNewsTitleEn('');
+      setNewsTitleAm('');
+      setNewsTitleOm('');
+      setNewsSummaryEn('');
+      setNewsSummaryAm('');
+      setNewsSummaryOm('');
+      setNewsContentEn('');
+      setNewsImageUrl('');
+    } catch (error) {
+      console.error("Error saving article to Firebase: ", error);
+      alert("Failed to publish to cloud. Please try again.");
     }
-
-    setIsNewsModalOpen(false);
-    setEditingArticleId(null);
-    setNewsTitleEn('');
-    setNewsTitleAm('');
-    setNewsTitleOm('');
-    setNewsSummaryEn('');
-    setNewsSummaryAm('');
-    setNewsSummaryOm('');
-    setNewsContentEn('');
-    setNewsImageUrl('');
   };
-
   // Save Match
   const handleSaveMatch = (e: React.FormEvent) => {
     e.preventDefault();
