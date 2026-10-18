@@ -464,19 +464,17 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated));
   };
 
- const deleteNewsArticle = async (id: string) => {
+  const deleteNewsArticle = async (id: string) => {
     try {
-      // 1. Delete document live from Firebase Cloud Firestore
+      // 1. Delete document live from Firebase Cloud Firestore if present
       await deleteDoc(doc(db, "news", id));
-
-      // 2. Update local state
-      const updated = news.filter((n) => n.id !== id);
-      setNews(updated);
-      localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated));
     } catch (error) {
-      console.error("Error deleting news article from Firebase: ", error);
-      alert("Failed to delete article. Please try again.");
+      console.warn("Could not delete news article from Firebase Cloud (deleting locally):", error);
     }
+    // 2. Update local state
+    const updated = news.filter((n) => n.id !== id);
+    setNews(updated);
+    localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated));
   };
 
   // Players & Staff
