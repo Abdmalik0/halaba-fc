@@ -386,15 +386,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
             };
           });
 
-          const halabaEvents = formattedMatches.filter(m => m.homeTeam.isHalaba || m.awayTeam.isHalaba);
-          if (halabaEvents.length > 0) {
-            setMatches((prev) => {
-              const existingIds = new Set(halabaEvents.map((m) => m.id));
-              const merged = [...halabaEvents, ...prev.filter((m) => !existingIds.has(m.id))];
-              localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(merged));
-              return merged;
-            });
-          }
+          setMatches(formattedMatches);
+          localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(formattedMatches));
         }
       } catch (error) {
         console.error('Error syncing fixtures and standings from TheSportsDB:', error);
@@ -424,17 +417,19 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated));
   };
 
-  const deleteNewsArticle = async (id: string) => {
+ const deleteNewsArticle = async (id: string) => {
     try {
-      // 1. Delete document live from Firebase Cloud Firestore if available
+      // 1. Delete document live from Firebase Cloud Firestore
       await deleteDoc(doc(db, "news", id));
+
+      // 2. Update local state
+      const updated = news.filter((n) => n.id !== id);
+      setNews(updated);
+      localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated));
     } catch (error) {
-      console.warn("Error deleting news article from Firebase (updating locally):", error);
+      console.error("Error deleting news article from Firebase: ", error);
+      alert("Failed to delete article. Please try again.");
     }
-    // 2. Update local state
-    const updated = news.filter((n) => n.id !== id);
-    setNews(updated);
-    localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated));
   };
 
   // Players & Staff
@@ -596,14 +591,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updatedMatches = [...prevMatches];
 
       if (!live) {
-        const upcomingIdx = updatedMatches.findIndex(
-          (m) =>
-            m.status === 'UPCOMING' &&
-            (m.homeTeam?.isHalaba ||
-              m.awayTeam?.isHalaba ||
-              m.homeTeam?.name?.toLowerCase().includes('halaba') ||
-              m.awayTeam?.name?.toLowerCase().includes('halaba'))
-        );
+        const upcomingIdx = updatedMatches.findIndex((m) => m.status === 'UPCOMING');
         if (upcomingIdx >= 0) {
           const m = updatedMatches[upcomingIdx];
           const newLiveMatch: Match = {

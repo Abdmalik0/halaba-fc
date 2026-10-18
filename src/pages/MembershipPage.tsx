@@ -44,7 +44,7 @@ export const MembershipPage: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        setErrors((prev) => ({ ...prev, photo: 'File size exceeds 5MB limit. Please choose a smaller photo.' }));
+        alert('File size exceeds 5MB limit. Please choose a smaller photo.');
         return;
       }
       const reader = new FileReader();

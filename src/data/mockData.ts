@@ -111,54 +111,6 @@ export const initialMatches: Match[] = [
     referee: 'Tewodros Marcos',
     summary: 'Round 5 brings high drama as the Berberewochu welcome Hadiya Hosaena to Halaba Stadium seeking to maintain their historic top-of-the-table form.',
   },
-  // Round 6 (Upcoming - Nov 5, 2026)
-  {
-    id: 'm-epl-rd6',
-    competition: 'ETHIOPIAN_PREMIER_LEAGUE',
-    competitionName: 'Ethiopian Premier League 2026/27 - Round 6',
-    date: '2026-11-05',
-    kickoffTime: '15:00',
-    venue: 'Halaba Stadium, Halaba Kulito',
-    homeTeam: {
-      id: 'halaba',
-      name: 'Halaba Ketema',
-      isHalaba: true,
-    },
-    awayTeam: {
-      id: 'ethiopian_coffee',
-      name: 'Ethiopian Coffee SC',
-      isHalaba: false,
-    },
-    status: 'UPCOMING',
-    round: 'Round 6',
-    attendance: 'Expected 15,000 (Capacity Crowd)',
-    referee: 'Belay Tessema',
-    summary: 'A headline clash at Halaba Stadium as Halaba Ketema host Ethiopian Coffee SC in a thrilling Premier League duel.',
-  },
-  // Round 7 (Upcoming - Nov 12, 2026)
-  {
-    id: 'm-epl-rd7',
-    competition: 'ETHIOPIAN_PREMIER_LEAGUE',
-    competitionName: 'Ethiopian Premier League 2026/27 - Round 7',
-    date: '2026-11-12',
-    kickoffTime: '15:30',
-    venue: 'Abebe Bikila Stadium, Addis Ababa',
-    homeTeam: {
-      id: 'saint_george',
-      name: 'Saint George SC',
-      isHalaba: false,
-    },
-    awayTeam: {
-      id: 'halaba',
-      name: 'Halaba Ketema',
-      isHalaba: true,
-    },
-    status: 'UPCOMING',
-    round: 'Round 7',
-    attendance: 'Expected 20,000',
-    referee: 'Bamlak Tessema',
-    summary: 'Halaba Ketema travel to the capital to take on Saint George SC in Round 7.',
-  },
 
   // Completed Round 2 (Oct 16, 2026) [FT]
   {
