@@ -2,6 +2,7 @@ import React from 'react';
 import { useClub } from '../context/ClubContext';
 import { HalabaCrest } from '../components/HalabaCrest';
 import { ClubImages } from '../assets/images';
+import { initialMatches } from '../data/mockData';
 import {
   Calendar,
   Clock,
@@ -23,10 +24,28 @@ export const HomePage: React.FC<HomePageProps> = ({
 }) => {
   const { t, language, setCurrentPage, matches, standings, news, clubInfo } = useClub();
 
-  // Find next upcoming match
-  const nextMatch = matches.find((m) => m.status === 'UPCOMING') || matches[0];
-  // Find latest finished match
-  const latestResult = matches.find((m) => m.status === 'FINISHED') || matches[3];
+  // Helper to identify Halaba City FC matches
+  const isHalabaMatch = (m: any) =>
+    Boolean(
+      m &&
+      (m.homeTeam?.isHalaba ||
+        m.awayTeam?.isHalaba ||
+        m.homeTeam?.id === 'halaba' ||
+        m.awayTeam?.id === 'halaba' ||
+        m.homeTeam?.name?.toLowerCase().includes('halaba') ||
+        m.awayTeam?.name?.toLowerCase().includes('halaba'))
+    );
+
+  // Strictly find next upcoming match of Halaba City FC (e.g. Halaba Ketema vs Fasil Kenema)
+  const nextMatch =
+    matches.find((m) => (m.status === 'UPCOMING' || m.status === 'LIVE') && isHalabaMatch(m)) ||
+    matches.find(isHalabaMatch) ||
+    initialMatches[0];
+
+  // Find latest finished match of Halaba City FC
+  const latestResult =
+    matches.find((m) => m.status === 'FINISHED' && isHalabaMatch(m)) ||
+    initialMatches[3];
   // Latest 3 news items
   const recentNews = news.slice(0, 3);
   // Top 5 standings
@@ -59,9 +78,6 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-red-600/20 border border-red-500/40 text-red-400 text-xs font-bold tracking-widest uppercase backdrop-blur-md">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
               {t.heroTag}
-            </div>
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-black tracking-widest uppercase backdrop-blur-md">
-              <span>🏆 2026/27 EPL LEADERS • 1ST PLACE (4 PTS)</span>
             </div>
           </div>
 
@@ -106,6 +122,27 @@ export const HomePage: React.FC<HomePageProps> = ({
               <ChevronRight className="w-4 h-4 text-neutral-400" />
             </button>
           </div>
+
+          {/* Next Match Quick Banner */}
+          {nextMatch && (
+            <div
+              onClick={() => onOpenMatchModal(nextMatch.id)}
+              className="mt-6 cursor-pointer inline-flex flex-wrap items-center justify-center gap-2.5 px-4 py-2 rounded-2xl bg-neutral-900/85 hover:bg-neutral-800 border border-neutral-700/80 backdrop-blur-md transition-all hover:scale-[1.02] shadow-xl group text-center"
+            >
+              <div className="flex items-center gap-1.5 text-red-400 font-sports font-bold text-xs uppercase tracking-wider">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Next Halaba Match:</span>
+              </div>
+              <span className="font-sports font-black text-sm text-white uppercase tracking-wide">
+                {nextMatch.homeTeam.name} vs {nextMatch.awayTeam.name}
+              </span>
+              <span className="text-xxs text-amber-400 font-mono bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800 font-bold">
+                {nextMatch.date} • {nextMatch.kickoffTime} EAT
+              </span>
+              <span className="text-xxs text-neutral-400 hidden sm:inline">({nextMatch.venue})</span>
+              <ChevronRight className="w-3.5 h-3.5 text-neutral-400 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+          )}
         </div>
       </section>
 
@@ -166,11 +203,11 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <div className="flex items-center justify-between pb-4 border-b border-neutral-800">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <h3 className="font-sports font-bold text-lg text-white uppercase tracking-wider">
-                      {t.nextMatchTitle}
+                    <h3 className="font-sports font-bold text-lg text-white uppercase tracking-wider flex items-center gap-2">
+                      <span>Next Game: Halaba City FC</span>
                     </h3>
                   </div>
-                  <span className="text-xs font-bold text-amber-400 uppercase bg-amber-950/60 border border-amber-800/60 px-2.5 py-0.5 rounded">
+                  <span className="text-xs font-bold text-amber-400 uppercase bg-amber-950/60 border border-amber-800/60 px-2.5 py-0.5 rounded font-sports">
                     {nextMatch.competitionName.split('-')[0]}
                   </span>
                 </div>

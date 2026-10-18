@@ -182,7 +182,23 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Matches
   const [matches, setMatches] = useState<Match[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.MATCHES);
-    return saved ? JSON.parse(saved) : initialMatches;
+    if (!saved) return initialMatches;
+    try {
+      const parsed: Match[] = JSON.parse(saved);
+      const hasHalaba = parsed.some(
+        (m) =>
+          m.homeTeam?.isHalaba ||
+          m.awayTeam?.isHalaba ||
+          m.homeTeam?.name?.toLowerCase().includes('halaba') ||
+          m.awayTeam?.name?.toLowerCase().includes('halaba')
+      );
+      if (!hasHalaba) {
+        return initialMatches;
+      }
+      return parsed;
+    } catch {
+      return initialMatches;
+    }
   });
 
   const addMatch = (matchData: Omit<Match, 'id'>) => {
@@ -401,8 +417,24 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
             };
           });
 
-          setMatches(formattedMatches);
-          localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(formattedMatches));
+          const halabaFixtures = initialMatches.filter(
+            (m) =>
+              m.homeTeam.isHalaba ||
+              m.awayTeam.isHalaba ||
+              m.homeTeam.name.toLowerCase().includes('halaba') ||
+              m.awayTeam.name.toLowerCase().includes('halaba')
+          );
+          const otherMatches = formattedMatches.filter(
+            (m) =>
+              !m.homeTeam.isHalaba &&
+              !m.awayTeam.isHalaba &&
+              !m.homeTeam.name.toLowerCase().includes('halaba') &&
+              !m.awayTeam.name.toLowerCase().includes('halaba')
+          );
+          const mergedMatches = [...halabaFixtures, ...otherMatches];
+
+          setMatches(mergedMatches);
+          localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(mergedMatches));
         }
       } catch (error) {
         console.error('Error syncing fixtures and standings from TheSportsDB:', error);

@@ -8,6 +8,8 @@ export const translations = {
     navStandings: 'Standings',
     navNews: 'News & Media',
     navMembership: 'Membership',
+    navShop: 'Shop',
+    navDonate: 'Donate',
     navAbout: 'About Club',
     navContact: 'Contact',
     navAdmin: 'Admin Portal',
