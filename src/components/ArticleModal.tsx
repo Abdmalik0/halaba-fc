@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NewsArticle } from '../types';
 import { useClub } from '../context/ClubContext';
 import { X, Calendar, Clock, User, Share2, Tag } from 'lucide-react';
@@ -13,7 +13,6 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) 
 
   if (!article) return null;
 
-  const [copied, setCopied] = useState(false);
   const title = article.title[language] || article.title.en;
   const content = article.content[language] || article.content.en;
 
@@ -25,9 +24,8 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) 
         url: window.location.href,
       }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(window.location.href).catch(() => {});
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      navigator.clipboard.writeText(window.location.href);
+      alert('Link copied to clipboard!');
     }
   };
 
@@ -49,11 +47,10 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) 
           <div className="flex items-center gap-2">
             <button
               onClick={handleShare}
-              className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors flex items-center gap-1 text-xs"
+              className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
               title="Share article"
             >
               <Share2 className="w-4 h-4" />
-              {copied && <span className="text-emerald-400 text-xs">Copied!</span>}
             </button>
             <button
               onClick={onClose}
