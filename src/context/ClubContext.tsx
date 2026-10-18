@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import {
@@ -282,10 +283,19 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated));
   };
 
-  const deleteNewsArticle = (id: string) => {
-    const updated = news.filter((n) => n.id !== id);
-    setNews(updated);
-    localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated));
+ const deleteNewsArticle = async (id: string) => {
+    try {
+      // 1. Delete document live from Firebase Cloud Firestore
+      await deleteDoc(doc(db, "news", id));
+
+      // 2. Update local state
+      const updated = news.filter((n) => n.id !== id);
+      setNews(updated);
+      localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated));
+    } catch (error) {
+      console.error("Error deleting news article from Firebase: ", error);
+      alert("Failed to delete article. Please try again.");
+    }
   };
 
   // Players & Staff
