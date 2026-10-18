@@ -146,50 +146,6 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 2. Quick Club Stats Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 relative z-20">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-neutral-900/90 border border-neutral-800 rounded-2xl p-4 sm:p-6 backdrop-blur-md shadow-2xl">
-          <div className="flex flex-col items-center sm:items-start p-2 border-r border-neutral-800/80">
-            <span className="text-xs uppercase font-bold text-neutral-400 tracking-wider">
-              {t.foundedLabel}
-            </span>
-            <span className="font-sports font-black text-2xl sm:text-3xl text-white mt-1">
-              1966 E.C.
-            </span>
-            <span className="text-xs text-neutral-500">60+ Years of Glory</span>
-          </div>
-
-          <div className="flex flex-col items-center sm:items-start p-2 md:border-r border-neutral-800/80">
-            <span className="text-xs uppercase font-bold text-neutral-400 tracking-wider">
-              {t.homeGroundLabel}
-            </span>
-            <span className="font-sports font-black text-xl sm:text-2xl text-white mt-1 truncate max-w-full">
-              Halaba Stadium
-            </span>
-            <span className="text-xs text-emerald-400">15,000 Capacity</span>
-          </div>
-
-          <div className="flex flex-col items-center sm:items-start p-2 border-r border-neutral-800/80">
-            <span className="text-xs uppercase font-bold text-neutral-400 tracking-wider">
-              League Standing
-            </span>
-            <span className="font-sports font-black text-2xl sm:text-3xl text-amber-400 mt-1">
-              #1 in Premier League
-            </span>
-            <span className="text-xs text-emerald-400 font-bold">1st Place (4 Pts, GD +1)</span>
-          </div>
-
-          <div className="flex flex-col items-center sm:items-start p-2">
-            <span className="text-xs uppercase font-bold text-neutral-400 tracking-wider">
-              Competition
-            </span>
-            <span className="font-sports font-black text-lg sm:text-xl text-red-400 mt-1">
-              Ethiopian Premier League
-            </span>
-            <span className="text-xs text-neutral-400">Top Tier • 2026/27</span>
-          </div>
-        </div>
-      </div>
 
       {/* 3. Match Center Preview (Next Match & Latest Result) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
