@@ -12,6 +12,9 @@ import {
   MembershipApplication,
   MembershipTier,
   LiveNotification,
+  ShopItem,
+  ShopOrder,
+  DonationRecord,
 } from '../types';
 import {
   initialClubInfo,
@@ -21,10 +24,11 @@ import {
   initialPlayers,
   initialStaff,
   initialMemberships,
+  initialShopItems,
 } from '../data/mockData';
 import { translations } from '../translations';
 
-export type PageRoute = 'home' | 'fixtures' | 'standings' | 'news' | 'membership' | 'about' | 'contact' | 'admin';
+export type PageRoute = 'home' | 'fixtures' | 'standings' | 'news' | 'membership' | 'shop' | 'about' | 'contact' | 'admin';
 
 interface ClubContextType {
   // Language
@@ -119,6 +123,29 @@ interface ClubContextType {
   updateMembershipStatus: (id: string, status: 'APPROVED' | 'PENDING' | 'REJECTED') => void;
   deleteMembership: (id: string) => void;
 
+  // Shop & Merchandise
+  shopItems: ShopItem[];
+  addShopItem: (item: Omit<ShopItem, 'id'>) => void;
+  updateShopItem: (id: string, updates: Partial<ShopItem>) => void;
+  deleteShopItem: (id: string) => void;
+  resetShopItems: () => void;
+  shopOrders: ShopOrder[];
+  recordShopOrder: (order: ShopOrder) => void;
+  updateShopOrderStatus: (id: string, status: 'PENDING' | 'PAID' | 'DELIVERED') => void;
+
+  // Checkout Modal
+  isCheckoutModalOpen: boolean;
+  checkoutItem: ShopItem | null;
+  openCheckoutModal: (item: ShopItem) => void;
+  closeCheckoutModal: () => void;
+
+  // Donations
+  donations: DonationRecord[];
+  recordDonation: (donation: DonationRecord) => void;
+  isDonationModalOpen: boolean;
+  openDonationModal: () => void;
+  closeDonationModal: () => void;
+
   // Admin Auth
   isAdminLoggedIn: boolean;
   adminUsername: string | null;
@@ -140,6 +167,9 @@ const STORAGE_KEYS = {
   PLAYERS: 'halaba_players',
   STAFF: 'halaba_staff',
   MEMBERSHIPS: 'halaba_memberships',
+  SHOP_ITEMS: 'halaba_shop_items_2026',
+  SHOP_ORDERS: 'halaba_shop_orders_2026',
+  DONATIONS: 'halaba_donations_2026',
   ADMIN_AUTH: 'halaba_admin_auth',
 };
 
@@ -607,6 +637,87 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(STORAGE_KEYS.MEMBERSHIPS, JSON.stringify(updated));
   };
 
+  // Shop Items State
+  const [shopItems, setShopItems] = useState<ShopItem[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.SHOP_ITEMS);
+    return saved ? JSON.parse(saved) : initialShopItems;
+  });
+
+  const addShopItem = (item: Omit<ShopItem, 'id'>) => {
+    const newItem: ShopItem = {
+      ...item,
+      id: `shop-${Date.now()}`,
+    };
+    const updated = [newItem, ...shopItems];
+    setShopItems(updated);
+    localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(updated));
+  };
+
+  const updateShopItem = (id: string, updates: Partial<ShopItem>) => {
+    const updated = shopItems.map((item) => (item.id === id ? { ...item, ...updates } : item));
+    setShopItems(updated);
+    localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(updated));
+  };
+
+  const deleteShopItem = (id: string) => {
+    const updated = shopItems.filter((item) => item.id !== id);
+    setShopItems(updated);
+    localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(updated));
+  };
+
+  const resetShopItems = () => {
+    setShopItems(initialShopItems);
+    localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(initialShopItems));
+  };
+
+  // Shop Orders State
+  const [shopOrders, setShopOrders] = useState<ShopOrder[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.SHOP_ORDERS);
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const recordShopOrder = (order: ShopOrder) => {
+    const updated = [order, ...shopOrders.filter((o) => o.orderNumber !== order.orderNumber && o.tx_ref !== order.tx_ref)];
+    setShopOrders(updated);
+    localStorage.setItem(STORAGE_KEYS.SHOP_ORDERS, JSON.stringify(updated));
+  };
+
+  const updateShopOrderStatus = (id: string, status: 'PENDING' | 'PAID' | 'DELIVERED') => {
+    const updated = shopOrders.map((o) => (o.id === id || o.orderNumber === id ? { ...o, status } : o));
+    setShopOrders(updated);
+    localStorage.setItem(STORAGE_KEYS.SHOP_ORDERS, JSON.stringify(updated));
+  };
+
+  // Checkout Modal State
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [checkoutItem, setCheckoutItem] = useState<ShopItem | null>(null);
+
+  const openCheckoutModal = (item: ShopItem) => {
+    setCheckoutItem(item);
+    setIsCheckoutModalOpen(true);
+  };
+
+  const closeCheckoutModal = () => {
+    setIsCheckoutModalOpen(false);
+    setCheckoutItem(null);
+  };
+
+  // Supporter Donations State
+  const [donations, setDonations] = useState<DonationRecord[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.DONATIONS);
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const recordDonation = (donation: DonationRecord) => {
+    const updated = [donation, ...donations.filter((d) => d.donationNumber !== donation.donationNumber && d.tx_ref !== donation.tx_ref)];
+    setDonations(updated);
+    localStorage.setItem(STORAGE_KEYS.DONATIONS, JSON.stringify(updated));
+  };
+
+  const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
+  const openDonationModal = () => setIsDonationModalOpen(true);
+  const closeDonationModal = () => setIsDonationModalOpen(false);
+
   // Admin Auth
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
     return localStorage.getItem(STORAGE_KEYS.ADMIN_AUTH) === 'true';
@@ -840,6 +951,9 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPlayers(initialPlayers);
     setStaff(initialStaff);
     setMemberships(initialMemberships);
+    setShopItems(initialShopItems);
+    setShopOrders([]);
+    setDonations([]);
     setClubInfo(initialClubInfo);
     setIsAdminLoggedIn(false);
   };
@@ -894,6 +1008,23 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         recordVerifiedMembership,
         updateMembershipStatus,
         deleteMembership,
+        shopItems,
+        addShopItem,
+        updateShopItem,
+        deleteShopItem,
+        resetShopItems,
+        shopOrders,
+        recordShopOrder,
+        updateShopOrderStatus,
+        isCheckoutModalOpen,
+        checkoutItem,
+        openCheckoutModal,
+        closeCheckoutModal,
+        donations,
+        recordDonation,
+        isDonationModalOpen,
+        openDonationModal,
+        closeDonationModal,
         isAdminLoggedIn,
         adminUsername,
         loginAdmin,

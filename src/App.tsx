@@ -10,10 +10,13 @@ import { MembershipPage } from './pages/MembershipPage';
 import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
 import { AdminPage } from './pages/AdminPage';
+import { ShopPage } from './pages/ShopPage';
 import { MatchDetailsModal } from './components/MatchDetailsModal';
 import { ArticleModal } from './components/ArticleModal';
 import { ClubDossierModal } from './components/ClubDossierModal';
 import { LiveNotificationToast } from './components/LiveNotificationToast';
+import { DonationModal } from './components/DonationModal';
+import { JerseyCheckoutModal } from './components/JerseyCheckoutModal';
 
 const MainApp: React.FC = () => {
   const { currentPage, matches, news, isDossierOpen, closeDossier } = useClub();
@@ -49,6 +52,7 @@ const MainApp: React.FC = () => {
           <NewsPage onOpenArticleModal={(id) => setSelectedArticleId(id)} />
         )}
         {currentPage === 'membership' && <MembershipPage />}
+        {currentPage === 'shop' && <ShopPage />}
         {currentPage === 'about' && <AboutPage />}
         {currentPage === 'contact' && <ContactPage />}
         {currentPage === 'admin' && <AdminPage />}
@@ -70,6 +74,8 @@ const MainApp: React.FC = () => {
         isOpen={isDossierOpen}
         onClose={closeDossier}
       />
+      <DonationModal />
+      <JerseyCheckoutModal />
     </div>
   );
 };

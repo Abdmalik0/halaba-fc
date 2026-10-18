@@ -10,7 +10,10 @@ import {
   ChevronRight,
   UserPlus,
   Flame,
-  ArrowRight
+  ArrowRight,
+  Heart,
+  ShoppingBag,
+  Sparkles
 } from 'lucide-react';
 
 interface HomePageProps {
@@ -22,7 +25,18 @@ export const HomePage: React.FC<HomePageProps> = ({
   onOpenMatchModal,
   onOpenArticleModal,
 }) => {
-  const { t, language, setCurrentPage, matches, standings, news, clubInfo } = useClub();
+  const {
+    t,
+    language,
+    setCurrentPage,
+    matches,
+    standings,
+    news,
+    clubInfo,
+    openDonationModal,
+    shopItems,
+    openCheckoutModal,
+  } = useClub();
 
   // Helper to identify Halaba City FC matches
   const isHalabaMatch = (m: any) =>
@@ -99,6 +113,14 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Hero CTAs */}
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
             <button
+              onClick={openDonationModal}
+              className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold text-sm sm:text-base tracking-wide uppercase font-sports shadow-xl shadow-emerald-950/80 flex items-center gap-2 transform active:scale-95 transition-all ring-2 ring-emerald-500/40 hover:scale-102"
+            >
+              <Heart className="w-5 h-5 fill-white text-white" />
+              <span>{t.heroDonateBtn}</span>
+            </button>
+
+            <button
               onClick={() => setCurrentPage('membership')}
               className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-red-600 via-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-sm sm:text-base tracking-wide uppercase font-sports shadow-xl shadow-red-950/80 flex items-center gap-2 transform active:scale-95 transition-all"
             >
@@ -107,19 +129,19 @@ export const HomePage: React.FC<HomePageProps> = ({
             </button>
 
             <button
+              onClick={() => setCurrentPage('shop')}
+              className="px-6 py-3.5 rounded-xl bg-neutral-900/90 hover:bg-neutral-800 text-white border border-neutral-700 font-bold text-sm sm:text-base tracking-wide uppercase font-sports backdrop-blur-md flex items-center gap-2 transition-all hover:border-red-600/60"
+            >
+              <ShoppingBag className="w-5 h-5 text-red-400" />
+              <span>{t.navShop}</span>
+            </button>
+
+            <button
               onClick={() => setCurrentPage('fixtures')}
               className="px-6 py-3.5 rounded-xl bg-neutral-900/90 hover:bg-neutral-800 text-white border border-neutral-700 font-bold text-sm sm:text-base tracking-wide uppercase font-sports backdrop-blur-md flex items-center gap-2 transition-all"
             >
               <Calendar className="w-5 h-5 text-emerald-400" />
               <span>{t.heroBtnFixtures}</span>
-            </button>
-
-            <button
-              onClick={() => setCurrentPage('news')}
-              className="px-6 py-3.5 rounded-xl bg-neutral-900/90 hover:bg-neutral-800 text-white border border-neutral-700 font-bold text-sm sm:text-base tracking-wide uppercase font-sports backdrop-blur-md flex items-center gap-2 transition-all"
-            >
-              <span>{t.heroBtnNews}</span>
-              <ChevronRight className="w-4 h-4 text-neutral-400" />
             </button>
           </div>
 
@@ -489,7 +511,143 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 6. Membership CTA Card */}
+      {/* 5. Official Club Jersey Showcase */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-wider mb-2">
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span>Official 2026/27 Merchandise</span>
+            </div>
+            <h2 className="text-2xl sm:text-4xl font-sports font-black text-white uppercase tracking-wider">
+              Wear the Berberewochu Colors
+            </h2>
+            <p className="text-xs sm:text-sm text-neutral-400 mt-1">
+              Official Ethiopian Premier League kits manufactured with breathable athletic fabric. Direct Chapa checkout.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setCurrentPage('shop')}
+            className="self-start sm:self-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white font-sports font-bold uppercase text-xs tracking-wider transition-all hover:border-red-600"
+          >
+            <span>Visit Full Shop ({shopItems.length} Items)</span>
+            <ArrowRight className="w-4 h-4 text-red-400" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {shopItems.slice(0, 3).map((item) => {
+            const name = typeof item.name === 'object'
+              ? item.name[language] || item.name.en
+              : item.name;
+
+            const desc = typeof item.description === 'object'
+              ? item.description[language] || item.description.en
+              : item.description;
+
+            return (
+              <div
+                key={item.id}
+                className="group rounded-3xl bg-neutral-900/80 border border-neutral-800 hover:border-red-900/50 flex flex-col overflow-hidden shadow-xl transition-all duration-300 hover:-translate-y-1"
+              >
+                <div className="relative aspect-square w-full bg-neutral-950 overflow-hidden flex items-center justify-center p-4">
+                  <img
+                    src={item.imageUrl}
+                    alt={name}
+                    className="w-full h-full object-cover object-center rounded-2xl group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-6 left-6">
+                    <span className="px-2.5 py-1 rounded-lg bg-red-600 text-white text-xxs font-sports font-black uppercase tracking-wider shadow-md">
+                      Official Kit
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                  <div>
+                    <h3 className="font-sports font-black text-lg text-white uppercase tracking-wide group-hover:text-red-400 transition-colors">
+                      {name}
+                    </h3>
+                    <p className="mt-1 text-xs text-neutral-400 line-clamp-2">
+                      {desc}
+                    </p>
+                    <div className="mt-3 flex items-center gap-1.5">
+                      <span className="text-xxs uppercase font-bold text-neutral-400">Sizes:</span>
+                      <div className="flex gap-1">
+                        {item.availableSizes.map((s) => (
+                          <span
+                            key={s}
+                            className="px-1.5 py-0.5 rounded bg-neutral-950 border border-neutral-800 text-neutral-300 text-xxs font-sports font-bold uppercase"
+                          >
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-neutral-800/80 flex items-center justify-between">
+                    <span className="font-sports font-black text-xl text-emerald-400">
+                      {item.price.toLocaleString()} ETB
+                    </span>
+                    <button
+                      onClick={() => openCheckoutModal(item)}
+                      className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-sports font-black uppercase tracking-wider text-xs shadow-md shadow-red-950/40 flex items-center gap-1.5 transition-all"
+                    >
+                      <ShoppingBag className="w-3.5 h-3.5" />
+                      <span>{t.buyNowBtn}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 6. Supporter Contribution & Donation Callout */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-emerald-950/70 via-neutral-900 to-neutral-950 border border-emerald-800/40 p-8 sm:p-10 shadow-2xl">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            <div className="max-w-xl space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 text-xs font-bold uppercase tracking-wider font-sports">
+                <Heart className="w-3.5 h-3.5 fill-emerald-400" />
+                <span>Empower the Club • Chapa Payment Integration</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-sports font-black text-white uppercase tracking-wider">
+                Support HALABA City FC
+              </h2>
+              <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed">
+                Every contribution directly powers our Ethiopian Premier League campaign, academy transport, training gear, and grassroots football in Halaba Kulito. Pay instantly via Telebirr, CBE Birr, or card through Chapa.
+              </p>
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-xxs text-neutral-400">
+                <span className="px-2.5 py-1 rounded-lg bg-neutral-950 border border-neutral-800 text-emerald-400 font-bold">100 ETB</span>
+                <span className="px-2.5 py-1 rounded-lg bg-neutral-950 border border-neutral-800 text-emerald-400 font-bold">500 ETB</span>
+                <span className="px-2.5 py-1 rounded-lg bg-neutral-950 border border-neutral-800 text-emerald-400 font-bold">1,000 ETB</span>
+                <span className="px-2.5 py-1 rounded-lg bg-neutral-950 border border-neutral-800 text-amber-400 font-bold">Custom Amount</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
+              <button
+                onClick={openDonationModal}
+                className="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-600 text-white font-sports font-black text-base uppercase tracking-wider shadow-xl shadow-emerald-950/60 flex items-center justify-center gap-2.5 transition-all transform active:scale-95 hover:scale-102"
+              >
+                <Heart className="w-5 h-5 fill-white text-white" />
+                <span>Make a Donation Now</span>
+              </button>
+              <span className="text-xxs text-center text-neutral-400 font-medium">
+                Instant digital receipt & verified transaction reference
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. Membership CTA Card */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-red-950 via-neutral-900 to-green-950 border border-red-800/40 p-8 sm:p-12 shadow-2xl">
           <div className="relative z-10 max-w-2xl space-y-4">

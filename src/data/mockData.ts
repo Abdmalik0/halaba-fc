@@ -1,4 +1,4 @@
-import { ClubInfo, Match, StandingTeam, NewsArticle, Player, StaffMember, MembershipApplication } from '../types';
+import { ClubInfo, Match, StandingTeam, NewsArticle, Player, StaffMember, MembershipApplication, ShopItem } from '../types';
 import { ClubImages } from '../assets/images';
 
 export const initialClubInfo: ClubInfo = {
@@ -517,3 +517,102 @@ export const initialMemberships: MembershipApplication[] = [
     status: 'PENDING',
   },
 ];
+
+export const initialShopItems: ShopItem[] = [
+  {
+    id: 'jersey-home-2026',
+    name: {
+      en: 'Official 2026/27 Home Jersey',
+      am: 'ይፋዊ የ2026/27 የሜዳ ማሊያ (ቀይ እና አረንጓዴ)',
+      om: 'Jeersii Seeraa 2026/27 Dirree (Diimaa & Magariisa)',
+    },
+    description: {
+      en: 'The iconic scarlet red and emerald green shirt worn by Berberewochu in the Ethiopian Premier League. Premium breathable athletic moisture-wicking fabric with embroidered official Halaba City FC crest.',
+      am: 'በኢትዮጵያ ፕሪሚየር ሊግ በርበሬዎቹ የሚለብሱት ደማቅ ቀይና አረንጓዴ ማሊያ። ከፍተኛ ጥራት ያለው የክለቡ አርማ የተጠለፈበት።',
+      om: 'Jeersii seeraa Berberewochu Liigii Piriimeeraa Itoophiyaa keessatti uffatamu. Fooyyee qulqullina olaanaa qabu.',
+    },
+    price: 1800,
+    imageUrl: ClubImages.homeJersey,
+    availableSizes: ['S', 'M', 'L', 'XL', 'XXL'],
+    category: 'JERSEY',
+    inStock: true,
+    featured: true,
+  },
+  {
+    id: 'jersey-away-2026',
+    name: {
+      en: 'Official 2026/27 Away Jersey',
+      am: 'ይፋዊ የ2026/27 የውጪ ሜዳ ማሊያ (ነጭ)',
+      om: 'Jeersii Seeraa 2026/27 Dirree Alaa (Adii)',
+    },
+    description: {
+      en: 'Crisp white away jersey accented with Halaba red and emerald green dynamic sash. Lightweight performance wear engineered for speed, ventilation, and matchday pride.',
+      am: 'ንጹህ ነጭ የውጪ ሜዳ ማሊያ ከቀይና አረንጓዴ የክለቡ ቀለማት ጋር። በስታዲየምም ሆነ በዕለት ተዕለት ለመልበስ ተመራጭ።',
+      om: 'Jeersii alaa adii bareedaa mallattoo diimaa fi magariisa Halabaan miidhagfame.',
+    },
+    price: 1800,
+    imageUrl: ClubImages.awayJersey,
+    availableSizes: ['S', 'M', 'L', 'XL', 'XXL'],
+    category: 'JERSEY',
+    inStock: true,
+    featured: true,
+  },
+  {
+    id: 'jersey-third-2026',
+    name: {
+      en: 'Official 2026/27 Third Kit (Onyx Edition)',
+      am: 'የ2026/27 ልዩ ጥቁር ማሊያ (ኦኒክስ ኤዲሽን)',
+      om: 'Jeersii Addaa 2026/27 Gurraacha',
+    },
+    description: {
+      en: 'Limited edition midnight onyx match jersey featuring glowing emerald green piping and high-density Halaba City shield crest.',
+      am: 'ውሱን እትም ያለው ጥቁርና አረንጓዴ ማሊያ። ለደጋፊዎች ልዩ ክብርና ዘመናዊ ዲዛይን የተዘጋጀ።',
+      om: 'Jeersii daangeffamee qophaa’e gurraachaa fi magariisa calaqqisu qabu.',
+    },
+    price: 1950,
+    imageUrl: 'https://images.unsplash.com/photo-1577212017184-80cc0da11082?auto=format&fit=crop&w=800&q=80',
+    availableSizes: ['M', 'L', 'XL'],
+    category: 'JERSEY',
+    inStock: true,
+    featured: false,
+  },
+  {
+    id: 'scarf-berbere-pride',
+    name: {
+      en: 'Berberewochu Supporter Knit Scarf',
+      am: 'የበርበሬዎቹ ደጋፊዎች ሹራብ ሻርፕ',
+      om: 'Hagooggii Deggartoota Berberewochu',
+    },
+    description: {
+      en: 'Double-sided woven jacquard acrylic fan scarf with fringed edges. Reads "HALABA CITY FC • BERBEREWOCHU" on one side and "1966 E.C. • PRIDE OF HALABA" on the reverse.',
+      am: 'ባለ ሁለት ገጽ የሀላባ ከተማ ደጋፊዎች ሻርፕ። በስታዲየም ድምቀትን ለመፍጠር ተወዳጅ።',
+      om: 'Hagooggii bareedaa deggartoota Halabaa kan fuula lamaan mallattoo qabu.',
+    },
+    price: 650,
+    imageUrl: 'https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?auto=format&fit=crop&w=800&q=80',
+    availableSizes: ['One Size'],
+    category: 'ACCESSORY',
+    inStock: true,
+    featured: false,
+  },
+  {
+    id: 'jacket-anthem-pro',
+    name: {
+      en: 'Halaba Anthem Warm-Up Jacket',
+      am: 'የሀላባ ከተማ ሞቃት የስፖርት ጃኬት',
+      om: 'Jaakkeettii Shaakalaa Halabaa',
+    },
+    description: {
+      en: 'Official player walkout anthem jacket with full zip, side zip pockets, water-repellent finish, and embroidered gold Halaba crest.',
+      am: 'ተጫዋቾች ወደ ሜዳ ሲገቡ የሚለብሱት ኦፊሴላዊ ሞቃት ጃኬት። ከዝናብና ብርድ የሚከላከል ዘመናዊ ጨርቅ።',
+      om: 'Jaakkeettii taphattoonni yeroo dirreetti seenan uffatan, qilleensa fi rooba kan dhowwu.',
+    },
+    price: 2400,
+    imageUrl: 'https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=800&q=80',
+    availableSizes: ['S', 'M', 'L', 'XL'],
+    category: 'KIT',
+    inStock: true,
+    featured: false,
+  },
+];
+

@@ -3,6 +3,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import React, { useState } from 'react';
 import { useClub } from '../context/ClubContext';
 import { HalabaCrest } from '../components/HalabaCrest';
+import { ClubImages } from '../assets/images';
 import {
   Match,
   NewsArticle,
@@ -10,7 +11,8 @@ import {
   StaffMember,
   StandingTeam,
   NewsCategory,
-  Competition
+  Competition,
+  ShopItem,
 } from '../types';
 import {
   Lock,
@@ -38,12 +40,18 @@ import {
   Pause,
   Upload,
   Link,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ShoppingBag,
+  Heart,
+  Package,
+  Truck,
+  Sparkles
 } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
   const {
     t,
+    language,
     isAdminLoggedIn,
     adminUsername,
     loginAdmin,
@@ -70,6 +78,14 @@ export const AdminPage: React.FC = () => {
     clubInfo,
     updateClubInfo,
     resetAllDataToDefault,
+    shopItems,
+    addShopItem,
+    updateShopItem,
+    deleteShopItem,
+    resetShopItems,
+    shopOrders,
+    updateShopOrderStatus,
+    donations,
     isAutoSyncEnabled,
     toggleAutoSync,
     autoSyncInterval,
@@ -90,8 +106,25 @@ export const AdminPage: React.FC = () => {
 
   // Active admin tab
   const [adminTab, setAdminTab] = useState<
-    'memberships' | 'news' | 'fixtures' | 'standings' | 'squad' | 'sync' | 'settings'
+    'memberships' | 'shop' | 'news' | 'fixtures' | 'standings' | 'squad' | 'sync' | 'settings'
   >('memberships');
+
+  // Shop admin sub-tab & modal states
+  const [shopSubTab, setShopSubTab] = useState<'items' | 'orders' | 'donations'>('items');
+  const [isShopModalOpen, setIsShopModalOpen] = useState(false);
+  const [editingShopItemId, setEditingShopItemId] = useState<string | null>(null);
+  const [shopNameEn, setShopNameEn] = useState('');
+  const [shopNameAm, setShopNameAm] = useState('');
+  const [shopNameOm, setShopNameOm] = useState('');
+  const [shopDescEn, setShopDescEn] = useState('');
+  const [shopDescAm, setShopDescAm] = useState('');
+  const [shopDescOm, setShopDescOm] = useState('');
+  const [shopPrice, setShopPrice] = useState<number | string>(1800);
+  const [shopImageUrl, setShopImageUrl] = useState('');
+  const [shopSizes, setShopSizes] = useState<string[]>(['S', 'M', 'L', 'XL']);
+  const [shopCategory, setShopCategory] = useState<'JERSEY' | 'KIT' | 'ACCESSORY'>('JERSEY');
+  const [shopInStock, setShopInStock] = useState(true);
+  const [shopFeatured, setShopFeatured] = useState(false);
 
   // Search & filter states
   const [memberSearch, setMemberSearch] = useState('');
@@ -110,14 +143,17 @@ export const AdminPage: React.FC = () => {
   const [newsCategory, setNewsCategory] = useState<NewsCategory>('CLUB_NEWS');
   const [newsImageUrl, setNewsImageUrl] = useState('');
   const [imageSourceMode, setImageSourceMode] = useState<'url' | 'upload'>('url');
+  const [newsUploadError, setNewsUploadError] = useState<string | null>(null);
+  const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
 
   const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size exceeds 5MB limit. Please select a smaller photo file.');
+        setNewsUploadError('File size exceeds 5MB limit. Please select a smaller photo file.');
         return;
       }
+      setNewsUploadError(null);
       const reader = new FileReader();
       reader.onload = (loadEvent) => {
         if (loadEvent.target?.result) {
@@ -310,6 +346,91 @@ export const AdminPage: React.FC = () => {
     setNewPlayerNumber(newPlayerNumber + 1);
   };
 
+  // Shop Item Handlers
+  const handleOpenAddShopItem = () => {
+    setEditingShopItemId(null);
+    setShopNameEn('');
+    setShopNameAm('');
+    setShopNameOm('');
+    setShopDescEn('');
+    setShopDescAm('');
+    setShopDescOm('');
+    setShopPrice(1800);
+    setShopImageUrl('https://images.unsplash.com/photo-1577212017184-80cc0da11082?auto=format&fit=crop&w=800&q=80');
+    setShopSizes(['S', 'M', 'L', 'XL']);
+    setShopCategory('JERSEY');
+    setShopInStock(true);
+    setShopFeatured(false);
+    setIsShopModalOpen(true);
+  };
+
+  const handleOpenEditShopItem = (item: ShopItem) => {
+    setEditingShopItemId(item.id);
+    const nEn = typeof item.name === 'object' ? item.name.en : item.name;
+    const nAm = typeof item.name === 'object' ? item.name.am : item.name;
+    const nOm = typeof item.name === 'object' ? item.name.om : item.name;
+    const dEn = typeof item.description === 'object' ? item.description.en : item.description;
+    const dAm = typeof item.description === 'object' ? item.description.am : item.description;
+    const dOm = typeof item.description === 'object' ? item.description.om : item.description;
+
+    setShopNameEn(nEn);
+    setShopNameAm(nAm);
+    setShopNameOm(nOm);
+    setShopDescEn(dEn);
+    setShopDescAm(dAm);
+    setShopDescOm(dOm);
+    setShopPrice(item.price);
+    setShopImageUrl(item.imageUrl);
+    setShopSizes(item.availableSizes || ['M', 'L']);
+    setShopCategory(item.category || 'JERSEY');
+    setShopInStock(item.inStock !== false);
+    setShopFeatured(Boolean(item.featured));
+    setIsShopModalOpen(true);
+  };
+
+  const handleSaveShopItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!shopNameEn.trim()) return;
+
+    const payload = {
+      name: {
+        en: shopNameEn.trim(),
+        am: shopNameAm.trim() || shopNameEn.trim(),
+        om: shopNameOm.trim() || shopNameEn.trim(),
+      },
+      description: {
+        en: shopDescEn.trim(),
+        am: shopDescAm.trim() || shopDescEn.trim(),
+        om: shopDescOm.trim() || shopDescEn.trim(),
+      },
+      price: Number(shopPrice) || 1000,
+      imageUrl: shopImageUrl.trim() || 'https://images.unsplash.com/photo-1577212017184-80cc0da11082?auto=format&fit=crop&w=800&q=80',
+      availableSizes: shopSizes.length > 0 ? shopSizes : ['S', 'M', 'L', 'XL'],
+      category: shopCategory,
+      inStock: shopInStock,
+      featured: shopFeatured,
+    };
+
+    if (editingShopItemId) {
+      updateShopItem(editingShopItemId, payload);
+    } else {
+      addShopItem(payload);
+    }
+
+    setIsShopModalOpen(false);
+    setEditingShopItemId(null);
+  };
+
+  const handleToggleShopSize = (size: string) => {
+    if (shopSizes.includes(size)) {
+      if (shopSizes.length > 1) {
+        setShopSizes(shopSizes.filter((s) => s !== size));
+      }
+    } else {
+      setShopSizes([...shopSizes, size]);
+    }
+  };
+
   /* IF NOT LOGGED IN - RENDER AUTH GATE */
   if (!isAdminLoggedIn) {
     return (
@@ -370,16 +491,18 @@ export const AdminPage: React.FC = () => {
             </button>
           </form>
 
-          {/* Quick Demo Fill Helper */}
-          <div className="pt-4 border-t border-neutral-800/80">
+          {/* Quick Admin Toggle / Demo Helper */}
+          <div className="pt-4 border-t border-neutral-800/80 space-y-2">
             <button
-              onClick={handleDemoFill}
-              className="text-xs text-amber-400 hover:text-amber-300 font-semibold underline block mx-auto"
+              type="button"
+              onClick={() => loginAdmin('staff', 'halaba1966')}
+              className="w-full py-2.5 px-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-emerald-400 border border-emerald-500/30 text-xs font-bold uppercase tracking-wider font-sports flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
             >
-              Click here to auto-fill staff demo credentials
+              <CheckCircle2 className="w-4 h-4" />
+              <span>1-Click Admin Access (Quick Toggle)</span>
             </button>
-            <span className="text-xxs text-neutral-500 block mt-1">
-              Default: staff / halaba1966
+            <span className="text-xxs text-neutral-500 block">
+              Direct access for club managers & testers (Username: staff / Pass: halaba1966)
             </span>
           </div>
         </div>
@@ -497,6 +620,18 @@ export const AdminPage: React.FC = () => {
         >
           <Users className="w-4 h-4" />
           <span>{t.adminTabMembers} ({memberships.length})</span>
+        </button>
+
+        <button
+          onClick={() => setAdminTab('shop')}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider font-sports flex items-center gap-2 transition-all ${
+            adminTab === 'shop'
+              ? 'bg-red-600 text-white shadow-md'
+              : 'bg-neutral-900 text-neutral-400 hover:text-white'
+          }`}
+        >
+          <ShoppingBag className="w-4 h-4 text-amber-400" />
+          <span>Jersey Shop & Donations ({shopItems.length})</span>
         </button>
 
         <button
@@ -699,6 +834,300 @@ export const AdminPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT: JERSEY SHOP & DONATIONS MANAGEMENT */}
+      {adminTab === 'shop' && (
+        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-800">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-950 border border-red-800/60 text-red-400 text-xxs font-bold uppercase tracking-wider mb-1">
+                <ShoppingBag className="w-3 h-3" />
+                Store & Fund Administration
+              </div>
+              <h3 className="font-sports font-black text-2xl text-white uppercase tracking-wider">
+                Jersey Shop & Supporter Contributions
+              </h3>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                Manage club merchandise, add new kits, view customer delivery addresses, and track Chapa donations.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <button
+                onClick={resetShopItems}
+                className="px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-sports font-bold uppercase tracking-wider transition-colors"
+                title="Restore official default club products"
+              >
+                Reset Catalog
+              </button>
+              <button
+                onClick={handleOpenAddShopItem}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold uppercase tracking-wider font-sports flex items-center gap-1.5 shadow-lg shadow-red-950/50 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Product</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Subtabs for Shop: Items, Orders, Donations */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setShopSubTab('items')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-sports font-bold uppercase tracking-wider transition-all ${
+                shopSubTab === 'items'
+                  ? 'bg-neutral-800 text-white border border-neutral-700 shadow-sm'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              Merchandise Products ({shopItems.length})
+            </button>
+            <button
+              onClick={() => setShopSubTab('orders')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-sports font-bold uppercase tracking-wider transition-all ${
+                shopSubTab === 'orders'
+                  ? 'bg-neutral-800 text-white border border-neutral-700 shadow-sm'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              Customer Delivery Orders ({shopOrders.length})
+            </button>
+            <button
+              onClick={() => setShopSubTab('donations')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-sports font-bold uppercase tracking-wider transition-all ${
+                shopSubTab === 'donations'
+                  ? 'bg-neutral-800 text-white border border-neutral-700 shadow-sm'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              Supporter Donations ({donations.length})
+            </button>
+          </div>
+
+          {/* SUBTAB 1: PRODUCTS LIST */}
+          {shopSubTab === 'items' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {shopItems.map((item) => {
+                  const name = typeof item.name === 'object' ? item.name.en : item.name;
+                  const desc = typeof item.description === 'object' ? item.description.en : item.description;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="p-4 rounded-xl bg-neutral-950 border border-neutral-800 flex flex-col justify-between space-y-4"
+                    >
+                      <div className="flex gap-3">
+                        <img
+                          src={item.imageUrl}
+                          alt={name}
+                          className="w-20 h-20 object-cover rounded-xl bg-neutral-900 border border-neutral-800 shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xxs px-2 py-0.5 rounded bg-neutral-900 text-amber-400 font-sports font-bold uppercase">
+                              {item.category || 'JERSEY'}
+                            </span>
+                            <span
+                              className={`text-xxs px-2 py-0.5 rounded font-bold uppercase ${
+                                item.inStock
+                                  ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/60'
+                                  : 'bg-red-950 text-red-400 border border-red-800/60'
+                              }`}
+                            >
+                              {item.inStock ? 'In Stock' : 'Out of Stock'}
+                            </span>
+                          </div>
+                          <h4 className="font-sports font-bold text-base text-white truncate mt-1">
+                            {name}
+                          </h4>
+                          <span className="font-sports font-black text-lg text-emerald-400 block mt-0.5">
+                            {item.price.toLocaleString()} ETB
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-xxs text-neutral-400 line-clamp-2">
+                        {desc}
+                      </p>
+
+                      <div className="pt-2 border-t border-neutral-800/80 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1">
+                          <span className="text-xxs text-neutral-500 uppercase font-bold">Sizes:</span>
+                          <span className="text-xxs text-neutral-300 font-mono font-bold">
+                            {item.availableSizes.join(', ')}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleOpenEditShopItem(item)}
+                            className="p-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 transition-colors"
+                            title="Edit Product"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => deleteShopItem(item.id)}
+                            className="p-1.5 rounded-lg bg-red-950/60 hover:bg-red-900/80 text-red-400 border border-red-800/60 transition-colors"
+                            title="Delete Product"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* SUBTAB 2: CUSTOMER JERSEY ORDERS */}
+          {shopSubTab === 'orders' && (
+            <div className="space-y-4">
+              {shopOrders.length === 0 ? (
+                <div className="text-center py-12 bg-neutral-950 rounded-2xl border border-neutral-800 p-6 space-y-2">
+                  <ShoppingBag className="w-10 h-10 text-neutral-600 mx-auto" />
+                  <h4 className="font-sports font-bold text-lg text-white uppercase">No Customer Orders Yet</h4>
+                  <p className="text-xs text-neutral-400 max-w-sm mx-auto">
+                    When supporters purchase jerseys through the shop and complete Chapa payment, their delivery orders appear here in real-time.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs whitespace-nowrap">
+                    <thead>
+                      <tr className="border-b border-neutral-800 uppercase text-neutral-400 font-sports tracking-wider">
+                        <th className="py-3 px-3">Order Ref</th>
+                        <th className="py-3 px-3">Customer</th>
+                        <th className="py-3 px-3">Phone</th>
+                        <th className="py-3 px-3">Product & Size</th>
+                        <th className="py-3 px-3">Delivery Address</th>
+                        <th className="py-3 px-3">Amount</th>
+                        <th className="py-3 px-3">Status</th>
+                        <th className="py-3 px-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-800/60">
+                      {shopOrders.map((ord) => (
+                        <tr key={ord.id} className="hover:bg-neutral-800/30">
+                          <td className="py-3 px-3 font-mono font-bold text-amber-400">
+                            {ord.orderNumber}
+                          </td>
+                          <td className="py-3 px-3 font-semibold text-white">
+                            {ord.fullName}
+                          </td>
+                          <td className="py-3 px-3 font-mono text-neutral-300">
+                            {ord.phone}
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className="font-medium text-white">{ord.itemName}</span>
+                            <span className="ml-1.5 px-1.5 py-0.5 rounded bg-neutral-950 border border-neutral-800 text-amber-400 font-sports font-bold uppercase text-xxs">
+                              Size {ord.size}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-neutral-300 max-w-xs truncate">
+                            {ord.streetAddress}, {ord.city}
+                          </td>
+                          <td className="py-3 px-3 font-sports font-black text-emerald-400">
+                            {ord.amount.toLocaleString()} ETB
+                          </td>
+                          <td className="py-3 px-3">
+                            <span
+                              className={`px-2 py-0.5 rounded text-xxs font-bold uppercase tracking-wider ${
+                                ord.status === 'DELIVERED'
+                                  ? 'bg-blue-950 text-blue-400 border border-blue-800'
+                                  : ord.status === 'PAID'
+                                  ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                                  : 'bg-amber-950 text-amber-400 border border-amber-800'
+                              }`}
+                            >
+                              {ord.status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            {ord.status !== 'DELIVERED' ? (
+                              <button
+                                onClick={() => updateShopOrderStatus(ord.id, 'DELIVERED')}
+                                className="px-2.5 py-1 rounded bg-blue-900/60 hover:bg-blue-800 text-blue-200 text-xxs font-bold uppercase tracking-wider font-sports transition-colors"
+                              >
+                                Mark Delivered
+                              </button>
+                            ) : (
+                              <span className="text-xxs text-neutral-500 font-semibold">Complete</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SUBTAB 3: SUPPORTER DONATIONS */}
+          {shopSubTab === 'donations' && (
+            <div className="space-y-4">
+              {donations.length === 0 ? (
+                <div className="text-center py-12 bg-neutral-950 rounded-2xl border border-neutral-800 p-6 space-y-2">
+                  <Heart className="w-10 h-10 text-neutral-600 mx-auto fill-neutral-800" />
+                  <h4 className="font-sports font-bold text-lg text-white uppercase">No Donations Logged Yet</h4>
+                  <p className="text-xs text-neutral-400 max-w-sm mx-auto">
+                    When fans make contributions via the homepage Donate button, verified transactions will appear in this ledger.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs whitespace-nowrap">
+                    <thead>
+                      <tr className="border-b border-neutral-800 uppercase text-neutral-400 font-sports tracking-wider">
+                        <th className="py-3 px-3">Receipt / Ref</th>
+                        <th className="py-3 px-3">Donor Name</th>
+                        <th className="py-3 px-3">Phone</th>
+                        <th className="py-3 px-3">Amount</th>
+                        <th className="py-3 px-3">Purpose</th>
+                        <th className="py-3 px-3">Status</th>
+                        <th className="py-3 px-3">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-800/60">
+                      {donations.map((don) => (
+                        <tr key={don.id} className="hover:bg-neutral-800/30">
+                          <td className="py-3 px-3 font-mono font-bold text-amber-400">
+                            {don.donationNumber}
+                          </td>
+                          <td className="py-3 px-3 font-semibold text-white">
+                            {don.fullName}
+                          </td>
+                          <td className="py-3 px-3 font-mono text-neutral-300">
+                            {don.phone}
+                          </td>
+                          <td className="py-3 px-3 font-sports font-black text-emerald-400 text-sm">
+                            {don.amount.toLocaleString()} ETB
+                          </td>
+                          <td className="py-3 px-3 text-emerald-300">
+                            {don.purpose}
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className="px-2 py-0.5 rounded text-xxs font-bold uppercase tracking-wider bg-emerald-950 text-emerald-400 border border-emerald-800">
+                              {don.status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-neutral-400 text-xxs">
+                            {new Date(don.createdAt).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -1266,21 +1695,38 @@ export const AdminPage: React.FC = () => {
           </div>
 
           {/* Reset All Data Button */}
-          <div className="pt-4 border-t border-neutral-800 flex items-center justify-between">
+          <div className="pt-4 border-t border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <span className="text-xs text-neutral-400">
               Reset all club data, matches, news, and registrations back to defaults.
             </span>
-            <button
-              onClick={() => {
-                if (window.confirm('Reset all club data to default sample data?')) {
-                  resetAllDataToDefault();
-                }
-              }}
-              className="px-4 py-2 rounded-xl bg-red-950 hover:bg-red-900 text-red-300 border border-red-800 text-xs font-bold uppercase tracking-wider font-sports flex items-center gap-1.5 transition-colors"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Reset Everything</span>
-            </button>
+            {isConfirmResetOpen ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-red-300 font-bold">Confirm Reset?</span>
+                <button
+                  onClick={() => {
+                    resetAllDataToDefault();
+                    setIsConfirmResetOpen(false);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold uppercase tracking-wider font-sports transition-colors"
+                >
+                  Yes, Reset All
+                </button>
+                <button
+                  onClick={() => setIsConfirmResetOpen(false)}
+                  className="px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsConfirmResetOpen(true)}
+                className="px-4 py-2 rounded-xl bg-red-950 hover:bg-red-900 text-red-300 border border-red-800 text-xs font-bold uppercase tracking-wider font-sports flex items-center gap-1.5 transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Reset Everything</span>
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1422,9 +1868,10 @@ export const AdminPage: React.FC = () => {
                           const file = e.dataTransfer.files?.[0];
                           if (file) {
                             if (file.size > 5 * 1024 * 1024) {
-                              alert('File size exceeds 5MB limit. Please select a smaller photo file.');
+                              setNewsUploadError('File size exceeds 5MB limit. Please select a smaller photo file.');
                               return;
                             }
+                            setNewsUploadError(null);
                             const reader = new FileReader();
                             reader.onload = (loadEv) => {
                               if (loadEv.target?.result) {
@@ -1655,6 +2102,322 @@ export const AdminPage: React.FC = () => {
                   className="px-6 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold uppercase font-sports text-sm"
                 >
                   Save Fixture
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE / EDIT SHOP ITEM MODAL */}
+      {isShopModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-neutral-900 border border-neutral-700 w-full max-w-2xl rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto relative">
+            <div className="flex items-center justify-between pb-4 border-b border-neutral-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400">
+                  <ShoppingBag className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-sports font-black text-2xl text-white uppercase tracking-wider">
+                    {editingShopItemId ? 'Edit Shop Merchandise' : 'Add New Jersey / Product'}
+                  </h4>
+                  <p className="text-xs text-neutral-400">
+                    Product appears instantly in the official store with Chapa checkout.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsShopModalOpen(false)}
+                className="p-2 rounded-full bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveShopItem} className="space-y-4 text-xs">
+              {/* Product Name in 3 Languages */}
+              <div>
+                <label className="block font-bold text-neutral-300 uppercase tracking-wider mb-1.5">
+                  Product / Jersey Name (English) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={shopNameEn}
+                  onChange={(e) => setShopNameEn(e.target.value)}
+                  placeholder="e.g. Official 2026/27 Home Match Jersey"
+                  className="w-full px-3.5 py-2.5 bg-neutral-950 rounded-xl border border-neutral-800 text-white text-sm focus:outline-none focus:border-red-500 font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-neutral-300 uppercase tracking-wider mb-1.5">
+                    Product Name (Amharic - አማርኛ)
+                  </label>
+                  <input
+                    type="text"
+                    value={shopNameAm}
+                    onChange={(e) => setShopNameAm(e.target.value)}
+                    placeholder="ለምሳሌ፡ ይፋዊ የ2026/27 የሜዳ ማሊያ"
+                    className="w-full px-3.5 py-2 bg-neutral-950 rounded-xl border border-neutral-800 text-white text-xs sm:text-sm focus:outline-none focus:border-red-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-neutral-300 uppercase tracking-wider mb-1.5">
+                    Product Name (Afaan Oromo)
+                  </label>
+                  <input
+                    type="text"
+                    value={shopNameOm}
+                    onChange={(e) => setShopNameOm(e.target.value)}
+                    placeholder="fakkeenyaaf: Jeersii Seeraa 2026/27"
+                    className="w-full px-3.5 py-2 bg-neutral-950 rounded-xl border border-neutral-800 text-white text-xs sm:text-sm focus:outline-none focus:border-red-500"
+                  />
+                </div>
+              </div>
+
+              {/* Price & Category */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-neutral-300 uppercase tracking-wider mb-1.5">
+                    Price in Ethiopian Birr (ETB) *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      step="10"
+                      value={shopPrice}
+                      onChange={(e) => setShopPrice(e.target.value)}
+                      placeholder="1800"
+                      className="w-full pl-3.5 pr-14 py-2.5 bg-neutral-950 rounded-xl border border-neutral-800 text-white text-base font-sports font-bold focus:outline-none focus:border-emerald-500"
+                    />
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-400 font-sports">
+                      ETB
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-neutral-300 uppercase tracking-wider mb-1.5">
+                    Category *
+                  </label>
+                  <select
+                    value={shopCategory}
+                    onChange={(e) => setShopCategory(e.target.value as any)}
+                    className="w-full px-3.5 py-2.5 bg-neutral-950 rounded-xl border border-neutral-800 text-white text-sm focus:outline-none focus:border-red-500"
+                  >
+                    <option value="JERSEY">Match Jersey (Home / Away / Third)</option>
+                    <option value="KIT">Kits, Training & Jackets</option>
+                    <option value="ACCESSORY">Supporter Accessories & Scarves</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Available Sizes Picker */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="font-bold text-neutral-300 uppercase tracking-wider">
+                    Available Sizes * (Click to toggle)
+                  </label>
+                  <span className="text-xxs text-neutral-400">
+                    Selected: <strong className="text-amber-400">{shopSizes.join(', ') || 'None'}</strong>
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2 p-2.5 bg-neutral-950 rounded-xl border border-neutral-800">
+                  {['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', 'One Size'].map((size) => {
+                    const isSelected = shopSizes.includes(size);
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => handleToggleShopSize(size)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-sports font-bold uppercase transition-all ${
+                          isSelected
+                            ? 'bg-red-600 text-white shadow-md shadow-red-900/40 ring-1 ring-red-400'
+                            : 'bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Image URL & Preset Selection */}
+              <div className="space-y-2">
+                <label className="block font-bold text-neutral-300 uppercase tracking-wider">
+                  Product Image URL *
+                </label>
+                <div className="relative">
+                  <Link className="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    required
+                    value={shopImageUrl}
+                    onChange={(e) => setShopImageUrl(e.target.value)}
+                    placeholder="https://... image URL"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-neutral-950 rounded-xl border border-neutral-800 text-white text-xs sm:text-sm focus:outline-none focus:border-red-500"
+                  />
+                </div>
+
+                {/* Quick Preset Buttons for Official Kits */}
+                <div className="pt-1">
+                  <span className="text-xxs text-neutral-400 block mb-1 font-semibold uppercase">
+                    Quick Select Club Kits & Photos:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setShopImageUrl(ClubImages.homeJersey)}
+                      className="px-2.5 py-1 rounded-lg bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-red-400 text-xxs font-bold uppercase"
+                    >
+                      Official Home Kit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShopImageUrl(ClubImages.awayJersey)}
+                      className="px-2.5 py-1 rounded-lg bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-emerald-400 text-xxs font-bold uppercase"
+                    >
+                      Official Away Kit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShopImageUrl('https://images.unsplash.com/photo-1577212017184-80cc0da11082?auto=format&fit=crop&w=800&q=80')}
+                      className="px-2.5 py-1 rounded-lg bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-amber-400 text-xxs font-bold uppercase"
+                    >
+                      Onyx Third Kit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShopImageUrl('https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?auto=format&fit=crop&w=800&q=80')}
+                      className="px-2.5 py-1 rounded-lg bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 text-xxs font-bold uppercase"
+                    >
+                      Supporter Scarf
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShopImageUrl('https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=800&q=80')}
+                      className="px-2.5 py-1 rounded-lg bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-blue-400 text-xxs font-bold uppercase"
+                    >
+                      Anthem Jacket
+                    </button>
+                  </div>
+                </div>
+
+                {/* Attached Image Preview */}
+                {shopImageUrl && (
+                  <div className="mt-2 p-3 bg-neutral-950 rounded-2xl border border-neutral-800 flex items-center justify-between gap-3 animate-in fade-in">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img
+                        src={shopImageUrl}
+                        alt="Product preview"
+                        className="w-14 h-14 object-cover rounded-xl border border-neutral-700 shrink-0 bg-neutral-900"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            'https://images.unsplash.com/photo-1577212017184-80cc0da11082?auto=format&fit=crop&w=800&q=80';
+                        }}
+                      />
+                      <div className="min-w-0">
+                        <span className="text-xxs font-bold uppercase text-emerald-400 flex items-center gap-1 font-sports">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Image Loaded for Storefront</span>
+                        </span>
+                        <span className="text-xxs text-neutral-400 truncate block max-w-xs sm:max-w-md mt-0.5 font-mono">
+                          {shopImageUrl}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Description in English */}
+              <div>
+                <label className="block font-bold text-neutral-300 uppercase tracking-wider mb-1.5">
+                  Description (English) *
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={shopDescEn}
+                  onChange={(e) => setShopDescEn(e.target.value)}
+                  placeholder="Official breathable match jersey with embroidered crest..."
+                  className="w-full px-3.5 py-2.5 bg-neutral-950 rounded-xl border border-neutral-800 text-white text-xs sm:text-sm focus:outline-none focus:border-red-500 font-sans"
+                />
+              </div>
+
+              {/* Description in Amharic (Optional) */}
+              <div>
+                <label className="block font-bold text-neutral-300 uppercase tracking-wider mb-1.5">
+                  Description (Amharic - አማርኛ)
+                </label>
+                <textarea
+                  rows={2}
+                  value={shopDescAm}
+                  onChange={(e) => setShopDescAm(e.target.value)}
+                  placeholder="የማሊያው መግለጫ በአማርኛ..."
+                  className="w-full px-3.5 py-2.5 bg-neutral-950 rounded-xl border border-neutral-800 text-white text-xs sm:text-sm focus:outline-none focus:border-red-500 font-sans"
+                />
+              </div>
+
+              {/* Flags: In Stock & Featured */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <label className="flex items-center gap-3 p-3 rounded-xl bg-neutral-950 border border-neutral-800 cursor-pointer hover:border-neutral-700 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={shopInStock}
+                    onChange={(e) => setShopInStock(e.target.checked)}
+                    className="w-4 h-4 text-emerald-600 rounded bg-neutral-900 border-neutral-700 focus:ring-emerald-500"
+                  />
+                  <div>
+                    <span className="font-sports font-bold text-white uppercase block text-xs">
+                      Available In Stock
+                    </span>
+                    <span className="text-xxs text-neutral-400">
+                      Customers can click Buy Now
+                    </span>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-3 p-3 rounded-xl bg-neutral-950 border border-neutral-800 cursor-pointer hover:border-neutral-700 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={shopFeatured}
+                    onChange={(e) => setShopFeatured(e.target.checked)}
+                    className="w-4 h-4 text-red-600 rounded bg-neutral-900 border-neutral-700 focus:ring-red-500"
+                  />
+                  <div>
+                    <span className="font-sports font-bold text-white uppercase block text-xs">
+                      Feature on Homepage
+                    </span>
+                    <span className="text-xxs text-neutral-400">
+                      Show in top 3 store showcase
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-4 border-t border-neutral-800 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsShopModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-bold uppercase tracking-wider font-sports transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-emerald-600 hover:from-red-500 hover:to-emerald-500 text-white font-sports font-black text-sm uppercase tracking-wider shadow-lg shadow-red-950/50 flex items-center gap-2 transition-all hover:scale-[1.01]"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{editingShopItemId ? 'Save Changes' : 'Publish Product'}</span>
                 </button>
               </div>
             </form>

@@ -11,16 +11,29 @@ interface PendingTransaction {
   tx_ref: string;
   amount: number | string;
   tier: string;
+  type?: 'MEMBERSHIP' | 'SHOP_ORDER' | 'DONATION';
   fullName: string;
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
   cityOrRegion: string;
-  dateOfBirth: string;
+  dateOfBirth?: string;
   gender?: string;
-  preferredLanguage: string;
+  preferredLanguage?: string;
   photoUrl?: string;
+  shopOrderDetails?: {
+    itemId: string;
+    itemName: string;
+    size: string;
+    streetAddress: string;
+    city: string;
+    subcityOrRegion: string;
+  };
+  donationDetails?: {
+    purpose: string;
+    supporterName: string;
+  };
   status: 'PENDING' | 'SUCCESS' | 'FAILED';
   referenceNumber?: string;
   paymentMethod?: string;
@@ -50,14 +63,17 @@ async function startServer() {
 
   /**
    * POST /api/initialize-payment
-   * Initializes a Chapa transaction for membership registration.
-   * Explicitly passes the dynamic amount (200, 500, or 1000 ETB) directly into Chapa's payload.
+   * Initializes a Chapa transaction for membership, jersey shop checkout, or supporter donation.
+   * Explicitly passes the dynamic amount directly into Chapa's payload.
    */
   app.post('/api/initialize-payment', async (req: Request, res: Response) => {
     try {
       const {
         amount,
         tier,
+        type = 'MEMBERSHIP',
+        title,
+        description,
         fullName,
         phone,
         email,
@@ -66,13 +82,15 @@ async function startServer() {
         gender,
         preferredLanguage,
         photoUrl,
+        shopOrderDetails,
+        donationDetails,
         tx_ref: customTxRef,
       } = req.body;
 
-      if (!amount) {
+      if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
         return res.status(400).json({
           success: false,
-          error: 'Amount is required for Chapa payment initialization.',
+          error: 'A valid amount is required for payment initialization.',
         });
       }
 
@@ -94,10 +112,35 @@ async function startServer() {
         cleanPhone = cleanPhone; // Chapa accepts Ethiopian 09... or +2519...
       }
 
-      const txRef = customTxRef || `halaba-tx-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
-      const userEmail = email && email.includes('@') ? email.trim() : `member-${txRef.slice(-6)}@halabafc.et`;
+      const txPrefix = type === 'SHOP_ORDER' ? 'halaba-shop' : type === 'DONATION' ? 'halaba-donate' : 'halaba-tx';
+      const txRef = customTxRef || `${txPrefix}-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const userEmail = email && email.includes('@') ? email.trim() : `supporter-${txRef.slice(-6)}@halabafc.et`;
       const protocol = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
       const host = req.get('host') || `localhost:${PORT}`;
+
+      // Customization title and description based on transaction type
+      let paymentTitle = title;
+      let paymentDesc = description;
+
+      if (!paymentTitle) {
+        if (type === 'SHOP_ORDER') {
+          paymentTitle = `Halaba FC Shop: ${shopOrderDetails?.itemName || 'Jersey Order'}`;
+        } else if (type === 'DONATION') {
+          paymentTitle = 'Halaba City FC Supporter Donation';
+        } else {
+          paymentTitle = `Halaba FC ${tier || 'Official'} Membership`;
+        }
+      }
+
+      if (!paymentDesc) {
+        if (type === 'SHOP_ORDER') {
+          paymentDesc = `Merchandise order: ${shopOrderDetails?.itemName || 'Jersey'} (Size: ${shopOrderDetails?.size || 'Standard'}) - ${amount} ETB`;
+        } else if (type === 'DONATION') {
+          paymentDesc = `Club Donation: ${donationDetails?.purpose || 'General Club Support'} (${amount} ETB)`;
+        } else {
+          paymentDesc = `Membership registration fee (${amount} ETB)`;
+        }
+      }
 
       // Chapa payload with dynamic amount explicitly passed
       const chapaPayload = {
@@ -109,12 +152,12 @@ async function startServer() {
         phone_number: cleanPhone,
         tx_ref: txRef,
         callback_url: `${protocol}://${host}/api/verify-payment/${txRef}`,
-        return_url: `${protocol}://${host}/?tx_ref=${txRef}&payment_completed=true`,
-        'customization[title]': `Halaba FC ${tier || 'Official'} Membership`,
-        'customization[description]': `Membership registration fee (${amount} ETB)`,
+        return_url: `${protocol}://${host}/?tx_ref=${txRef}&payment_completed=true&payment_type=${type}`,
+        'customization[title]': paymentTitle,
+        'customization[description]': paymentDesc,
       };
 
-      console.log(`[Chapa Init] Initializing payment for tx_ref=${txRef}, amount=${amount} ETB, tier=${tier}`);
+      console.log(`[Chapa Init] Initializing ${type} payment for tx_ref=${txRef}, amount=${amount} ETB, customer=${fullName}`);
 
       let checkoutUrl: string = '';
       let isSandbox = false;
@@ -150,24 +193,27 @@ async function startServer() {
       }
 
       if (isSandbox) {
-        checkoutUrl = `/?chapa_modal=1&tx_ref=${txRef}&amount=${encodeURIComponent(String(amount))}&tier=${encodeURIComponent(tier || 'STANDARD')}`;
+        checkoutUrl = `/?chapa_modal=1&tx_ref=${txRef}&amount=${encodeURIComponent(String(amount))}&type=${encodeURIComponent(type)}&tier=${encodeURIComponent(tier || 'STANDARD')}`;
       }
 
-      // Store in pending transactions: NOT yet verified or registered
+      // Store in pending transactions
       const transactionRecord: PendingTransaction = {
         tx_ref: txRef,
         amount: String(amount),
         tier: tier || 'STANDARD',
+        type,
         fullName: fullName.trim(),
         firstName,
         lastName,
         email: userEmail,
         phone: cleanPhone,
-        cityOrRegion: cityOrRegion || 'Halaba',
+        cityOrRegion: cityOrRegion || shopOrderDetails?.city || 'Halaba',
         dateOfBirth: dateOfBirth || '',
         gender: gender || '',
         preferredLanguage: preferredLanguage || 'en',
         photoUrl: photoUrl || '',
+        shopOrderDetails,
+        donationDetails,
         status: 'PENDING',
         isSandbox,
         createdAt: new Date().toISOString(),
@@ -182,8 +228,9 @@ async function startServer() {
         tx_ref: txRef,
         amount: String(amount),
         tier: tier || 'STANDARD',
+        type,
         isSandbox,
-        message: 'Payment initialized successfully. Complete payment to verify registration.',
+        message: 'Payment initialized successfully. Complete payment to verify transaction.',
       });
     } catch (error: any) {
       console.error('[Error in /api/initialize-payment]:', error);
@@ -193,6 +240,7 @@ async function startServer() {
       });
     }
   });
+
 
   /**
    * GET & POST /api/verify-payment/:tx_ref
@@ -215,31 +263,64 @@ async function startServer() {
       });
     }
 
-    // If already verified
-    if (transaction.status === 'SUCCESS' && transaction.referenceNumber) {
-      return res.json({
+    const formatVerifiedPayload = (tx: PendingTransaction) => {
+      const type = tx.type || 'MEMBERSHIP';
+      return {
         verified: true,
         status: 'success',
-        referenceNumber: transaction.referenceNumber,
-        amount: transaction.amount,
-        tier: transaction.tier,
-        verifiedAt: transaction.verifiedAt,
-        member: {
-          fullName: transaction.fullName,
-          dateOfBirth: transaction.dateOfBirth,
-          gender: transaction.gender,
-          phone: transaction.phone,
-          email: transaction.email,
-          cityOrRegion: transaction.cityOrRegion,
-          membershipType: transaction.tier,
-          preferredLanguage: transaction.preferredLanguage,
-          photoUrl: transaction.photoUrl,
-          referenceNumber: transaction.referenceNumber,
-          amountPaid: transaction.amount,
-          tx_ref: transaction.tx_ref,
+        type,
+        referenceNumber: tx.referenceNumber,
+        amount: tx.amount,
+        tier: tx.tier,
+        verifiedAt: tx.verifiedAt,
+        order: type === 'SHOP_ORDER' ? {
+          orderNumber: tx.referenceNumber,
+          itemId: tx.shopOrderDetails?.itemId || 'item-unknown',
+          itemName: tx.shopOrderDetails?.itemName || 'Halaba Jersey',
+          size: tx.shopOrderDetails?.size || 'Standard',
+          amount: Number(tx.amount),
+          fullName: tx.fullName,
+          email: tx.email,
+          phone: tx.phone,
+          streetAddress: tx.shopOrderDetails?.streetAddress || '',
+          city: tx.shopOrderDetails?.city || tx.cityOrRegion,
+          subcityOrRegion: tx.shopOrderDetails?.subcityOrRegion || '',
+          status: 'PAID',
+          tx_ref: tx.tx_ref,
+          verifiedAt: tx.verifiedAt,
+        } : undefined,
+        donation: type === 'DONATION' ? {
+          donationNumber: tx.referenceNumber,
+          fullName: tx.fullName,
+          email: tx.email,
+          phone: tx.phone,
+          amount: Number(tx.amount),
+          purpose: tx.donationDetails?.purpose || 'General Club Support',
+          status: 'COMPLETED',
+          tx_ref: tx.tx_ref,
+          verifiedAt: tx.verifiedAt,
+        } : undefined,
+        member: type === 'MEMBERSHIP' ? {
+          fullName: tx.fullName,
+          dateOfBirth: tx.dateOfBirth,
+          gender: tx.gender,
+          phone: tx.phone,
+          email: tx.email,
+          cityOrRegion: tx.cityOrRegion,
+          membershipType: tx.tier,
+          preferredLanguage: tx.preferredLanguage,
+          photoUrl: tx.photoUrl,
+          referenceNumber: tx.referenceNumber,
+          amountPaid: tx.amount,
+          tx_ref: tx.tx_ref,
           status: 'APPROVED',
-        },
-      });
+        } : undefined,
+      };
+    };
+
+    // If already verified
+    if (transaction.status === 'SUCCESS' && transaction.referenceNumber) {
+      return res.json(formatVerifiedPayload(transaction));
     }
 
     // If live transaction through Chapa API, query Chapa verification
@@ -256,9 +337,14 @@ async function startServer() {
         console.log(`[Chapa Verify ${txRef}]:`, verifyJson);
 
         if (verifyRes.ok && verifyJson.status === 'success' && verifyJson.data?.status === 'success') {
-          // Payment confirmed by Chapa! Now finalize registration!
+          // Payment confirmed by Chapa!
           const randNum = Math.floor(1000 + Math.random() * 9000);
-          const refNumber = `HCFC-2026-M${randNum}`;
+          const type = transaction.type || 'MEMBERSHIP';
+          const refNumber = type === 'SHOP_ORDER'
+            ? `HCFC-SHOP-${randNum}`
+            : type === 'DONATION'
+            ? `HCFC-DON-${randNum}`
+            : `HCFC-2026-M${randNum}`;
 
           transaction.status = 'SUCCESS';
           transaction.referenceNumber = refNumber;
@@ -268,27 +354,7 @@ async function startServer() {
           pendingTransactions.set(txRef, transaction);
 
           return res.json({
-            verified: true,
-            status: 'success',
-            referenceNumber: refNumber,
-            amount: transaction.amount,
-            tier: transaction.tier,
-            verifiedAt: transaction.verifiedAt,
-            member: {
-              fullName: transaction.fullName,
-              dateOfBirth: transaction.dateOfBirth,
-              gender: transaction.gender,
-              phone: transaction.phone,
-              email: transaction.email,
-              cityOrRegion: transaction.cityOrRegion,
-              membershipType: transaction.tier,
-              preferredLanguage: transaction.preferredLanguage,
-              photoUrl: transaction.photoUrl,
-              referenceNumber: refNumber,
-              amountPaid: transaction.amount,
-              tx_ref: transaction.tx_ref,
-              status: 'APPROVED',
-            },
+            ...formatVerifiedPayload(transaction),
             message: 'Chapa payment successfully verified.',
           });
         } else {
@@ -308,11 +374,11 @@ async function startServer() {
     }
 
     // In sandbox or pending state:
-    // Registration must NOT be successful until verified!
     return res.json({
       verified: false,
       status: transaction.status.toLowerCase(),
       isSandbox: transaction.isSandbox,
+      type: transaction.type || 'MEMBERSHIP',
       message: 'Payment has not been completed or verified yet. Please complete the payment first.',
     });
   };
@@ -330,7 +396,6 @@ async function startServer() {
   /**
    * POST /api/complete-sandbox-payment
    * Simulates successful payment completion for sandbox/test environments
-   * Only after this is called does the transaction become verified and generate member ID!
    */
   app.post('/api/complete-sandbox-payment', (req: Request, res: Response) => {
     const { tx_ref, method } = req.body;
@@ -344,7 +409,12 @@ async function startServer() {
     }
 
     const randNum = Math.floor(1000 + Math.random() * 9000);
-    const refNumber = `HCFC-2026-M${randNum}`;
+    const type = transaction.type || 'MEMBERSHIP';
+    const refNumber = type === 'SHOP_ORDER'
+      ? `HCFC-SHOP-${randNum}`
+      : type === 'DONATION'
+      ? `HCFC-DON-${randNum}`
+      : `HCFC-2026-M${randNum}`;
 
     transaction.status = 'SUCCESS';
     transaction.referenceNumber = refNumber;
@@ -353,16 +423,44 @@ async function startServer() {
 
     pendingTransactions.set(tx_ref, transaction);
 
-    console.log(`[Sandbox Paid] Completed payment for ${tx_ref}, refNumber=${refNumber}, amount=${transaction.amount}`);
+    console.log(`[Sandbox Paid] Completed ${type} payment for ${tx_ref}, refNumber=${refNumber}, amount=${transaction.amount}`);
 
     return res.json({
       success: true,
       verified: true,
+      type,
       referenceNumber: refNumber,
       amount: transaction.amount,
       tier: transaction.tier,
       verifiedAt: transaction.verifiedAt,
-      member: {
+      order: type === 'SHOP_ORDER' ? {
+        orderNumber: refNumber,
+        itemId: transaction.shopOrderDetails?.itemId || 'item-unknown',
+        itemName: transaction.shopOrderDetails?.itemName || 'Halaba Jersey',
+        size: transaction.shopOrderDetails?.size || 'Standard',
+        amount: Number(transaction.amount),
+        fullName: transaction.fullName,
+        email: transaction.email,
+        phone: transaction.phone,
+        streetAddress: transaction.shopOrderDetails?.streetAddress || '',
+        city: transaction.shopOrderDetails?.city || transaction.cityOrRegion,
+        subcityOrRegion: transaction.shopOrderDetails?.subcityOrRegion || '',
+        status: 'PAID',
+        tx_ref: transaction.tx_ref,
+        verifiedAt: transaction.verifiedAt,
+      } : undefined,
+      donation: type === 'DONATION' ? {
+        donationNumber: refNumber,
+        fullName: transaction.fullName,
+        email: tx_ref ? transaction.email : undefined,
+        phone: transaction.phone,
+        amount: Number(transaction.amount),
+        purpose: transaction.donationDetails?.purpose || 'General Club Support',
+        status: 'COMPLETED',
+        tx_ref: transaction.tx_ref,
+        verifiedAt: transaction.verifiedAt,
+      } : undefined,
+      member: type === 'MEMBERSHIP' ? {
         fullName: transaction.fullName,
         dateOfBirth: transaction.dateOfBirth,
         gender: transaction.gender,
@@ -376,7 +474,7 @@ async function startServer() {
         amountPaid: transaction.amount,
         tx_ref: transaction.tx_ref,
         status: 'APPROVED',
-      },
+      } : undefined,
       message: 'Sandbox payment completed and verified.',
     });
   });
@@ -394,11 +492,67 @@ async function startServer() {
     return res.json({
       found: true,
       status: transaction.status,
+      type: transaction.type || 'MEMBERSHIP',
       amount: transaction.amount,
       tier: transaction.tier,
       isSandbox: transaction.isSandbox,
       referenceNumber: transaction.referenceNumber,
     });
+  });
+
+  /**
+   * GET /api/shop-orders
+   * Retrieves all jersey & merchandise transactions
+   */
+  app.get('/api/shop-orders', (_req: Request, res: Response) => {
+    const orders: any[] = [];
+    pendingTransactions.forEach((tx) => {
+      if (tx.type === 'SHOP_ORDER' || tx.shopOrderDetails) {
+        orders.push({
+          orderNumber: tx.referenceNumber || tx.tx_ref,
+          itemId: tx.shopOrderDetails?.itemId || 'unknown',
+          itemName: tx.shopOrderDetails?.itemName || 'Halaba FC Jersey',
+          size: tx.shopOrderDetails?.size || 'Standard',
+          amount: Number(tx.amount),
+          fullName: tx.fullName,
+          email: tx.email,
+          phone: tx.phone,
+          streetAddress: tx.shopOrderDetails?.streetAddress || '',
+          city: tx.shopOrderDetails?.city || tx.cityOrRegion,
+          subcityOrRegion: tx.shopOrderDetails?.subcityOrRegion || '',
+          status: tx.status === 'SUCCESS' ? 'PAID' : 'PENDING',
+          tx_ref: tx.tx_ref,
+          createdAt: tx.createdAt,
+          verifiedAt: tx.verifiedAt,
+        });
+      }
+    });
+    return res.json({ success: true, count: orders.length, orders });
+  });
+
+  /**
+   * GET /api/donations
+   * Retrieves all supporter donations
+   */
+  app.get('/api/donations', (_req: Request, res: Response) => {
+    const donations: any[] = [];
+    pendingTransactions.forEach((tx) => {
+      if (tx.type === 'DONATION' || tx.donationDetails) {
+        donations.push({
+          donationNumber: tx.referenceNumber || tx.tx_ref,
+          fullName: tx.fullName,
+          email: tx.email,
+          phone: tx.phone,
+          amount: Number(tx.amount),
+          purpose: tx.donationDetails?.purpose || 'General Club Support',
+          status: tx.status === 'SUCCESS' ? 'COMPLETED' : 'PENDING',
+          tx_ref: tx.tx_ref,
+          createdAt: tx.createdAt,
+          verifiedAt: tx.verifiedAt,
+        });
+      }
+    });
+    return res.json({ success: true, count: donations.length, donations });
   });
 
   // Vite Integration

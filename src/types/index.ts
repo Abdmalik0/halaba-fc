@@ -183,3 +183,58 @@ export interface StaffMember {
   department: 'Coaching' | 'Medical' | 'Management';
   nationality: string;
 }
+
+export interface ShopItem {
+  id: string;
+  name: {
+    en: string;
+    am: string;
+    om: string;
+  } | string;
+  description: {
+    en: string;
+    am: string;
+    om: string;
+  } | string;
+  price: number; // in ETB
+  imageUrl: string;
+  availableSizes: string[];
+  category?: 'JERSEY' | 'KIT' | 'ACCESSORY';
+  inStock?: boolean;
+  featured?: boolean;
+}
+
+export interface ShopOrder {
+  id: string;
+  orderNumber: string;
+  itemId: string;
+  itemName: string;
+  size: string;
+  amount: number;
+  fullName: string;
+  email: string;
+  phone: string;
+  streetAddress: string;
+  city: string;
+  subcityOrRegion: string;
+  createdAt: string;
+  status: 'PENDING' | 'PAID' | 'DELIVERED';
+  tx_ref: string;
+  paymentMethod?: string;
+  verifiedAt?: string;
+}
+
+export interface DonationRecord {
+  id: string;
+  donationNumber: string;
+  fullName: string;
+  email?: string;
+  phone: string;
+  amount: number;
+  purpose: string;
+  tx_ref: string;
+  createdAt: string;
+  status: 'PENDING' | 'COMPLETED';
+  verifiedAt?: string;
+}
+
