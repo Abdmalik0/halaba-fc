@@ -5,7 +5,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig(({ command }) => {
   return {
-    base: process.env.BASE_PATH || '/',
+    base: process.env.BASE_PATH || '/halaba-fc/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
