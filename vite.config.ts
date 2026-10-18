@@ -3,9 +3,9 @@ import react from '@vitejs/plugin-react';
 import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 
-export default defineConfig(({ command }) => {
+export default defineConfig(() => {
   return {
-    base: command === 'build' ? '/halaba-fc/' : '/', // Required for GitHub Pages build
+    base: '/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
@@ -15,6 +15,7 @@ export default defineConfig(({ command }) => {
     server: {
       port: 3000,
       host: '0.0.0.0',
+      allowedHosts: true as const,
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },

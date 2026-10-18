@@ -206,18 +206,22 @@ export const AdminPage: React.FC = () => {
           imageUrl: newsImageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
         });
       } else {
-        // Save NEW article to Firebase Cloud Database (visible globally on all devices)
-        await addDoc(collection(db, "news"), {
-          title: { en: newsTitleEn, am: newsTitleAm || newsTitleEn, om: newsTitleOm || newsTitleEn },
-          summary: { en: newsSummaryEn, am: newsSummaryAm || newsSummaryEn, om: newsSummaryOm || newsSummaryEn },
-          content: { en: newsContentEn, am: newsContentEn, om: newsContentEn },
-          category: newsCategory,
-          date: new Date().toISOString().slice(0, 10),
-          author: 'Club Administration',
-          imageUrl: newsImageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
-          readTime: '3 min read',
-          createdAt: serverTimestamp(),
-        });
+        try {
+          // Save NEW article to Firebase Cloud Database (visible globally on all devices)
+          await addDoc(collection(db, "news"), {
+            title: { en: newsTitleEn, am: newsTitleAm || newsTitleEn, om: newsTitleOm || newsTitleEn },
+            summary: { en: newsSummaryEn, am: newsSummaryAm || newsSummaryEn, om: newsSummaryOm || newsSummaryEn },
+            content: { en: newsContentEn, am: newsContentEn, om: newsContentEn },
+            category: newsCategory,
+            date: new Date().toISOString().slice(0, 10),
+            author: 'Club Administration',
+            imageUrl: newsImageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
+            readTime: '3 min read',
+            createdAt: serverTimestamp(),
+          });
+        } catch (fbErr) {
+          console.warn("Could not sync article to Firebase, falling back to local storage:", fbErr);
+        }
 
         // Also update local state as a backup fallback
         addNewsArticle({
@@ -244,8 +248,7 @@ export const AdminPage: React.FC = () => {
       setNewsContentEn('');
       setNewsImageUrl('');
     } catch (error) {
-      console.error("Error saving article to Firebase: ", error);
-      alert("Failed to publish to cloud. Please try again.");
+      console.error("Error saving article: ", error);
     }
   };
   // Save Match

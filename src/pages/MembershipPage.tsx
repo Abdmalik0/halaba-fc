@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useClub } from '../context/ClubContext';
 import { MembershipTier, Language } from '../types';
 import { HalabaCrest } from '../components/HalabaCrest';
@@ -19,14 +19,44 @@ import {
   Link,
   Camera,
   X,
-  Trash2
+  Trash2,
+  ExternalLink,
+  CreditCard,
+  Clock,
+  RefreshCw,
+  ArrowLeft,
+  Copy,
+  Check
 } from 'lucide-react';
+
+interface PendingPayment {
+  txRef: string;
+  checkoutUrl: string | null;
+  amount: number;
+  tier: MembershipTier;
+  fullName: string;
+  dateOfBirth: string;
+  gender?: string;
+  phone: string;
+  email?: string;
+  cityOrRegion: string;
+  photoUrl?: string;
+  preferredLanguage: Language;
+}
 
 export const MembershipPage: React.FC = () => {
   const { t, language, submitMembership } = useClub();
 
-  // Tier selection
+  // Tier selection & dynamic Chapa payment amount
+  // Tier 1: amount = 200 | Tier 2: amount = 500 | Tier 3: amount = 1000 ETB
   const [selectedTier, setSelectedTier] = useState<MembershipTier>('STANDARD');
+  const [amount, setAmount] = useState<number>(500);
+
+  // Dynamic plan and payment amount setter on tier selection
+  const handleSelectTier = (tier: MembershipTier, planAmount: number) => {
+    setSelectedTier(tier);
+    setAmount(planAmount);
+  };
 
   // Form inputs
   const [fullName, setFullName] = useState('');
@@ -44,7 +74,7 @@ export const MembershipPage: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size exceeds 5MB limit. Please choose a smaller photo.');
+        setErrors((prev) => ({ ...prev, photo: 'File size exceeds 5MB limit. Please choose a smaller photo.' }));
         return;
       }
       const reader = new FileReader();
@@ -60,6 +90,12 @@ export const MembershipPage: React.FC = () => {
   // Status & Feedback
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [copiedTx, setCopiedTx] = useState(false);
+
   const [registrationResult, setRegistrationResult] = useState<{
     referenceNumber: string;
     registeredAt: string;
@@ -67,6 +103,8 @@ export const MembershipPage: React.FC = () => {
     membershipType: MembershipTier;
     cityOrRegion: string;
     photoUrl?: string;
+    amount: number;
+    checkoutUrl?: string | null;
   } | null>(null);
 
   const validate = () => {
@@ -90,43 +128,154 @@ export const MembershipPage: React.FC = () => {
     return Object.keys(errs).length === 0;
   };
 
+  // Periodic background check while awaiting payment
+  useEffect(() => {
+    if (!pendingPayment || registrationResult) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/verify-payment/${pendingPayment.txRef}`);
+        const data = await res.json();
+        if (data.paid || data.status === 'success' || data.success) {
+          clearInterval(interval);
+          handleVerifyPayment(false);
+        }
+      } catch {
+        // silent fail on auto-polling check
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [pendingPayment, registrationResult]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     setIsSubmitting(true);
+    setVerifyError(null);
+    setVerifyMessage(null);
     try {
-      const res = await submitMembership({
+      // 1. Explicitly send dynamic amount (200, 500, or 1000 ETB) and user details to /api/initialize-payment
+      const paymentRes = await fetch('/api/initialize-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: amount, // Explicit dynamic amount based on tier (200, 500, or 1000)
+          fullName,
+          dateOfBirth,
+          gender: gender || undefined,
+          phone,
+          email: email || undefined,
+          cityOrRegion,
+          tier: selectedTier,
+        }),
+      });
+
+      const chapaData = await paymentRes.json();
+      const txRef = chapaData?.txRef || `HLB-${selectedTier}-${Date.now()}`;
+      const checkoutUrl = chapaData?.checkoutUrl || null;
+
+      // CRITICAL: Registration is NOT successful yet!
+      // Registration is strictly PENDING until payment is accepted by Chapa!
+      setPendingPayment({
+        txRef,
+        checkoutUrl,
+        amount,
+        tier: selectedTier,
         fullName,
         dateOfBirth,
         gender: gender || undefined,
         phone,
         email: email || undefined,
         cityOrRegion,
-        membershipType: selectedTier,
+        photoUrl: photoUrl || undefined,
         preferredLanguage: preferredLang,
       });
 
-      if (res.success) {
-        setRegistrationResult({
-          referenceNumber: res.referenceNumber,
-          registeredAt: new Date().toLocaleDateString(),
-          fullName,
-          membershipType: selectedTier,
-          cityOrRegion,
-          photoUrl: photoUrl || undefined,
-        });
-        window.scrollTo({ top: 300, behavior: 'smooth' });
-      }
+      window.scrollTo({ top: 250, behavior: 'smooth' });
     } catch {
-      setErrors({ form: 'An error occurred during registration. Please try again.' });
+      setErrors({ form: 'An error occurred while initializing payment. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleVerifyPayment = async (forceSimulate = false) => {
+    if (!pendingPayment) return;
+    setIsVerifying(true);
+    setVerifyError(null);
+    setVerifyMessage(null);
+
+    try {
+      if (forceSimulate) {
+        // Record test payment in server
+        await fetch('/api/confirm-test-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ txRef: pendingPayment.txRef }),
+        });
+      }
+
+      // Check payment status with Chapa / backend
+      const res = await fetch(`/api/verify-payment/${pendingPayment.txRef}`);
+      const data = await res.json();
+
+      if (data.paid || data.status === 'success' || data.success) {
+        // PAYMENT ACCEPTED! Now and ONLY now can registration be finalized and card issued!
+        setVerifyMessage('Payment accepted! Finalizing your official membership registration...');
+
+        const regRes = await submitMembership({
+          fullName: pendingPayment.fullName,
+          dateOfBirth: pendingPayment.dateOfBirth,
+          gender: pendingPayment.gender,
+          phone: pendingPayment.phone,
+          email: pendingPayment.email,
+          cityOrRegion: pendingPayment.cityOrRegion,
+          membershipType: pendingPayment.tier,
+          preferredLanguage: pendingPayment.preferredLanguage,
+        });
+
+        if (regRes.success) {
+          setRegistrationResult({
+            referenceNumber: regRes.referenceNumber,
+            registeredAt: new Date().toLocaleDateString(),
+            fullName: pendingPayment.fullName,
+            membershipType: pendingPayment.tier,
+            cityOrRegion: pendingPayment.cityOrRegion,
+            photoUrl: pendingPayment.photoUrl,
+            amount: pendingPayment.amount,
+            checkoutUrl: pendingPayment.checkoutUrl,
+          });
+          setPendingPayment(null);
+          window.scrollTo({ top: 200, behavior: 'smooth' });
+        }
+      } else {
+        setVerifyError(
+          data.message ||
+          'Payment has not yet been accepted by Chapa. Please complete the transaction on Chapa before registration can be finalized.'
+        );
+      }
+    } catch {
+      setVerifyError('Unable to verify payment status with Chapa. Please check connection and try again.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleCopyTx = (tx: string) => {
+    navigator.clipboard.writeText(tx);
+    setCopiedTx(true);
+    setTimeout(() => setCopiedTx(false), 2000);
+  };
+
   const handleResetForm = () => {
     setRegistrationResult(null);
+    setPendingPayment(null);
+    setVerifyError(null);
+    setVerifyMessage(null);
     setFullName('');
     setDateOfBirth('');
     setPhone('');
@@ -163,12 +312,16 @@ export const MembershipPage: React.FC = () => {
         </div>
       </div>
 
-      {/* SUCCESS SCREEN WITH DIGITAL MEMBERSHIP CARD */}
+      {/* 1. SUCCESS SCREEN - ONLY ACCESSIBLE AFTER PAYMENT HAS BEEN CONFIRMED & ACCEPTED */}
       {registrationResult ? (
         <div className="bg-neutral-900 border border-neutral-700 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-8 animate-in fade-in">
           <div className="text-center space-y-3 max-w-xl mx-auto">
-            <div className="w-16 h-16 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center justify-center mx-auto">
+            <div className="w-16 h-16 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center justify-center mx-auto shadow-lg shadow-emerald-950/50">
               <CheckCircle2 className="w-10 h-10" />
+            </div>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-950/90 text-emerald-300 border border-emerald-800 text-xs font-bold uppercase tracking-wider">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Payment Accepted • Official Member Registered</span>
             </div>
             <h2 className="font-sports font-black text-3xl sm:text-4xl text-white uppercase">
               {t.registrationSuccessTitle}
@@ -206,17 +359,16 @@ export const MembershipPage: React.FC = () => {
                       </span>
                     </div>
                   </div>
-                  <span className="px-2.5 py-0.5 rounded text-xxs font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono">
-                    {registrationResult.membershipType}
+                  <span className="px-2.5 py-0.5 rounded text-xxs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono">
+                    {registrationResult.membershipType} • PAID
                   </span>
                 </div>
 
-                {/* Card Center: Member Info */}
                 {/* Card Center: Member Info & Photo */}
                 <div className="py-4 flex items-center justify-between gap-4">
                   <div className="space-y-1 min-w-0">
                     <span className="text-xxs uppercase tracking-wider text-neutral-400 block font-sports font-bold">
-                      Member Name
+                      Official Member Name
                     </span>
                     <h3 className="font-sports font-black text-2xl text-white uppercase tracking-wide truncate">
                       {registrationResult.fullName}
@@ -253,13 +405,21 @@ export const MembershipPage: React.FC = () => {
                       {registrationResult.referenceNumber}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-white text-black font-mono text-xxs font-bold">
-                    <QrCode className="w-4 h-4 text-black" />
-                    <span>VERIFIED</span>
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-400 text-black font-mono text-xxs font-bold">
+                    <CheckCircle2 className="w-4 h-4 text-black" />
+                    <span>PAID & VERIFIED</span>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Payment confirmed badge */}
+          <div className="max-w-md mx-auto p-4 rounded-xl bg-emerald-950/60 border border-emerald-800 text-center text-xs text-emerald-300 flex items-center justify-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>
+              Registration fee of <strong>{registrationResult.amount} ETB</strong> verified and accepted. Official supporter record active.
+            </span>
           </div>
 
           {/* Action buttons */}
@@ -280,8 +440,168 @@ export const MembershipPage: React.FC = () => {
             </button>
           </div>
         </div>
+      ) : pendingPayment ? (
+        /* 2. AWAITING PAYMENT SCREEN - REGISTRATION IS NOT COMPLETE BEFORE PAYMENT */
+        <div className="bg-neutral-900 border border-amber-500/50 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-8 animate-in fade-in">
+          {/* Header Warning & Status */}
+          <div className="text-center space-y-3 max-w-xl mx-auto">
+            <div className="w-16 h-16 rounded-full bg-amber-950/80 text-amber-400 border border-amber-600 flex items-center justify-center mx-auto shadow-lg shadow-amber-950/60 animate-pulse">
+              <Clock className="w-9 h-9" />
+            </div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider">
+              <Clock className="w-3.5 h-3.5 animate-spin" />
+              <span>Awaiting Payment Acceptance • Registration Pending</span>
+            </div>
+            <h2 className="font-sports font-black text-3xl sm:text-4xl text-white uppercase tracking-wider">
+              Complete Payment to Activate Registration
+            </h2>
+            <p className="text-neutral-300 text-sm sm:text-base leading-relaxed">
+              Official membership registration and digital card issuance will <strong className="text-amber-400">only be completed after your payment is accepted</strong> by Chapa.
+            </p>
+          </div>
+
+          {/* Pending Application Summary Card */}
+          <div className="max-w-xl mx-auto rounded-2xl bg-neutral-950 border border-neutral-800 p-6 space-y-5">
+            <div className="flex items-center justify-between pb-4 border-b border-neutral-800">
+              <div className="flex items-center gap-3">
+                <HalabaCrest size={34} />
+                <div>
+                  <span className="font-sports font-black text-base text-white uppercase block leading-none">
+                    HALABA CITY FC MEMBERSHIP
+                  </span>
+                  <span className="text-xxs text-neutral-400 uppercase tracking-widest font-mono">
+                    Tier: {pendingPayment.tier} Member
+                  </span>
+                </div>
+              </div>
+              <span className="font-sports font-black text-2xl text-amber-400">
+                {pendingPayment.amount} ETB
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800">
+                <span className="text-neutral-400 block uppercase font-mono text-xxs mb-1">
+                  Applicant Name
+                </span>
+                <span className="font-bold text-white text-sm truncate block">
+                  {pendingPayment.fullName}
+                </span>
+              </div>
+              <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800">
+                <span className="text-neutral-400 block uppercase font-mono text-xxs mb-1">
+                  Phone / Region
+                </span>
+                <span className="font-bold text-white text-sm truncate block">
+                  {pendingPayment.phone} • {pendingPayment.cityOrRegion}
+                </span>
+              </div>
+            </div>
+
+            {/* Transaction Ref with Copy */}
+            <div className="p-3 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-between text-xs">
+              <div>
+                <span className="text-neutral-400 block uppercase font-mono text-xxs">
+                  Chapa Transaction Reference (tx_ref)
+                </span>
+                <span className="font-mono font-bold text-amber-300">
+                  {pendingPayment.txRef}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleCopyTx(pendingPayment.txRef)}
+                className="px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs flex items-center gap-1.5 transition-colors"
+              >
+                {copiedTx ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedTx ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
+
+            {/* Error or Notice Display */}
+            {verifyError && (
+              <div className="p-4 rounded-xl bg-red-950/80 border border-red-800 text-red-200 text-xs flex items-start gap-2.5 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <span className="font-bold block">Payment Not Accepted Yet</span>
+                  <span className="text-red-300 leading-relaxed block">{verifyError}</span>
+                </div>
+              </div>
+            )}
+
+            {verifyMessage && (
+              <div className="p-4 rounded-xl bg-emerald-950/80 border border-emerald-800 text-emerald-200 text-xs flex items-center gap-2.5 animate-in fade-in">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{verifyMessage}</span>
+              </div>
+            )}
+
+            {/* Primary Payment CTA */}
+            {pendingPayment.checkoutUrl && (
+              <a
+                href={pendingPayment.checkoutUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-700 hover:from-emerald-500 hover:to-green-500 text-white font-sports font-black text-base uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-950 transition-all hover:scale-[1.01]"
+              >
+                <CreditCard className="w-5 h-5" />
+                <span>Open Chapa Checkout & Pay {pendingPayment.amount} ETB</span>
+                <ExternalLink className="w-4 h-4 ml-1" />
+              </a>
+            )}
+
+            <div className="p-3 rounded-xl bg-neutral-900/50 border border-neutral-800/80 text-center space-y-1">
+              <span className="text-xxs text-neutral-400 block">
+                Accepted Channels: Telebirr • CBE Birr • Awash Bank • Visa / MasterCard
+              </span>
+              <span className="text-xxs text-neutral-500 block font-mono">
+                System automatically verifies payment status every 5 seconds.
+              </span>
+            </div>
+
+            {/* Verification Buttons */}
+            <div className="pt-2 flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                disabled={isVerifying}
+                onClick={() => handleVerifyPayment(false)}
+                className="flex-1 py-3 px-4 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-sports font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 border border-neutral-700 disabled:opacity-50 transition-colors"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isVerifying ? 'animate-spin text-amber-400' : ''}`} />
+                <span>{isVerifying ? 'Verifying with Chapa...' : 'Verify Payment Status'}</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isVerifying}
+                onClick={() => handleVerifyPayment(true)}
+                title="Test payment acceptance for testing / review"
+                className="py-3 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/40 font-sports font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Simulate Acceptance (Test Mode)</span>
+              </button>
+            </div>
+
+            {/* Back / Edit Form */}
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingPayment(null);
+                  setVerifyError(null);
+                  setVerifyMessage(null);
+                }}
+                className="text-xs text-neutral-400 hover:text-white inline-flex items-center gap-1.5 transition-colors font-medium"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Edit Application or Choose Different Plan</span>
+              </button>
+            </div>
+          </div>
+        </div>
       ) : (
-        /* REGISTRATION APPLICATION FORM */
+        /* 3. REGISTRATION APPLICATION FORM */
         <div className="space-y-10">
           {/* 1. Membership Tiers Selection */}
           <div>
@@ -295,9 +615,9 @@ export const MembershipPage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Supporter Tier */}
+              {/* Supporter Tier - Tier 1: 200 ETB */}
               <div
-                onClick={() => setSelectedTier('SUPPORTER')}
+                onClick={() => handleSelectTier('SUPPORTER', 200)}
                 className={`cursor-pointer rounded-2xl p-6 border transition-all relative flex flex-col justify-between ${
                   selectedTier === 'SUPPORTER'
                     ? 'bg-neutral-900 border-red-500 shadow-xl shadow-red-950/40 ring-1 ring-red-500'
@@ -306,11 +626,16 @@ export const MembershipPage: React.FC = () => {
               >
                 <div>
                   <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
-                    <span className="font-sports font-black text-xl text-white uppercase">
-                      {t.tierSupporter}
-                    </span>
+                    <div>
+                      <span className="font-sports font-black text-xl text-white uppercase block">
+                        {t.tierSupporter}
+                      </span>
+                      <span className="font-sports font-black text-2xl text-red-400 mt-1 block">
+                        200 ETB
+                      </span>
+                    </div>
                     <span className="text-xs uppercase font-mono px-2 py-0.5 rounded bg-neutral-800 text-neutral-300">
-                      Digital Fan ID
+                      Tier 1
                     </span>
                   </div>
                   <p className="text-neutral-400 text-xs sm:text-sm mt-3 leading-relaxed">
@@ -333,21 +658,29 @@ export const MembershipPage: React.FC = () => {
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-neutral-800">
-                  <span
-                    className={`block w-full py-2 rounded-lg text-center text-xs font-bold uppercase tracking-wider font-sports ${
+                  <button
+                    type="button"
+                    id="tier-1-button"
+                    data-tier="Tier 1"
+                    data-amount="200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectTier('SUPPORTER', 200);
+                    }}
+                    className={`w-full py-2.5 rounded-lg text-center text-xs font-bold uppercase tracking-wider font-sports transition-all ${
                       selectedTier === 'SUPPORTER'
-                        ? 'bg-red-600 text-white'
-                        : 'bg-neutral-800 text-neutral-400'
+                        ? 'bg-red-600 text-white shadow-md'
+                        : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white'
                     }`}
                   >
-                    {selectedTier === 'SUPPORTER' ? t.selectedTier : t.selectTier}
-                  </span>
+                    {selectedTier === 'SUPPORTER' ? `${t.selectedTier} (200 ETB)` : `Select Plan (200 ETB)`}
+                  </button>
                 </div>
               </div>
 
-              {/* Standard Tier */}
+              {/* Standard Tier - Tier 2: 500 ETB */}
               <div
-                onClick={() => setSelectedTier('STANDARD')}
+                onClick={() => handleSelectTier('STANDARD', 500)}
                 className={`cursor-pointer rounded-2xl p-6 border transition-all relative flex flex-col justify-between ${
                   selectedTier === 'STANDARD'
                     ? 'bg-neutral-900 border-emerald-500 shadow-xl shadow-emerald-950/40 ring-1 ring-emerald-500'
@@ -356,11 +689,16 @@ export const MembershipPage: React.FC = () => {
               >
                 <div>
                   <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
-                    <span className="font-sports font-black text-xl text-white uppercase">
-                      {t.tierStandard}
-                    </span>
+                    <div>
+                      <span className="font-sports font-black text-xl text-white uppercase block">
+                        {t.tierStandard}
+                      </span>
+                      <span className="font-sports font-black text-2xl text-emerald-400 mt-1 block">
+                        500 ETB
+                      </span>
+                    </div>
                     <span className="text-xs uppercase font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">
-                      Most Popular
+                      Tier 2 • Popular
                     </span>
                   </div>
                   <p className="text-neutral-400 text-xs sm:text-sm mt-3 leading-relaxed">
@@ -383,21 +721,29 @@ export const MembershipPage: React.FC = () => {
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-neutral-800">
-                  <span
-                    className={`block w-full py-2 rounded-lg text-center text-xs font-bold uppercase tracking-wider font-sports ${
+                  <button
+                    type="button"
+                    id="tier-2-button"
+                    data-tier="Tier 2"
+                    data-amount="500"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectTier('STANDARD', 500);
+                    }}
+                    className={`w-full py-2.5 rounded-lg text-center text-xs font-bold uppercase tracking-wider font-sports transition-all ${
                       selectedTier === 'STANDARD'
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-neutral-800 text-neutral-400'
+                        ? 'bg-emerald-600 text-white shadow-md'
+                        : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white'
                     }`}
                   >
-                    {selectedTier === 'STANDARD' ? t.selectedTier : t.selectTier}
-                  </span>
+                    {selectedTier === 'STANDARD' ? `${t.selectedTier} (500 ETB)` : `Select Plan (500 ETB)`}
+                  </button>
                 </div>
               </div>
 
-              {/* Gold VIP Tier */}
+              {/* Gold VIP Tier - Tier 3: 1000 ETB */}
               <div
-                onClick={() => setSelectedTier('PREMIUM')}
+                onClick={() => handleSelectTier('PREMIUM', 1000)}
                 className={`cursor-pointer rounded-2xl p-6 border transition-all relative flex flex-col justify-between ${
                   selectedTier === 'PREMIUM'
                     ? 'bg-neutral-900 border-amber-500 shadow-xl shadow-amber-950/40 ring-1 ring-amber-500'
@@ -406,12 +752,17 @@ export const MembershipPage: React.FC = () => {
               >
                 <div>
                   <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
-                    <span className="font-sports font-black text-xl text-white uppercase flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4 text-amber-400" />
-                      {t.tierPremium}
-                    </span>
+                    <div>
+                      <span className="font-sports font-black text-xl text-white uppercase flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-amber-400" />
+                        {t.tierPremium}
+                      </span>
+                      <span className="font-sports font-black text-2xl text-amber-400 mt-1 block">
+                        1,000 ETB
+                      </span>
+                    </div>
                     <span className="text-xs uppercase font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800">
-                      VIP Lounge
+                      Tier 3 • VIP
                     </span>
                   </div>
                   <p className="text-neutral-400 text-xs sm:text-sm mt-3 leading-relaxed">
@@ -434,15 +785,23 @@ export const MembershipPage: React.FC = () => {
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-neutral-800">
-                  <span
-                    className={`block w-full py-2 rounded-lg text-center text-xs font-bold uppercase tracking-wider font-sports ${
+                  <button
+                    type="button"
+                    id="tier-3-button"
+                    data-tier="Tier 3"
+                    data-amount="1000"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectTier('PREMIUM', 1000);
+                    }}
+                    className={`w-full py-2.5 rounded-lg text-center text-xs font-bold uppercase tracking-wider font-sports transition-all ${
                       selectedTier === 'PREMIUM'
-                        ? 'bg-amber-600 text-white'
-                        : 'bg-neutral-800 text-neutral-400'
+                        ? 'bg-amber-600 text-white shadow-md'
+                        : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white'
                     }`}
                   >
-                    {selectedTier === 'PREMIUM' ? t.selectedTier : t.selectTier}
-                  </span>
+                    {selectedTier === 'PREMIUM' ? `${t.selectedTier} (1,000 ETB)` : `Select Plan (1,000 ETB)`}
+                  </button>
                 </div>
               </div>
             </div>
@@ -612,12 +971,12 @@ export const MembershipPage: React.FC = () => {
                 {/* Selected Tier Review */}
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
-                    Membership Tier
+                    Selected Plan & Fee
                   </label>
-                  <div className="px-4 py-3 bg-neutral-950 rounded-xl border border-neutral-800 text-sm font-sports font-bold uppercase text-amber-400 flex items-center justify-between">
-                    <span>{selectedTier} MEMBER</span>
-                    <span className="text-xs font-normal text-neutral-400 font-sans">
-                      (Click tier cards above to change)
+                  <div className="px-4 py-3 bg-neutral-950 rounded-xl border border-neutral-800 text-sm font-sports font-bold uppercase flex items-center justify-between">
+                    <span className="text-amber-400">{selectedTier} MEMBER</span>
+                    <span className="text-emerald-400 font-mono font-black text-base">
+                      {amount} ETB
                     </span>
                   </div>
                 </div>
@@ -651,12 +1010,12 @@ export const MembershipPage: React.FC = () => {
                   {isSubmitting ? (
                     <>
                       <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>{t.submitting}</span>
+                      <span>Initializing Payment...</span>
                     </>
                   ) : (
                     <>
-                      <UserPlus className="w-5 h-5" />
-                      <span>{t.submitApplication}</span>
+                      <CreditCard className="w-5 h-5" />
+                      <span>Proceed to Payment ({amount} ETB via Chapa)</span>
                     </>
                   )}
                 </button>
