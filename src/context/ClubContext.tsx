@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import {
   Language,
   ClubInfo,
@@ -265,6 +264,141 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // AUTOMATIC BACKGROUND SYNC FOR FIXTURES & STANDINGS FROM THESPORTSDB API
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncFromSportsDB = async () => {
+      try {
+        // 1. Fetch Ethiopian Premier League Standings
+        let standingsData: any = null;
+        try {
+          const res = await fetch('https://www.thesportsdb.com/api/v1/json/3/lookuptable.php?l=4959&s=2026-2027');
+          const text = await res.text();
+          if (text.includes('permanently disabled') || text.includes('Free Sports API key')) {
+            const fallbackRes = await fetch('https://www.thesportsdb.com/api/v1/json/123/lookuptable.php?l=4959&s=2026-2027');
+            standingsData = await fallbackRes.json();
+          } else {
+            standingsData = JSON.parse(text);
+          }
+        } catch {
+          try {
+            const fallbackRes = await fetch('https://www.thesportsdb.com/api/v1/json/123/lookuptable.php?l=4959&s=2026-2027');
+            standingsData = await fallbackRes.json();
+          } catch (e) {
+            console.warn('Failed to fetch standings from TheSportsDB:', e);
+          }
+        }
+
+        if (isMounted && standingsData && Array.isArray(standingsData.table) && standingsData.table.length > 0) {
+          const formattedStandings: StandingTeam[] = standingsData.table.map((item: any, idx: number) => {
+            const isHalaba = item.strTeam?.toLowerCase().includes('halaba') || item.idTeam === '157333';
+            const formStr = item.strForm || '';
+            const parsedForm: Array<'W' | 'D' | 'L'> = formStr
+              .split('')
+              .filter((c: string): c is 'W' | 'D' | 'L' => c === 'W' || c === 'D' || c === 'L');
+
+            return {
+              position: parseInt(item.intRank, 10) || idx + 1,
+              teamId: item.idTeam || `team-${idx + 1}`,
+              teamName: item.strTeam || `Team ${idx + 1}`,
+              played: parseInt(item.intPlayed, 10) || 0,
+              won: parseInt(item.intWin, 10) || 0,
+              drawn: parseInt(item.intDraw, 10) || 0,
+              lost: parseInt(item.intLoss, 10) || 0,
+              goalsFor: parseInt(item.intGoalsFor, 10) || 0,
+              goalsAgainst: parseInt(item.intGoalsAgainst, 10) || 0,
+              goalDifference: parseInt(item.intGoalDifference, 10) || 0,
+              points: parseInt(item.intPoints, 10) || 0,
+              form: parsedForm,
+              isHalaba,
+            };
+          });
+
+          setStandings(formattedStandings);
+          localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(formattedStandings));
+        }
+
+        // 2. Fetch Ethiopian Premier League Match Schedules / Events
+        let eventsData: any = null;
+        try {
+          const res = await fetch('https://www.thesportsdb.com/api/v1/json/3/eventsseason.php?id=4959&s=2026-2027');
+          const text = await res.text();
+          if (text.includes('permanently disabled') || text.includes('Free Sports API key')) {
+            const fallbackRes = await fetch('https://www.thesportsdb.com/api/v1/json/123/eventsseason.php?id=4959&s=2026-2027');
+            eventsData = await fallbackRes.json();
+          } else {
+            eventsData = JSON.parse(text);
+          }
+        } catch {
+          try {
+            const fallbackRes = await fetch('https://www.thesportsdb.com/api/v1/json/123/eventsseason.php?id=4959&s=2026-2027');
+            eventsData = await fallbackRes.json();
+          } catch (e) {
+            console.warn('Failed to fetch events from TheSportsDB:', e);
+          }
+        }
+
+        if (isMounted && eventsData && Array.isArray(eventsData.events) && eventsData.events.length > 0) {
+          const formattedMatches: Match[] = eventsData.events.map((ev: any, idx: number) => {
+            const homeIsHalaba = ev.strHomeTeam?.toLowerCase().includes('halaba') || ev.idHomeTeam === '157333';
+            const awayIsHalaba = ev.strAwayTeam?.toLowerCase().includes('halaba') || ev.idAwayTeam === '157333';
+            const isFinished = ev.strStatus === 'FT' || ev.strStatus === 'Finished';
+            const isLive = ev.strStatus === 'LIVE' || ev.strStatus === '1H' || ev.strStatus === '2H';
+
+            const homeScore =
+              ev.intHomeScore !== null && ev.intHomeScore !== undefined && ev.intHomeScore !== ''
+                ? parseInt(ev.intHomeScore, 10)
+                : undefined;
+            const awayScore =
+              ev.intAwayScore !== null && ev.intAwayScore !== undefined && ev.intAwayScore !== ''
+                ? parseInt(ev.intAwayScore, 10)
+                : undefined;
+
+            return {
+              id: ev.idEvent || `m-thesportsdb-${idx}`,
+              competition: 'ETHIOPIAN_PREMIER_LEAGUE',
+              competitionName: ev.strLeague || 'Ethiopian Premier League',
+              date: ev.dateEvent || '',
+              kickoffTime: ev.strTime ? ev.strTime.slice(0, 5) : '15:00',
+              venue: ev.strVenue || (homeIsHalaba ? 'Halaba Stadium, Halaba Kulito' : 'Stadium'),
+              homeTeam: {
+                id: ev.idHomeTeam || `team-${ev.strHomeTeam}`,
+                name: ev.strHomeTeam || 'Home Team',
+                isHalaba: homeIsHalaba,
+                logo: ev.strHomeTeamBadge,
+              },
+              awayTeam: {
+                id: ev.idAwayTeam || `team-${ev.strAwayTeam}`,
+                name: ev.strAwayTeam || 'Away Team',
+                isHalaba: awayIsHalaba,
+                logo: ev.strAwayTeamBadge,
+              },
+              status: isFinished ? 'FINISHED' : isLive ? 'LIVE' : 'UPCOMING',
+              score:
+                homeScore !== undefined && awayScore !== undefined
+                  ? { home: homeScore, away: awayScore }
+                  : undefined,
+              round: ev.intRound ? `Round ${ev.intRound}` : undefined,
+              summary: ev.strEvent || '',
+            };
+          });
+
+          setMatches(formattedMatches);
+          localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(formattedMatches));
+        }
+      } catch (error) {
+        console.error('Error syncing fixtures and standings from TheSportsDB:', error);
+      }
+    };
+
+    syncFromSportsDB();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const addNewsArticle = (art: Omit<NewsArticle, 'id'>) => {
