@@ -39,12 +39,14 @@ export const MembershipPage: React.FC = () => {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [photoUrl, setPhotoUrl] = useState('');
   const [photoMode, setPhotoMode] = useState<'url' | 'upload'>('upload');
+  const [photoError, setPhotoError] = useState('');
 
   const handlePhotoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    setPhotoError('');
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size exceeds 5MB limit. Please choose a smaller photo.');
+        setPhotoError('File size exceeds 5MB limit. Please choose a smaller photo.');
         return;
       }
       const reader = new FileReader();

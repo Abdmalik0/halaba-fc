@@ -110,12 +110,14 @@ export const AdminPage: React.FC = () => {
   const [newsCategory, setNewsCategory] = useState<NewsCategory>('CLUB_NEWS');
   const [newsImageUrl, setNewsImageUrl] = useState('');
   const [imageSourceMode, setImageSourceMode] = useState<'url' | 'upload'>('url');
+  const [imageError, setImageError] = useState('');
 
   const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    setImageError('');
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size exceeds 5MB limit. Please select a smaller photo file.');
+        setImageError('File size exceeds 5MB limit. Please select a smaller photo file.');
         return;
       }
       const reader = new FileReader();
@@ -195,18 +197,18 @@ export const AdminPage: React.FC = () => {
     e.preventDefault();
     if (!newsTitleEn.trim()) return;
 
-    try {
-      if (editingArticleId) {
-        // Keep your existing local update function for edits
-        updateNewsArticle(editingArticleId, {
-          title: { en: newsTitleEn, am: newsTitleAm || newsTitleEn, om: newsTitleOm || newsTitleEn },
-          summary: { en: newsSummaryEn, am: newsSummaryAm || newsSummaryEn, om: newsSummaryOm || newsSummaryEn },
-          content: { en: newsContentEn, am: newsContentEn, om: newsContentEn },
-          category: newsCategory,
-          imageUrl: newsImageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
-        });
-      } else {
-        // Save NEW article to Firebase Cloud Database (visible globally on all devices)
+    if (editingArticleId) {
+      // Keep existing local update function for edits
+      updateNewsArticle(editingArticleId, {
+        title: { en: newsTitleEn, am: newsTitleAm || newsTitleEn, om: newsTitleOm || newsTitleEn },
+        summary: { en: newsSummaryEn, am: newsSummaryAm || newsSummaryEn, om: newsSummaryOm || newsSummaryEn },
+        content: { en: newsContentEn, am: newsContentEn, om: newsContentEn },
+        category: newsCategory,
+        imageUrl: newsImageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
+      });
+    } else {
+      // Save NEW article to Firebase Cloud Database (visible globally on all devices if connected)
+      try {
         await addDoc(collection(db, "news"), {
           title: { en: newsTitleEn, am: newsTitleAm || newsTitleEn, om: newsTitleOm || newsTitleEn },
           summary: { en: newsSummaryEn, am: newsSummaryAm || newsSummaryEn, om: newsSummaryOm || newsSummaryEn },
@@ -218,35 +220,35 @@ export const AdminPage: React.FC = () => {
           readTime: '3 min read',
           createdAt: serverTimestamp(),
         });
-
-        // Also update local state as a backup fallback
-        addNewsArticle({
-          title: { en: newsTitleEn, am: newsTitleAm || newsTitleEn, om: newsTitleOm || newsTitleEn },
-          summary: { en: newsSummaryEn, am: newsSummaryAm || newsSummaryEn, om: newsSummaryOm || newsSummaryEn },
-          content: { en: newsContentEn, am: newsContentEn, om: newsContentEn },
-          category: newsCategory,
-          date: new Date().toISOString().slice(0, 10),
-          author: 'Club Administration',
-          imageUrl: newsImageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
-          readTime: '3 min read',
-        });
+      } catch (fbErr) {
+        console.warn("Could not sync article to Firebase cloud, saving to local store:", fbErr);
       }
 
-      // Reset modal state (Exactly as you had it before)
-      setIsNewsModalOpen(false);
-      setEditingArticleId(null);
-      setNewsTitleEn('');
-      setNewsTitleAm('');
-      setNewsTitleOm('');
-      setNewsSummaryEn('');
-      setNewsSummaryAm('');
-      setNewsSummaryOm('');
-      setNewsContentEn('');
-      setNewsImageUrl('');
-    } catch (error) {
-      console.error("Error saving article to Firebase: ", error);
-      alert("Failed to publish to cloud. Please try again.");
+      // Also update local state
+      addNewsArticle({
+        title: { en: newsTitleEn, am: newsTitleAm || newsTitleEn, om: newsTitleOm || newsTitleEn },
+        summary: { en: newsSummaryEn, am: newsSummaryAm || newsSummaryEn, om: newsSummaryOm || newsSummaryEn },
+        content: { en: newsContentEn, am: newsContentEn, om: newsContentEn },
+        category: newsCategory,
+        date: new Date().toISOString().slice(0, 10),
+        author: 'Club Administration',
+        imageUrl: newsImageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
+        readTime: '3 min read',
+      });
     }
+
+    // Reset modal state
+    setIsNewsModalOpen(false);
+    setEditingArticleId(null);
+    setNewsTitleEn('');
+    setNewsTitleAm('');
+    setNewsTitleOm('');
+    setNewsSummaryEn('');
+    setNewsSummaryAm('');
+    setNewsSummaryOm('');
+    setNewsContentEn('');
+    setNewsImageUrl('');
+    setImageError('');
   };
   // Save Match
   const handleSaveMatch = (e: React.FormEvent) => {
@@ -1413,9 +1415,10 @@ export const AdminPage: React.FC = () => {
                         onDrop={(e) => {
                           e.preventDefault();
                           const file = e.dataTransfer.files?.[0];
+                          setImageError('');
                           if (file) {
                             if (file.size > 5 * 1024 * 1024) {
-                              alert('File size exceeds 5MB limit. Please select a smaller photo file.');
+                              setImageError('File size exceeds 5MB limit. Please select a smaller photo file.');
                               return;
                             }
                             const reader = new FileReader();
@@ -1435,6 +1438,9 @@ export const AdminPage: React.FC = () => {
                         </span>
                         <span className="text-red-400 font-bold uppercase font-sports">Choose File</span>
                       </label>
+                      {imageError && (
+                        <p className="text-xxs text-red-400 mt-1">{imageError}</p>
+                      )}
                     </div>
                   </div>
                 </div>

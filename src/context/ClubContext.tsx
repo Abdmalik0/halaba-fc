@@ -237,31 +237,36 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // REAL-TIME FIREBASE FIRESTORE SYNC FOR NEWS
   useEffect(() => {
-    const q = query(collection(db, "news"), orderBy("createdAt", "desc"));
+    let unsubscribe = () => {};
+    try {
+      const q = query(collection(db, "news"), orderBy("createdAt", "desc"));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const liveArticles: NewsArticle[] = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          title: typeof data.title === 'object' ? data.title : { en: data.title || '', am: data.title || '', om: data.title || '' },
-          summary: typeof data.summary === 'object' ? data.summary : { en: data.summary || '', am: data.summary || '', om: data.summary || '' },
-          content: typeof data.content === 'object' ? data.content : { en: data.content || '', am: data.content || '', om: data.content || '' },
-          category: data.category || 'CLUB_NEWS',
-          date: data.date || new Date().toISOString().slice(0, 10),
-          author: data.author || 'Club Administration',
-          imageUrl: data.imageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
-          readTime: data.readTime || '3 min read',
-        } as NewsArticle;
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        const liveArticles: NewsArticle[] = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            title: typeof data.title === 'object' ? data.title : { en: data.title || '', am: data.title || '', om: data.title || '' },
+            summary: typeof data.summary === 'object' ? data.summary : { en: data.summary || '', am: data.summary || '', om: data.summary || '' },
+            content: typeof data.content === 'object' ? data.content : { en: data.content || '', am: data.content || '', om: data.content || '' },
+            category: data.category || 'CLUB_NEWS',
+            date: data.date || new Date().toISOString().slice(0, 10),
+            author: data.author || 'Club Administration',
+            imageUrl: data.imageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
+            readTime: data.readTime || '3 min read',
+          } as NewsArticle;
+        });
+
+        if (liveArticles.length > 0) {
+          setNews(liveArticles);
+          localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(liveArticles));
+        }
+      }, (error) => {
+        console.warn("Firebase real-time news error (falling back to local cache):", error);
       });
-
-      if (liveArticles.length > 0) {
-        setNews(liveArticles);
-        localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(liveArticles));
-      }
-    }, (error) => {
-      console.error("Firebase real-time news error:", error);
-    });
+    } catch (err) {
+      console.warn("Could not subscribe to Firebase news:", err);
+    }
 
     return () => unsubscribe();
   }, []);
@@ -419,17 +424,16 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
  const deleteNewsArticle = async (id: string) => {
     try {
-      // 1. Delete document live from Firebase Cloud Firestore
+      // 1. Delete document live from Firebase Cloud Firestore if available
       await deleteDoc(doc(db, "news", id));
-
-      // 2. Update local state
-      const updated = news.filter((n) => n.id !== id);
-      setNews(updated);
-      localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated));
     } catch (error) {
-      console.error("Error deleting news article from Firebase: ", error);
-      alert("Failed to delete article. Please try again.");
+      console.warn("Could not delete article from Firebase (updating local cache):", error);
     }
+
+    // 2. Update local state
+    const updated = news.filter((n) => n.id !== id);
+    setNews(updated);
+    localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated));
   };
 
   // Players & Staff
