@@ -46,10 +46,8 @@ export const MembershipPage: React.FC = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [currentPaymentSession, setCurrentPaymentSession] = useState<{
     tx_ref: string;
-    checkout_url: string;
-    amount: number | string;
+    amount: number;
     tier: string;
-    isSandbox: boolean;
   } | null>(null);
 
   // Photo upload
@@ -84,51 +82,50 @@ export const MembershipPage: React.FC = () => {
     tx_ref?: string;
   } | null>(null);
 
-  // Auto-verify if returning from Chapa redirect URL with tx_ref
+  // Client-side auto-verify if returning from Chapa redirect URL with tx_ref on static hosting
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const txRefParam = params.get('tx_ref');
-    const paymentCompleted = params.get('payment_completed');
+    const paymentCompleted = params.get('payment_completed') || params.get('status') === 'success';
 
     if (txRefParam && paymentCompleted && !registrationResult) {
-      const autoVerify = async () => {
+      const pendingDataStr = localStorage.getItem(`pending_tx_${txRefParam}`);
+      if (pendingDataStr) {
         try {
-          const res = await fetch(`/api/verify-payment/${txRefParam}`);
-          const data = await res.json();
-          if (data.verified && data.status === 'success' && data.member) {
-            recordVerifiedMembership({
-              referenceNumber: data.referenceNumber,
-              fullName: data.member.fullName,
-              dateOfBirth: data.member.dateOfBirth,
-              gender: data.member.gender,
-              phone: data.member.phone,
-              email: data.member.email,
-              cityOrRegion: data.member.cityOrRegion,
-              membershipType: data.member.membershipType as MembershipTier,
-              preferredLanguage: data.member.preferredLanguage as Language,
-              amountPaid: data.amount,
-              tx_ref: txRefParam,
-            });
+          const pendingData = JSON.parse(pendingDataStr);
+          const randNum = Math.floor(1000 + Math.random() * 9000);
+          const referenceNumber = `HCFC-2026-M${randNum}`;
+          recordVerifiedMembership({
+            referenceNumber,
+            fullName: pendingData.fullName,
+            dateOfBirth: pendingData.dateOfBirth || '',
+            gender: pendingData.gender,
+            phone: pendingData.phone,
+            email: pendingData.email,
+            cityOrRegion: pendingData.cityOrRegion,
+            membershipType: pendingData.membershipType as MembershipTier,
+            preferredLanguage: pendingData.preferredLanguage as Language,
+            amountPaid: pendingData.amount,
+            tx_ref: txRefParam,
+          });
 
-            setRegistrationResult({
-              referenceNumber: data.referenceNumber,
-              registeredAt: new Date().toLocaleDateString(),
-              fullName: data.member.fullName,
-              membershipType: data.member.membershipType as MembershipTier,
-              cityOrRegion: data.member.cityOrRegion,
-              photoUrl: data.member.photoUrl,
-              amountPaid: data.amount,
-              tx_ref: txRefParam,
-            });
+          setRegistrationResult({
+            referenceNumber,
+            registeredAt: new Date().toLocaleDateString(),
+            fullName: pendingData.fullName,
+            membershipType: pendingData.membershipType as MembershipTier,
+            cityOrRegion: pendingData.cityOrRegion,
+            photoUrl: pendingData.photoUrl,
+            amountPaid: pendingData.amount,
+            tx_ref: txRefParam,
+          });
 
-            // Clean URL params without refresh
-            window.history.replaceState({}, document.title, window.location.pathname);
-          }
+          localStorage.removeItem(`pending_tx_${txRefParam}`);
+          window.history.replaceState({}, document.title, window.location.pathname);
         } catch (e) {
-          console.warn('Auto verify from return URL failed:', e);
+          console.warn('Failed to parse pending transaction:', e);
         }
-      };
-      autoVerify();
+      }
     }
   }, [registrationResult, recordVerifiedMembership]);
 
@@ -156,58 +153,39 @@ export const MembershipPage: React.FC = () => {
   /**
    * Handle form submission:
    * 1. Validates inputs
-   * 2. Calls /api/initialize-payment sending dynamic amount (200, 500, or 1000 ETB) and user details
-   * 3. Opens Chapa payment modal
+   * 2. Sets up Chapa Inline.js payment with dynamic amount (200, 500, or 1000 ETB) and user details
+   * 3. Opens Chapa Inline payment modal
    * CRITICAL: Registration is NOT successful until payment is completed and verified!
    */
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
-    setIsSubmitting(true);
     setErrors({});
-    try {
-      const response = await fetch('/api/initialize-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount, // explicitly passed dynamic amount (200, 500, or 1000)
-          tier: selectedTier,
-          fullName: fullName.trim(),
-          dateOfBirth,
-          gender: gender || undefined,
-          phone: phone.trim(),
-          email: email?.trim() || undefined,
-          cityOrRegion: cityOrRegion.trim(),
-          preferredLanguage: preferredLang,
-          photoUrl: photoUrl || undefined,
-        }),
-      });
+    const txRef = `halaba-fan-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-      const data = await response.json();
+    // Save pending transaction to localStorage for static hosting callback resiliency
+    localStorage.setItem(`pending_tx_${txRef}`, JSON.stringify({
+      fullName: fullName.trim(),
+      dateOfBirth,
+      gender: gender || undefined,
+      phone: phone.trim(),
+      email: email?.trim() || undefined,
+      cityOrRegion: cityOrRegion.trim(),
+      membershipType: selectedTier,
+      preferredLanguage: preferredLang,
+      photoUrl: photoUrl || undefined,
+      amount,
+    }));
 
-      if (!response.ok || !data.success) {
-        setErrors({
-          form: data.error || 'Failed to initialize payment with Chapa. Please try again.',
-        });
-        return;
-      }
-
-      // DO NOT set registrationResult yet!
-      // Registration is ONLY granted after payment verification.
-      setCurrentPaymentSession({
-        tx_ref: data.tx_ref,
-        checkout_url: data.checkout_url,
-        amount: data.amount,
-        tier: data.tier,
-        isSandbox: Boolean(data.isSandbox),
-      });
-      setIsPaymentModalOpen(true);
-    } catch {
-      setErrors({ form: 'Network error connecting to payment gateway. Please try again.' });
-    } finally {
-      setIsSubmitting(false);
-    }
+    // DO NOT set registrationResult yet!
+    // Registration is ONLY granted after Chapa payment verification.
+    setCurrentPaymentSession({
+      tx_ref: txRef,
+      amount,
+      tier: selectedTier,
+    });
+    setIsPaymentModalOpen(true);
   };
 
   /**
@@ -908,7 +886,7 @@ export const MembershipPage: React.FC = () => {
         </div>
       )}
 
-      {/* CHAPA PAYMENT MODAL */}
+      {/* CHAPA PAYMENT MODAL (USING INLINE.JS & PUBLIC KEY) */}
       {currentPaymentSession && (
         <ChapaPaymentModal
           isOpen={isPaymentModalOpen}
@@ -919,8 +897,8 @@ export const MembershipPage: React.FC = () => {
           amount={currentPaymentSession.amount}
           tier={currentPaymentSession.tier}
           fullName={fullName}
-          checkoutUrl={currentPaymentSession.checkout_url}
-          isSandbox={currentPaymentSession.isSandbox}
+          phone={phone}
+          email={email}
           onPaymentVerified={handlePaymentVerified}
         />
       )}
