@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useClub } from '../context/ClubContext';
 import { MembershipTier, Language } from '../types';
 import { HalabaCrest } from '../components/HalabaCrest';
+import { ChapaPaymentModal } from '../components/ChapaPaymentModal';
 import {
   UserPlus,
   CheckCircle2,
@@ -15,18 +16,20 @@ import {
   Mail,
   MapPin,
   AlertCircle,
-  Upload,
-  Link,
   Camera,
-  X,
-  Trash2
+  CreditCard,
+  Lock,
+  ArrowRight,
+  Receipt
 } from 'lucide-react';
 
 export const MembershipPage: React.FC = () => {
-  const { t, language, submitMembership } = useClub();
+  const { t, language, recordVerifiedMembership } = useClub();
 
-  // Tier selection
+  // Tier selection & payment amount
+  // Tier 1: 200 ETB, Tier 2: 500 ETB, Tier 3: 1000 ETB
   const [selectedTier, setSelectedTier] = useState<MembershipTier>('STANDARD');
+  const [amount, setAmount] = useState<number>(500);
 
   // Form inputs
   const [fullName, setFullName] = useState('');
@@ -38,8 +41,18 @@ export const MembershipPage: React.FC = () => {
   const [preferredLang, setPreferredLang] = useState<Language>(language);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [photoUrl, setPhotoUrl] = useState('');
-  const [photoMode, setPhotoMode] = useState<'url' | 'upload'>('upload');
 
+  // Chapa payment modal & verification states
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [currentPaymentSession, setCurrentPaymentSession] = useState<{
+    tx_ref: string;
+    checkout_url: string;
+    amount: number | string;
+    tier: string;
+    isSandbox: boolean;
+  } | null>(null);
+
+  // Photo upload
   const handlePhotoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -67,7 +80,57 @@ export const MembershipPage: React.FC = () => {
     membershipType: MembershipTier;
     cityOrRegion: string;
     photoUrl?: string;
+    amountPaid?: number | string;
+    tx_ref?: string;
   } | null>(null);
+
+  // Auto-verify if returning from Chapa redirect URL with tx_ref
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const txRefParam = params.get('tx_ref');
+    const paymentCompleted = params.get('payment_completed');
+
+    if (txRefParam && paymentCompleted && !registrationResult) {
+      const autoVerify = async () => {
+        try {
+          const res = await fetch(`/api/verify-payment/${txRefParam}`);
+          const data = await res.json();
+          if (data.verified && data.status === 'success' && data.member) {
+            recordVerifiedMembership({
+              referenceNumber: data.referenceNumber,
+              fullName: data.member.fullName,
+              dateOfBirth: data.member.dateOfBirth,
+              gender: data.member.gender,
+              phone: data.member.phone,
+              email: data.member.email,
+              cityOrRegion: data.member.cityOrRegion,
+              membershipType: data.member.membershipType as MembershipTier,
+              preferredLanguage: data.member.preferredLanguage as Language,
+              amountPaid: data.amount,
+              tx_ref: txRefParam,
+            });
+
+            setRegistrationResult({
+              referenceNumber: data.referenceNumber,
+              registeredAt: new Date().toLocaleDateString(),
+              fullName: data.member.fullName,
+              membershipType: data.member.membershipType as MembershipTier,
+              cityOrRegion: data.member.cityOrRegion,
+              photoUrl: data.member.photoUrl,
+              amountPaid: data.amount,
+              tx_ref: txRefParam,
+            });
+
+            // Clean URL params without refresh
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        } catch (e) {
+          console.warn('Auto verify from return URL failed:', e);
+        }
+      };
+      autoVerify();
+    }
+  }, [registrationResult, recordVerifiedMembership]);
 
   const validate = () => {
     const errs: Record<string, string> = {};
@@ -90,39 +153,103 @@ export const MembershipPage: React.FC = () => {
     return Object.keys(errs).length === 0;
   };
 
+  /**
+   * Handle form submission:
+   * 1. Validates inputs
+   * 2. Calls /api/initialize-payment sending dynamic amount (200, 500, or 1000 ETB) and user details
+   * 3. Opens Chapa payment modal
+   * CRITICAL: Registration is NOT successful until payment is completed and verified!
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     setIsSubmitting(true);
+    setErrors({});
     try {
-      const res = await submitMembership({
-        fullName,
-        dateOfBirth,
-        gender: gender || undefined,
-        phone,
-        email: email || undefined,
-        cityOrRegion,
-        membershipType: selectedTier,
-        preferredLanguage: preferredLang,
+      const response = await fetch('/api/initialize-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount, // explicitly passed dynamic amount (200, 500, or 1000)
+          tier: selectedTier,
+          fullName: fullName.trim(),
+          dateOfBirth,
+          gender: gender || undefined,
+          phone: phone.trim(),
+          email: email?.trim() || undefined,
+          cityOrRegion: cityOrRegion.trim(),
+          preferredLanguage: preferredLang,
+          photoUrl: photoUrl || undefined,
+        }),
       });
 
-      if (res.success) {
-        setRegistrationResult({
-          referenceNumber: res.referenceNumber,
-          registeredAt: new Date().toLocaleDateString(),
-          fullName,
-          membershipType: selectedTier,
-          cityOrRegion,
-          photoUrl: photoUrl || undefined,
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        setErrors({
+          form: data.error || 'Failed to initialize payment with Chapa. Please try again.',
         });
-        window.scrollTo({ top: 300, behavior: 'smooth' });
+        return;
       }
+
+      // DO NOT set registrationResult yet!
+      // Registration is ONLY granted after payment verification.
+      setCurrentPaymentSession({
+        tx_ref: data.tx_ref,
+        checkout_url: data.checkout_url,
+        amount: data.amount,
+        tier: data.tier,
+        isSandbox: Boolean(data.isSandbox),
+      });
+      setIsPaymentModalOpen(true);
     } catch {
-      setErrors({ form: 'An error occurred during registration. Please try again.' });
+      setErrors({ form: 'Network error connecting to payment gateway. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  /**
+   * Callback fired ONLY when payment verification succeeds on Chapa.
+   * Now and only now do we grant membership and display the digital membership card.
+   */
+  const handlePaymentVerified = (verifiedData: {
+    referenceNumber: string;
+    amount: number | string;
+    tier: string;
+    tx_ref: string;
+    verifiedAt?: string;
+  }) => {
+    // Officially register member into club state & local storage
+    recordVerifiedMembership({
+      referenceNumber: verifiedData.referenceNumber,
+      fullName: fullName.trim(),
+      dateOfBirth,
+      gender: gender || undefined,
+      phone: phone.trim(),
+      email: email?.trim() || undefined,
+      cityOrRegion: cityOrRegion.trim(),
+      membershipType: selectedTier,
+      preferredLanguage: preferredLang,
+      amountPaid: verifiedData.amount,
+      tx_ref: verifiedData.tx_ref,
+    });
+
+    setRegistrationResult({
+      referenceNumber: verifiedData.referenceNumber,
+      registeredAt: new Date().toLocaleDateString(),
+      fullName: fullName.trim(),
+      membershipType: selectedTier,
+      cityOrRegion: cityOrRegion.trim(),
+      photoUrl: photoUrl || undefined,
+      amountPaid: verifiedData.amount,
+      tx_ref: verifiedData.tx_ref,
+    });
+
+    setIsPaymentModalOpen(false);
+    setCurrentPaymentSession(null);
+    window.scrollTo({ top: 250, behavior: 'smooth' });
   };
 
   const handleResetForm = () => {
@@ -163,24 +290,39 @@ export const MembershipPage: React.FC = () => {
         </div>
       </div>
 
-      {/* SUCCESS SCREEN WITH DIGITAL MEMBERSHIP CARD */}
+      {/* SUCCESS SCREEN WITH DIGITAL MEMBERSHIP CARD (ONLY SHOWN AFTER PAYMENT IS VERIFIED) */}
       {registrationResult ? (
         <div className="bg-neutral-900 border border-neutral-700 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-8 animate-in fade-in">
           <div className="text-center space-y-3 max-w-xl mx-auto">
-            <div className="w-16 h-16 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center justify-center mx-auto">
+            <div className="w-16 h-16 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-600 flex items-center justify-center mx-auto shadow-lg shadow-emerald-950/60">
               <CheckCircle2 className="w-10 h-10" />
             </div>
             <h2 className="font-sports font-black text-3xl sm:text-4xl text-white uppercase">
               {t.registrationSuccessTitle}
             </h2>
             <p className="text-neutral-300 text-sm sm:text-base">{t.registrationSuccessDesc}</p>
-            <div className="inline-block px-4 py-2 bg-neutral-950 border border-neutral-800 rounded-xl">
-              <span className="text-xs text-neutral-400 block uppercase font-mono tracking-wider">
-                {t.yourRefNumber}
-              </span>
-              <span className="font-mono font-black text-xl text-amber-400">
-                {registrationResult.referenceNumber}
-              </span>
+
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <div className="px-4 py-2 bg-neutral-950 border border-neutral-800 rounded-xl">
+                <span className="text-xxs text-neutral-400 block uppercase font-mono tracking-wider">
+                  {t.yourRefNumber}
+                </span>
+                <span className="font-mono font-black text-xl text-amber-400">
+                  {registrationResult.referenceNumber}
+                </span>
+              </div>
+
+              <div className="px-4 py-2 bg-neutral-950 border border-emerald-800/80 rounded-xl flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                <div className="text-left">
+                  <span className="text-xxs text-neutral-400 block uppercase font-mono tracking-wider">
+                    Chapa Verified Payment
+                  </span>
+                  <span className="font-mono font-bold text-sm text-emerald-400">
+                    {registrationResult.amountPaid} ETB PAID
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -211,7 +353,6 @@ export const MembershipPage: React.FC = () => {
                   </span>
                 </div>
 
-                {/* Card Center: Member Info */}
                 {/* Card Center: Member Info & Photo */}
                 <div className="py-4 flex items-center justify-between gap-4">
                   <div className="space-y-1 min-w-0">
@@ -245,7 +386,7 @@ export const MembershipPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Card Bottom: Reference & Barcode/QR Graphic */}
+                {/* Card Bottom: Reference & Verified Graphic */}
                 <div className="pt-3 border-t border-neutral-800/80 flex items-center justify-between text-xs">
                   <div>
                     <span className="text-xxs text-neutral-400 block font-mono">ID REFERENCE</span>
@@ -253,13 +394,24 @@ export const MembershipPage: React.FC = () => {
                       {registrationResult.referenceNumber}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-white text-black font-mono text-xxs font-bold">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white text-black font-mono text-xxs font-bold">
                     <QrCode className="w-4 h-4 text-black" />
-                    <span>VERIFIED</span>
+                    <span>VERIFIED PAID</span>
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Receipt Summary Pill */}
+            {registrationResult.tx_ref && (
+              <div className="mt-4 p-3 rounded-xl bg-neutral-950 border border-neutral-800 text-xxs font-mono text-neutral-400 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Receipt className="w-3.5 h-3.5 text-neutral-500" />
+                  <span>Chapa TX Ref:</span>
+                </span>
+                <span className="text-neutral-300 font-bold">{registrationResult.tx_ref}</span>
+              </div>
+            )}
           </div>
 
           {/* Action buttons */}
@@ -290,14 +442,17 @@ export const MembershipPage: React.FC = () => {
                 {t.membershipPlansTitle}
               </h2>
               <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-                Choose the membership category that suits your level of support for the club.
+                Choose your membership tier. The corresponding payment amount (200, 500, or 1000 ETB) is initialized via Chapa.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Supporter Tier */}
+              {/* Tier 1: Supporter Member (200 ETB) */}
               <div
-                onClick={() => setSelectedTier('SUPPORTER')}
+                onClick={() => {
+                  setSelectedTier('SUPPORTER');
+                  setAmount(200);
+                }}
                 className={`cursor-pointer rounded-2xl p-6 border transition-all relative flex flex-col justify-between ${
                   selectedTier === 'SUPPORTER'
                     ? 'bg-neutral-900 border-red-500 shadow-xl shadow-red-950/40 ring-1 ring-red-500'
@@ -310,11 +465,18 @@ export const MembershipPage: React.FC = () => {
                       {t.tierSupporter}
                     </span>
                     <span className="text-xs uppercase font-mono px-2 py-0.5 rounded bg-neutral-800 text-neutral-300">
-                      Digital Fan ID
+                      Tier 1
                     </span>
                   </div>
-                  <p className="text-neutral-400 text-xs sm:text-sm mt-3 leading-relaxed">
-                    {t.tierSupporterDesc}
+
+                  {/* Price display */}
+                  <div className="mt-4 mb-2 flex items-baseline gap-1.5">
+                    <span className="font-sports font-black text-3xl text-white font-mono">200</span>
+                    <span className="text-xs font-bold text-red-400 uppercase tracking-wider">ETB / Season</span>
+                  </div>
+
+                  <p className="text-neutral-400 text-xs sm:text-sm mt-2 leading-relaxed">
+                    Official digital membership for passionate fans worldwide with digital card & club newsletter.
                   </p>
                   <ul className="mt-4 space-y-2 text-xs text-neutral-300">
                     <li className="flex items-center gap-2">
@@ -333,21 +495,30 @@ export const MembershipPage: React.FC = () => {
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-neutral-800">
-                  <span
-                    className={`block w-full py-2 rounded-lg text-center text-xs font-bold uppercase tracking-wider font-sports ${
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedTier('SUPPORTER');
+                      setAmount(200);
+                    }}
+                    className={`block w-full py-2.5 rounded-xl text-center text-xs font-bold uppercase tracking-wider font-sports transition-all ${
                       selectedTier === 'SUPPORTER'
-                        ? 'bg-red-600 text-white'
-                        : 'bg-neutral-800 text-neutral-400'
+                        ? 'bg-red-600 text-white shadow-lg shadow-red-950'
+                        : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                     }`}
                   >
-                    {selectedTier === 'SUPPORTER' ? t.selectedTier : t.selectTier}
-                  </span>
+                    {selectedTier === 'SUPPORTER' ? 'Selected (200 ETB)' : 'Select Tier 1 (200 ETB)'}
+                  </button>
                 </div>
               </div>
 
-              {/* Standard Tier */}
+              {/* Tier 2: Standard Member (500 ETB) */}
               <div
-                onClick={() => setSelectedTier('STANDARD')}
+                onClick={() => {
+                  setSelectedTier('STANDARD');
+                  setAmount(500);
+                }}
                 className={`cursor-pointer rounded-2xl p-6 border transition-all relative flex flex-col justify-between ${
                   selectedTier === 'STANDARD'
                     ? 'bg-neutral-900 border-emerald-500 shadow-xl shadow-emerald-950/40 ring-1 ring-emerald-500'
@@ -360,11 +531,18 @@ export const MembershipPage: React.FC = () => {
                       {t.tierStandard}
                     </span>
                     <span className="text-xs uppercase font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">
-                      Most Popular
+                      Tier 2 • Most Popular
                     </span>
                   </div>
-                  <p className="text-neutral-400 text-xs sm:text-sm mt-3 leading-relaxed">
-                    {t.tierStandardDesc}
+
+                  {/* Price display */}
+                  <div className="mt-4 mb-2 flex items-baseline gap-1.5">
+                    <span className="font-sports font-black text-3xl text-emerald-400 font-mono">500</span>
+                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">ETB / Season</span>
+                  </div>
+
+                  <p className="text-neutral-400 text-xs sm:text-sm mt-2 leading-relaxed">
+                    Official physical & digital member card, 10% merchandise discount, and priority ticket privileges.
                   </p>
                   <ul className="mt-4 space-y-2 text-xs text-neutral-300">
                     <li className="flex items-center gap-2">
@@ -383,21 +561,30 @@ export const MembershipPage: React.FC = () => {
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-neutral-800">
-                  <span
-                    className={`block w-full py-2 rounded-lg text-center text-xs font-bold uppercase tracking-wider font-sports ${
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedTier('STANDARD');
+                      setAmount(500);
+                    }}
+                    className={`block w-full py-2.5 rounded-xl text-center text-xs font-bold uppercase tracking-wider font-sports transition-all ${
                       selectedTier === 'STANDARD'
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-neutral-800 text-neutral-400'
+                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-950'
+                        : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                     }`}
                   >
-                    {selectedTier === 'STANDARD' ? t.selectedTier : t.selectTier}
-                  </span>
+                    {selectedTier === 'STANDARD' ? 'Selected (500 ETB)' : 'Select Tier 2 (500 ETB)'}
+                  </button>
                 </div>
               </div>
 
-              {/* Gold VIP Tier */}
+              {/* Tier 3: Premium / Gold VIP (1000 ETB) */}
               <div
-                onClick={() => setSelectedTier('PREMIUM')}
+                onClick={() => {
+                  setSelectedTier('PREMIUM');
+                  setAmount(1000);
+                }}
                 className={`cursor-pointer rounded-2xl p-6 border transition-all relative flex flex-col justify-between ${
                   selectedTier === 'PREMIUM'
                     ? 'bg-neutral-900 border-amber-500 shadow-xl shadow-amber-950/40 ring-1 ring-amber-500'
@@ -411,11 +598,18 @@ export const MembershipPage: React.FC = () => {
                       {t.tierPremium}
                     </span>
                     <span className="text-xs uppercase font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800">
-                      VIP Lounge
+                      Tier 3 • VIP
                     </span>
                   </div>
-                  <p className="text-neutral-400 text-xs sm:text-sm mt-3 leading-relaxed">
-                    {t.tierPremiumDesc}
+
+                  {/* Price display */}
+                  <div className="mt-4 mb-2 flex items-baseline gap-1.5">
+                    <span className="font-sports font-black text-3xl text-amber-400 font-mono">1,000</span>
+                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">ETB / Season</span>
+                  </div>
+
+                  <p className="text-neutral-400 text-xs sm:text-sm mt-2 leading-relaxed">
+                    VIP stadium tribune access, complimentary official season jersey voucher, and assembly invitation.
                   </p>
                   <ul className="mt-4 space-y-2 text-xs text-neutral-300">
                     <li className="flex items-center gap-2">
@@ -434,23 +628,34 @@ export const MembershipPage: React.FC = () => {
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-neutral-800">
-                  <span
-                    className={`block w-full py-2 rounded-lg text-center text-xs font-bold uppercase tracking-wider font-sports ${
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedTier('PREMIUM');
+                      setAmount(1000);
+                    }}
+                    className={`block w-full py-2.5 rounded-xl text-center text-xs font-bold uppercase tracking-wider font-sports transition-all ${
                       selectedTier === 'PREMIUM'
-                        ? 'bg-amber-600 text-white'
-                        : 'bg-neutral-800 text-neutral-400'
+                        ? 'bg-amber-600 text-white shadow-lg shadow-amber-950'
+                        : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                     }`}
                   >
-                    {selectedTier === 'PREMIUM' ? t.selectedTier : t.selectTier}
-                  </span>
+                    {selectedTier === 'PREMIUM' ? 'Selected (1,000 ETB)' : 'Select Tier 3 (1,000 ETB)'}
+                  </button>
                 </div>
               </div>
             </div>
 
-            <div className="mt-4 p-3 rounded-xl bg-neutral-900/60 border border-neutral-800 text-xs text-neutral-400 flex items-center gap-2">
-              <Info className="w-4 h-4 text-neutral-500 shrink-0" />
-              <span>
-                Note: Supporter membership fees, tier benefits, and payment methods are managed and configurable by the club administrative board.
+            <div className="mt-4 p-3.5 rounded-xl bg-neutral-900/60 border border-neutral-800 text-xs text-neutral-400 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>
+                  Payments are processed through <strong>Chapa</strong>. Registration is only activated once payment is completed and verified.
+                </span>
+              </div>
+              <span className="font-mono text-neutral-300 text-xs font-bold shrink-0">
+                Current selection: <span className="text-amber-400">{amount} ETB</span>
               </span>
             </div>
           </div>
@@ -462,7 +667,7 @@ export const MembershipPage: React.FC = () => {
                 {t.formTitle}
               </h2>
               <p className="text-neutral-400 text-xs sm:text-sm mt-1">
-                Please complete the details below. All submitted applications are logged in the club registry.
+                Please complete your personal details. On submit, you will be prompted to complete the {amount} ETB payment via Chapa.
               </p>
             </div>
 
@@ -609,17 +814,48 @@ export const MembershipPage: React.FC = () => {
                   </select>
                 </div>
 
-                {/* Selected Tier Review */}
+                {/* Selected Plan & Fee Review */}
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
-                    Membership Tier
+                    Selected Tier & Chapa Fee
                   </label>
-                  <div className="px-4 py-3 bg-neutral-950 rounded-xl border border-neutral-800 text-sm font-sports font-bold uppercase text-amber-400 flex items-center justify-between">
-                    <span>{selectedTier} MEMBER</span>
-                    <span className="text-xs font-normal text-neutral-400 font-sans">
-                      (Click tier cards above to change)
+                  <div className="px-4 py-3 bg-neutral-950 rounded-xl border border-neutral-800 text-sm font-sports font-bold uppercase flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={selectedTier === 'PREMIUM' ? 'text-amber-400' : selectedTier === 'STANDARD' ? 'text-emerald-400' : 'text-red-400'}>
+                        {selectedTier}
+                      </span>
+                      <span className="text-neutral-500 font-mono">•</span>
+                      <span className="text-white font-mono text-base">{amount} ETB</span>
+                    </div>
+                    <span className="text-xxs font-normal text-neutral-400 font-sans">
+                      (Select tier card above to change)
                     </span>
                   </div>
+                </div>
+              </div>
+
+              {/* Photo Upload (Optional) */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
+                  Member Photo for Digital ID (Optional)
+                </label>
+                <div className="flex items-center gap-4">
+                  <label className="cursor-pointer px-4 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 hover:border-neutral-700 text-xs text-neutral-300 flex items-center gap-2 transition-colors">
+                    <Camera className="w-4 h-4 text-amber-400" />
+                    <span>Upload ID Photo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+                  {photoUrl && (
+                    <div className="flex items-center gap-2 text-xs text-emerald-400">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Photo selected</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -642,7 +878,12 @@ export const MembershipPage: React.FC = () => {
               </div>
 
               {/* Submit CTA */}
-              <div className="pt-4 border-t border-neutral-800 flex justify-end">
+              <div className="pt-4 border-t border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-2 text-xxs text-neutral-400">
+                  <Lock className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Secure 256-bit encrypted Ethiopian payment via Chapa gateway</span>
+                </div>
+
                 <button
                   type="submit"
                   disabled={isSubmitting}
@@ -651,12 +892,13 @@ export const MembershipPage: React.FC = () => {
                   {isSubmitting ? (
                     <>
                       <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>{t.submitting}</span>
+                      <span>Initializing Chapa ({amount} ETB)...</span>
                     </>
                   ) : (
                     <>
-                      <UserPlus className="w-5 h-5" />
-                      <span>{t.submitApplication}</span>
+                      <CreditCard className="w-5 h-5" />
+                      <span>Pay {amount} ETB & Complete Registration</span>
+                      <ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </button>
@@ -664,6 +906,23 @@ export const MembershipPage: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* CHAPA PAYMENT MODAL */}
+      {currentPaymentSession && (
+        <ChapaPaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => {
+            setIsPaymentModalOpen(false);
+          }}
+          txRef={currentPaymentSession.tx_ref}
+          amount={currentPaymentSession.amount}
+          tier={currentPaymentSession.tier}
+          fullName={fullName}
+          checkoutUrl={currentPaymentSession.checkout_url}
+          isSandbox={currentPaymentSession.isSandbox}
+          onPaymentVerified={handlePaymentVerified}
+        />
       )}
     </div>
   );

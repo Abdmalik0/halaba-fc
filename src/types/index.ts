@@ -156,6 +156,10 @@ export interface MembershipApplication {
   preferredLanguage: Language;
   registeredAt: string;
   status: 'APPROVED' | 'PENDING' | 'REJECTED';
+  amountPaid?: number | string;
+  tx_ref?: string;
+  paymentStatus?: 'PAID' | 'PENDING' | 'FAILED';
+  paymentDate?: string;
   notes?: string;
 }
 

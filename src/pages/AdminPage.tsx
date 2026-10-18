@@ -631,6 +631,7 @@ export const AdminPage: React.FC = () => {
                   <th className="py-3 px-3">Phone</th>
                   <th className="py-3 px-3">Region</th>
                   <th className="py-3 px-3">Tier</th>
+                  <th className="py-3 px-3">Payment</th>
                   <th className="py-3 px-3">Status</th>
                   <th className="py-3 px-3 text-right">Actions</th>
                 </tr>
@@ -648,6 +649,9 @@ export const AdminPage: React.FC = () => {
                       <span className="px-2 py-0.5 rounded text-xxs font-bold uppercase bg-neutral-950 text-neutral-200 border border-neutral-800">
                         {m.membershipType}
                       </span>
+                    </td>
+                    <td className="py-3 px-3 font-mono text-emerald-400 font-bold">
+                      {m.amountPaid ? `${m.amountPaid} ETB` : m.membershipType === 'PREMIUM' ? '1000 ETB' : m.membershipType === 'STANDARD' ? '500 ETB' : '200 ETB'}
                     </td>
                     <td className="py-3 px-3">
                       <span

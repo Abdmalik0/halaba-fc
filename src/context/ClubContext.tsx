@@ -100,7 +100,22 @@ interface ClubContextType {
     cityOrRegion: string;
     membershipType: MembershipTier;
     preferredLanguage: Language;
+    amountPaid?: number | string;
+    tx_ref?: string;
   }) => Promise<{ success: boolean; referenceNumber: string }>;
+  recordVerifiedMembership: (data: {
+    referenceNumber: string;
+    fullName: string;
+    dateOfBirth: string;
+    gender?: string;
+    phone: string;
+    email?: string;
+    cityOrRegion: string;
+    membershipType: MembershipTier;
+    preferredLanguage: Language;
+    amountPaid: number | string;
+    tx_ref: string;
+  }) => MembershipApplication;
   updateMembershipStatus: (id: string, status: 'APPROVED' | 'PENDING' | 'REJECTED') => void;
   deleteMembership: (id: string) => void;
 
@@ -477,6 +492,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     cityOrRegion: string;
     membershipType: MembershipTier;
     preferredLanguage: Language;
+    amountPaid?: number | string;
+    tx_ref?: string;
   }): Promise<{ success: boolean; referenceNumber: string }> => {
     const randNum = Math.floor(1000 + Math.random() * 9000);
     const referenceNumber = `HCFC-2026-M${randNum}`;
@@ -494,15 +511,58 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       preferredLanguage: data.preferredLanguage,
       registeredAt: new Date().toISOString(),
       status: 'APPROVED',
+      amountPaid: data.amountPaid,
+      tx_ref: data.tx_ref,
+      paymentStatus: 'PAID',
+      paymentDate: new Date().toISOString(),
     };
 
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    await new Promise((resolve) => setTimeout(resolve, 400));
 
     const updated = [newApplication, ...memberships];
     setMemberships(updated);
     localStorage.setItem(STORAGE_KEYS.MEMBERSHIPS, JSON.stringify(updated));
 
     return { success: true, referenceNumber };
+  };
+
+  const recordVerifiedMembership = (data: {
+    referenceNumber: string;
+    fullName: string;
+    dateOfBirth: string;
+    gender?: string;
+    phone: string;
+    email?: string;
+    cityOrRegion: string;
+    membershipType: MembershipTier;
+    preferredLanguage: Language;
+    amountPaid: number | string;
+    tx_ref: string;
+  }): MembershipApplication => {
+    const newApplication: MembershipApplication = {
+      id: `mem-${Date.now()}`,
+      referenceNumber: data.referenceNumber,
+      fullName: data.fullName.trim(),
+      dateOfBirth: data.dateOfBirth,
+      gender: data.gender,
+      phone: data.phone.trim(),
+      email: data.email?.trim() || undefined,
+      cityOrRegion: data.cityOrRegion.trim(),
+      membershipType: data.membershipType,
+      preferredLanguage: data.preferredLanguage,
+      registeredAt: new Date().toISOString(),
+      status: 'APPROVED',
+      amountPaid: data.amountPaid,
+      tx_ref: data.tx_ref,
+      paymentStatus: 'PAID',
+      paymentDate: new Date().toISOString(),
+    };
+
+    const updated = [newApplication, ...memberships.filter((m) => m.referenceNumber !== data.referenceNumber && m.tx_ref !== data.tx_ref)];
+    setMemberships(updated);
+    localStorage.setItem(STORAGE_KEYS.MEMBERSHIPS, JSON.stringify(updated));
+
+    return newApplication;
   };
 
   const updateMembershipStatus = (id: string, status: 'APPROVED' | 'PENDING' | 'REJECTED') => {
@@ -801,6 +861,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deletePlayer,
         memberships,
         submitMembership,
+        recordVerifiedMembership,
         updateMembershipStatus,
         deleteMembership,
         isAdminLoggedIn,
