@@ -45,7 +45,8 @@ import {
   Heart,
   Package,
   Truck,
-  Sparkles
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
@@ -127,6 +128,9 @@ export const AdminPage: React.FC = () => {
   const [shopFeatured, setShopFeatured] = useState(false);
   const [shopUploadError, setShopUploadError] = useState<string | null>(null);
   const [isShopUploading, setIsShopUploading] = useState(false);
+  const [isSavingShopToFirestore, setIsSavingShopToFirestore] = useState(false);
+  const [deletingShopId, setDeletingShopId] = useState<string | null>(null);
+  const [shopStatusToast, setShopStatusToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Compress & resize uploaded image to prevent exceeding browser storage quotas
   const processImageFileToDataUrl = (file: File, maxDim = 1200): Promise<string> => {
@@ -472,9 +476,12 @@ export const AdminPage: React.FC = () => {
     setIsShopModalOpen(true);
   };
 
-  const handleSaveShopItem = (e: React.FormEvent) => {
+  const handleSaveShopItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!shopNameEn.trim()) return;
+
+    setIsSavingShopToFirestore(true);
+    setShopUploadError(null);
 
     const payload = {
       name: {
@@ -495,14 +502,70 @@ export const AdminPage: React.FC = () => {
       featured: shopFeatured,
     };
 
-    if (editingShopItemId) {
-      updateShopItem(editingShopItemId, payload);
-    } else {
-      addShopItem(payload);
+    try {
+      if (editingShopItemId) {
+        await updateShopItem(editingShopItemId, payload);
+        setShopStatusToast({
+          message: `Product "${payload.name.en}" successfully updated in Firebase Firestore!`,
+          type: 'success',
+        });
+      } else {
+        await addShopItem(payload);
+        setShopStatusToast({
+          message: `"${payload.name.en}" published to Firebase Firestore and is live on the store!`,
+          type: 'success',
+        });
+      }
+      setTimeout(() => setShopStatusToast(null), 4500);
+      setIsShopModalOpen(false);
+      setEditingShopItemId(null);
+    } catch (err: any) {
+      console.error("Firestore shop error:", err);
+      setShopUploadError(err?.message || "Failed to persist product to Firebase Firestore.");
+    } finally {
+      setIsSavingShopToFirestore(false);
     }
+  };
 
-    setIsShopModalOpen(false);
-    setEditingShopItemId(null);
+  const handleDeleteShopItem = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${name}" from Firebase Firestore?`)) {
+      return;
+    }
+    setDeletingShopId(id);
+    try {
+      await deleteShopItem(id);
+      setShopStatusToast({
+        message: `Product "${name}" was permanently removed from Firebase Firestore.`,
+        type: 'success',
+      });
+      setTimeout(() => setShopStatusToast(null), 4000);
+    } catch (err: any) {
+      setShopStatusToast({
+        message: err?.message || 'Failed to delete product from Firestore.',
+        type: 'error',
+      });
+    } finally {
+      setDeletingShopId(null);
+    }
+  };
+
+  const handleResetCatalog = async () => {
+    if (!window.confirm("This will synchronize and restore all official Halaba jerseys and merchandise in Firebase Firestore. Continue?")) {
+      return;
+    }
+    try {
+      await resetShopItems();
+      setShopStatusToast({
+        message: 'Official Halaba merchandise catalog restored and synced in Firebase Firestore.',
+        type: 'success',
+      });
+      setTimeout(() => setShopStatusToast(null), 4500);
+    } catch (err: any) {
+      setShopStatusToast({
+        message: err?.message || 'Failed to restore default catalog.',
+        type: 'error',
+      });
+    }
   };
 
   const handleToggleShopSize = (size: string) => {
@@ -926,25 +989,31 @@ export const AdminPage: React.FC = () => {
         <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-800">
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-950 border border-red-800/60 text-red-400 text-xxs font-bold uppercase tracking-wider mb-1">
-                <ShoppingBag className="w-3 h-3" />
-                Store & Fund Administration
+              <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-950 border border-red-800/60 text-red-400 text-xxs font-bold uppercase tracking-wider">
+                  <ShoppingBag className="w-3 h-3" />
+                  Store & Fund Administration
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-xxs font-bold uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Firestore Persistent Cloud Sync</span>
+                </div>
               </div>
               <h3 className="font-sports font-black text-2xl text-white uppercase tracking-wider">
                 Jersey Shop & Supporter Contributions
               </h3>
               <p className="text-xs text-neutral-400 mt-0.5">
-                Manage club merchandise, add new kits, view customer delivery addresses, and track Chapa donations.
+                All shop items, edits, and deletions persist directly in Firebase Firestore and synchronize in real-time for any site visitor.
               </p>
             </div>
 
             <div className="flex items-center gap-2 self-start sm:self-auto">
               <button
-                onClick={resetShopItems}
+                onClick={handleResetCatalog}
                 className="px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-sports font-bold uppercase tracking-wider transition-colors"
-                title="Restore official default club products"
+                title="Restore and sync official default club products to Firebase Firestore"
               >
-                Reset Catalog
+                Sync Official Catalog
               </button>
               <button
                 onClick={handleOpenAddShopItem}
@@ -955,6 +1024,20 @@ export const AdminPage: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Real-time Status Notification Toast */}
+          {shopStatusToast && (
+            <div
+              className={`p-3 rounded-xl border text-xs font-sports font-bold flex items-center gap-2.5 transition-all ${
+                shopStatusToast.type === 'success'
+                  ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-300'
+                  : 'bg-red-950/70 border-red-500/40 text-red-300'
+              }`}
+            >
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+              <span>{shopStatusToast.message}</span>
+            </div>
+          )}
 
           {/* Subtabs for Shop: Items, Orders, Donations */}
           <div className="flex flex-wrap gap-2">
@@ -1058,11 +1141,16 @@ export const AdminPage: React.FC = () => {
                             <Edit className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => deleteShopItem(item.id)}
-                            className="p-1.5 rounded-lg bg-red-950/60 hover:bg-red-900/80 text-red-400 border border-red-800/60 transition-colors"
-                            title="Delete Product"
+                            onClick={() => handleDeleteShopItem(item.id, name)}
+                            disabled={deletingShopId === item.id}
+                            className="p-1.5 rounded-lg bg-red-950/60 hover:bg-red-900/80 text-red-400 border border-red-800/60 transition-colors disabled:opacity-50"
+                            title="Delete Product from Firestore"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            {deletingShopId === item.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
                           </button>
                         </div>
                       </div>
@@ -2607,10 +2695,20 @@ export const AdminPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-emerald-600 hover:from-red-500 hover:to-emerald-500 text-white font-sports font-black text-sm uppercase tracking-wider shadow-lg shadow-red-950/50 flex items-center gap-2 transition-all hover:scale-[1.01]"
+                  disabled={isSavingShopToFirestore}
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-emerald-600 hover:from-red-500 hover:to-emerald-500 text-white font-sports font-black text-sm uppercase tracking-wider shadow-lg shadow-red-950/50 flex items-center gap-2 transition-all hover:scale-[1.01] disabled:opacity-50"
                 >
-                  <Check className="w-4 h-4" />
-                  <span>{editingShopItemId ? 'Save Changes' : 'Publish Product'}</span>
+                  {isSavingShopToFirestore ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Saving to Firestore...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>{editingShopItemId ? 'Save Changes' : 'Publish Product'}</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>

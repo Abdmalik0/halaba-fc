@@ -24,6 +24,7 @@ export const ShopPage: React.FC = () => {
     openDonationModal,
     setCurrentPage,
     isAdminLoggedIn,
+    isProductsLoading,
   } = useClub();
 
   const [selectedCategory, setSelectedCategory] = useState<'ALL' | 'JERSEY' | 'KIT' | 'ACCESSORY'>('ALL');
@@ -140,10 +141,35 @@ export const ShopPage: React.FC = () => {
             </button>
           </div>
 
-          <div className="text-xs text-neutral-400">
-            Showing <span className="font-bold text-white">{filteredItems.length}</span> items
+          <div className="flex flex-wrap items-center gap-2.5 text-xs text-neutral-400">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-emerald-400 text-xxs font-bold uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Live Firestore Sync</span>
+            </span>
+            <span>
+              Showing <span className="font-bold text-white">{filteredItems.length}</span> items
+            </span>
           </div>
         </div>
+
+        {/* Empty or Loading State */}
+        {filteredItems.length === 0 && (
+          <div className="text-center py-16 bg-neutral-900/60 rounded-3xl border border-neutral-800 p-8 space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-neutral-800 border border-neutral-700 mx-auto flex items-center justify-center text-red-500">
+              <ShoppingBag className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="font-sports font-black text-xl text-white uppercase">
+                {isProductsLoading ? 'Loading Live Inventory...' : 'No Merchandise Found'}
+              </h3>
+              <p className="text-xs text-neutral-400 max-w-md mx-auto mt-1">
+                {isProductsLoading
+                  ? 'Connecting to Firebase Firestore real-time database...'
+                  : 'No items match the selected category. Check back soon for newly listed official match kits!'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Product Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

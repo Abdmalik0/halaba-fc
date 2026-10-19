@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { collection, query, orderBy, onSnapshot, addDoc, setDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 import {
   Language,
   ClubInfo,
@@ -125,10 +125,12 @@ interface ClubContextType {
 
   // Shop & Merchandise
   shopItems: ShopItem[];
-  addShopItem: (item: Omit<ShopItem, 'id'>) => void;
-  updateShopItem: (id: string, updates: Partial<ShopItem>) => void;
-  deleteShopItem: (id: string) => void;
-  resetShopItems: () => void;
+  addShopItem: (item: Omit<ShopItem, 'id'>) => Promise<string | void> | void;
+  updateShopItem: (id: string, updates: Partial<ShopItem>) => Promise<void> | void;
+  deleteShopItem: (id: string) => Promise<void> | void;
+  resetShopItems: () => Promise<void> | void;
+  isProductsLoading: boolean;
+  productsSyncError: string | null;
   shopOrders: ShopOrder[];
   recordShopOrder: (order: ShopOrder) => void;
   updateShopOrderStatus: (id: string, status: 'PENDING' | 'PAID' | 'DELIVERED') => void;
@@ -637,35 +639,179 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(STORAGE_KEYS.MEMBERSHIPS, JSON.stringify(updated));
   };
 
-  // Shop Items State
+  // Shop Items State & Real-Time Firebase Firestore Integration
   const [shopItems, setShopItems] = useState<ShopItem[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.SHOP_ITEMS);
     return saved ? JSON.parse(saved) : initialShopItems;
   });
+  const [isProductsLoading, setIsProductsLoading] = useState<boolean>(true);
+  const [productsSyncError, setProductsSyncError] = useState<string | null>(null);
 
-  const addShopItem = (item: Omit<ShopItem, 'id'>) => {
-    const newItem: ShopItem = {
-      ...item,
-      id: `shop-${Date.now()}`,
-    };
-    const updated = [newItem, ...shopItems];
-    setShopItems(updated);
-    localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(updated));
+  // REAL-TIME FIRESTORE LISTENER FOR "products" COLLECTION
+  useEffect(() => {
+    const productsRef = collection(db, 'products');
+
+    const unsubscribe = onSnapshot(productsRef, async (snapshot) => {
+      setIsProductsLoading(false);
+      setProductsSyncError(null);
+
+      if (snapshot.empty) {
+        // If collection has never been seeded in Firestore yet, automatically seed initial products
+        const hasSeeded = localStorage.getItem('hcfc_firestore_products_seeded');
+        if (!hasSeeded) {
+          try {
+            console.log('Seeding initial official products to Firebase Firestore...');
+            for (const item of initialShopItems) {
+              await setDoc(doc(db, 'products', item.id), {
+                name: item.name,
+                description: item.description,
+                price: item.price,
+                imageUrl: item.imageUrl,
+                availableSizes: item.availableSizes,
+                category: item.category || 'JERSEY',
+                inStock: item.inStock !== undefined ? item.inStock : true,
+                featured: item.featured !== undefined ? item.featured : false,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              });
+            }
+            localStorage.setItem('hcfc_firestore_products_seeded', 'true');
+          } catch (seedErr) {
+            console.warn('Could not auto-seed default products to Firestore:', seedErr);
+          }
+        } else {
+          // If intentionally emptied by an admin
+          setShopItems([]);
+          localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify([]));
+        }
+        return;
+      }
+
+      // Map Firestore documents to ShopItem type
+      const liveProducts: ShopItem[] = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id,
+          name: typeof data.name === 'object' && data.name !== null
+            ? { en: data.name.en || '', am: data.name.am || data.name.en || '', om: data.name.om || data.name.en || '' }
+            : { en: String(data.name || ''), am: String(data.name || ''), om: String(data.name || '') },
+          description: typeof data.description === 'object' && data.description !== null
+            ? { en: data.description.en || '', am: data.description.am || data.description.en || '', om: data.description.om || data.description.en || '' }
+            : { en: String(data.description || ''), am: String(data.description || ''), om: String(data.description || '') },
+          price: typeof data.price === 'number' ? data.price : parseFloat(data.price) || 0,
+          imageUrl: data.imageUrl || 'https://images.unsplash.com/photo-1577212017184-80cc0da11082?auto=format&fit=crop&w=800&q=80',
+          availableSizes: Array.isArray(data.availableSizes) && data.availableSizes.length > 0 ? data.availableSizes : ['S', 'M', 'L', 'XL'],
+          category: (data.category as 'JERSEY' | 'KIT' | 'ACCESSORY') || 'JERSEY',
+          inStock: data.inStock !== undefined ? Boolean(data.inStock) : true,
+          featured: Boolean(data.featured),
+        };
+      });
+
+      // Maintain order: featured items first
+      liveProducts.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+
+      setShopItems(liveProducts);
+      localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(liveProducts));
+      localStorage.setItem('hcfc_firestore_products_seeded', 'true');
+    }, (error) => {
+      console.error('Firebase real-time products sync error:', error);
+      setProductsSyncError(error.message);
+      handleFirestoreError(error, OperationType.LIST, 'products');
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const addShopItem = async (item: Omit<ShopItem, 'id'>) => {
+    try {
+      const docRef = await addDoc(collection(db, 'products'), {
+        name: item.name,
+        description: item.description,
+        price: item.price,
+        imageUrl: item.imageUrl,
+        availableSizes: item.availableSizes,
+        category: item.category || 'JERSEY',
+        inStock: item.inStock !== undefined ? item.inStock : true,
+        featured: Boolean(item.featured),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      const newItem: ShopItem = {
+        ...item,
+        id: docRef.id,
+      };
+      setShopItems((prev) => [newItem, ...prev.filter((p) => p.id !== docRef.id)]);
+      localStorage.setItem('hcfc_firestore_products_seeded', 'true');
+      return docRef.id;
+    } catch (error) {
+      console.error('Firestore add product error, falling back locally:', error);
+      handleFirestoreError(error, OperationType.CREATE, 'products');
+      const fallbackId = `shop-${Date.now()}`;
+      const newItem: ShopItem = { ...item, id: fallbackId };
+      const updated = [newItem, ...shopItems];
+      setShopItems(updated);
+      localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(updated));
+      return fallbackId;
+    }
   };
 
-  const updateShopItem = (id: string, updates: Partial<ShopItem>) => {
-    const updated = shopItems.map((item) => (item.id === id ? { ...item, ...updates } : item));
-    setShopItems(updated);
-    localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(updated));
+  const updateShopItem = async (id: string, updates: Partial<ShopItem>) => {
+    try {
+      const productRef = doc(db, 'products', id);
+      await setDoc(productRef, {
+        ...updates,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+
+      const updated = shopItems.map((item) => (item.id === id ? { ...item, ...updates } : item));
+      setShopItems(updated);
+      localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(updated));
+    } catch (error) {
+      console.error('Firestore update product error, falling back locally:', error);
+      handleFirestoreError(error, OperationType.UPDATE, `products/${id}`);
+      const updated = shopItems.map((item) => (item.id === id ? { ...item, ...updates } : item));
+      setShopItems(updated);
+      localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(updated));
+    }
   };
 
-  const deleteShopItem = (id: string) => {
-    const updated = shopItems.filter((item) => item.id !== id);
-    setShopItems(updated);
-    localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(updated));
+  const deleteShopItem = async (id: string) => {
+    try {
+      const productRef = doc(db, 'products', id);
+      await deleteDoc(productRef);
+
+      const updated = shopItems.filter((item) => item.id !== id);
+      setShopItems(updated);
+      localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(updated));
+    } catch (error) {
+      console.error('Firestore delete product error, falling back locally:', error);
+      handleFirestoreError(error, OperationType.DELETE, `products/${id}`);
+      const updated = shopItems.filter((item) => item.id !== id);
+      setShopItems(updated);
+      localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(updated));
+    }
   };
 
-  const resetShopItems = () => {
+  const resetShopItems = async () => {
+    try {
+      for (const item of initialShopItems) {
+        await setDoc(doc(db, 'products', item.id), {
+          name: item.name,
+          description: item.description,
+          price: item.price,
+          imageUrl: item.imageUrl,
+          availableSizes: item.availableSizes,
+          category: item.category || 'JERSEY',
+          inStock: item.inStock !== undefined ? item.inStock : true,
+          featured: item.featured !== undefined ? item.featured : false,
+          updatedAt: serverTimestamp(),
+        }, { merge: true });
+      }
+      localStorage.setItem('hcfc_firestore_products_seeded', 'true');
+    } catch (error) {
+      console.error('Firestore reset products catalog error:', error);
+    }
     setShopItems(initialShopItems);
     localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(initialShopItems));
   };
@@ -1013,6 +1159,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateShopItem,
         deleteShopItem,
         resetShopItems,
+        isProductsLoading,
+        productsSyncError,
         shopOrders,
         recordShopOrder,
         updateShopOrderStatus,
