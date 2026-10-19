@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, addDoc, setDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import {
   Language,
   ClubInfo,
@@ -148,11 +149,13 @@ interface ClubContextType {
   openDonationModal: () => void;
   closeDonationModal: () => void;
 
-  // Admin Auth
+  // Admin Auth (Firebase Authentication)
   isAdminLoggedIn: boolean;
   adminUsername: string | null;
-  loginAdmin: (user: string, pass: string) => boolean;
-  logoutAdmin: () => void;
+  adminUser: User | null;
+  isAuthChecking: boolean;
+  loginAdmin: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
+  logoutAdmin: () => Promise<void>;
 
   // Utility
   resetAllDataToDefault: () => void;
@@ -864,31 +867,75 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const openDonationModal = () => setIsDonationModalOpen(true);
   const closeDonationModal = () => setIsDonationModalOpen(false);
 
-  // Admin Auth
+  // Admin Auth using Firebase Authentication
+  const [adminUser, setAdminUser] = useState<User | null>(null);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
     return localStorage.getItem(STORAGE_KEYS.ADMIN_AUTH) === 'true';
   });
-  const [adminUsername, setAdminUsername] = useState<string | null>(() => {
-    return localStorage.getItem(STORAGE_KEYS.ADMIN_AUTH) === 'true' ? 'halaba_staff' : null;
-  });
+  const [adminUsername, setAdminUsername] = useState<string | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
 
-  const loginAdmin = (user: string, pass: string): boolean => {
-    if (
-      (user.trim().toLowerCase() === 'admin' || user.trim().toLowerCase() === 'staff' || user.trim().toLowerCase() === 'halaba') &&
-      (pass === 'halaba1966' || pass === 'admin123' || pass === 'berbere')
-    ) {
+  // Listen to Firebase onAuthStateChanged so the admin stays signed in across page reloads
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setAdminUser(user);
+        setIsAdminLoggedIn(true);
+        setAdminUsername(user.displayName || user.email || 'Admin');
+        localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
+      } else {
+        setAdminUser(null);
+        setIsAdminLoggedIn(false);
+        setAdminUsername(null);
+        localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
+      }
+      setIsAuthChecking(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const loginAdmin = async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), pass);
+      const user = userCredential.user;
+      setAdminUser(user);
       setIsAdminLoggedIn(true);
-      setAdminUsername(user.trim());
+      setAdminUsername(user.displayName || user.email || 'Admin');
       localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
-      return true;
+      return { success: true };
+    } catch (error: any) {
+      console.error("Firebase signInWithEmailAndPassword error:", error);
+      let errorMsg = 'Invalid email or password.';
+      const code = error?.code || '';
+      if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+        errorMsg = 'Invalid email or password. Please verify your administrator credentials.';
+      } else if (code === 'auth/invalid-email') {
+        errorMsg = 'Please enter a valid email address.';
+      } else if (code === 'auth/user-disabled') {
+        errorMsg = 'This administrator account has been disabled.';
+      } else if (code === 'auth/too-many-requests') {
+        errorMsg = 'Too many failed login attempts. Access temporarily restricted. Please try again later.';
+      } else if (code === 'auth/network-request-failed') {
+        errorMsg = 'Network error. Please check your internet connection.';
+      } else if (error?.message) {
+        errorMsg = error.message;
+      }
+      return { success: false, error: errorMsg };
     }
-    return false;
   };
 
-  const logoutAdmin = () => {
-    setIsAdminLoggedIn(false);
-    setAdminUsername(null);
-    localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
+  const logoutAdmin = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Firebase signOut error:", error);
+    } finally {
+      setAdminUser(null);
+      setIsAdminLoggedIn(false);
+      setAdminUsername(null);
+      localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
+    }
   };
 
   // Club Dossier Modal
@@ -1175,6 +1222,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         closeDonationModal,
         isAdminLoggedIn,
         adminUsername,
+        adminUser,
+        isAuthChecking,
         loginAdmin,
         logoutAdmin,
         resetAllDataToDefault,

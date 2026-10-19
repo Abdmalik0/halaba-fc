@@ -46,7 +46,9 @@ import {
   Package,
   Truck,
   Sparkles,
-  Loader2
+  Loader2,
+  ShieldCheck,
+  Mail
 } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
@@ -55,8 +57,11 @@ export const AdminPage: React.FC = () => {
     language,
     isAdminLoggedIn,
     adminUsername,
+    adminUser,
+    isAuthChecking,
     loginAdmin,
     logoutAdmin,
+    setCurrentPage,
     memberships,
     updateMembershipStatus,
     deleteMembership,
@@ -100,10 +105,12 @@ export const AdminPage: React.FC = () => {
     liveNotifications,
   } = useClub();
 
-  // Login form state
-  const [usernameInput, setUsernameInput] = useState('');
+  // Strict Firebase Admin Login form state
+  const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
-  const [loginError, setLoginError] = useState('');
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Active admin tab
   const [adminTab, setAdminTab] = useState<
@@ -266,22 +273,43 @@ export const AdminPage: React.FC = () => {
   const [newPlayerNumber, setNewPlayerNumber] = useState(10);
   const [newPlayerPos, setNewPlayerPos] = useState<'Goalkeeper' | 'Defender' | 'Midfielder' | 'Forward'>('Midfielder');
 
-  // Login handler
-  const handleLogin = (e: React.FormEvent) => {
+  // Firebase Authentication Login Handler
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const ok = loginAdmin(usernameInput, passwordInput);
-    if (!ok) {
-      setLoginError('Invalid staff credentials. (Hint: username "staff", password "halaba1966")');
-    } else {
-      setLoginError('');
-      setUsernameInput('');
-      setPasswordInput('');
+    setLoginError(null);
+
+    if (!emailInput.trim() || !passwordInput) {
+      setLoginError('Please enter both your administrator email and password.');
+      return;
+    }
+
+    setIsLoggingIn(true);
+    try {
+      const res = await loginAdmin(emailInput.trim(), passwordInput);
+      if (!res.success) {
+        setLoginError(res.error || 'Invalid email or password.');
+      } else {
+        setLoginError(null);
+        setPasswordInput('');
+      }
+    } catch (err: any) {
+      setLoginError(err?.message || 'Authentication error. Please check your credentials.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  const handleDemoFill = () => {
-    setUsernameInput('staff');
-    setPasswordInput('halaba1966');
+  // Prominent Firebase SignOut Handler
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logoutAdmin();
+      setEmailInput('');
+      setPasswordInput('');
+      setLoginError(null);
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   // Export CSV
@@ -578,79 +606,122 @@ export const AdminPage: React.FC = () => {
     }
   };
 
-  /* IF NOT LOGGED IN - RENDER AUTH GATE */
+  /* SESSION VERIFICATION LOADING SCREEN */
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+        <div className="relative">
+          <HalabaCrest size={72} showGlow />
+        </div>
+        <div className="flex items-center gap-2 text-emerald-400 font-sports font-bold text-xs uppercase tracking-widest">
+          <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+          <span>Verifying Firebase Authentication Session...</span>
+        </div>
+      </div>
+    );
+  }
+
+  /* STRICT LOGIN-ONLY GATE USING FIREBASE AUTHENTICATION */
   if (!isAdminLoggedIn) {
     return (
       <div className="max-w-md mx-auto px-4 py-16">
-        <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl text-center space-y-6">
+        <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 sm:p-10 shadow-2xl space-y-6">
           <div className="flex justify-center">
-            <HalabaCrest size={70} showGlow />
+            <HalabaCrest size={72} showGlow />
           </div>
 
-          <div>
-            <h1 className="font-sports font-black text-3xl text-white uppercase tracking-wider">
-              {t.adminLoginTitle}
+          <div className="text-center space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-950/80 border border-red-800/60 text-red-400 text-xxs font-bold uppercase tracking-wider mb-1">
+              <Lock className="w-3 h-3" />
+              <span>Official Administrator Portal</span>
+            </div>
+            <h1 className="font-sports font-black text-2xl sm:text-3xl text-white uppercase tracking-wider">
+              Admin Sign In
             </h1>
-            <p className="text-neutral-400 text-xs mt-1">
-              Authorized club staff and website administrators only.
+            <p className="text-neutral-400 text-xs">
+              Authorized HALABA City FC management and club IT personnel only.
             </p>
           </div>
 
           {loginError && (
-            <div className="p-3 rounded-xl bg-red-950/80 border border-red-800 text-red-200 text-xs text-left">
-              {loginError}
+            <div className="p-3.5 rounded-xl bg-red-950/80 border border-red-800/80 text-red-200 text-xs flex items-start gap-2.5 shadow-sm">
+              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <span className="leading-relaxed">{loginError}</span>
             </div>
           )}
 
           <form onSubmit={handleLogin} className="space-y-4 text-left">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                {t.adminUsername}
+                Admin Email *
               </label>
-              <input
-                type="text"
-                value={usernameInput}
-                onChange={(e) => setUsernameInput(e.target.value)}
-                placeholder="Staff username"
-                className="w-full px-4 py-2.5 bg-neutral-950 rounded-xl border border-neutral-800 text-sm text-white focus:outline-none focus:border-red-500"
-              />
+              <div className="relative">
+                <input
+                  type="email"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="admin@halabafc.et"
+                  required
+                  autoComplete="email"
+                  className="w-full pl-10 pr-4 py-2.5 bg-neutral-950 rounded-xl border border-neutral-800 text-sm text-white focus:outline-none focus:border-red-500 placeholder-neutral-600 transition-colors"
+                />
+                <Mail className="w-4 h-4 text-neutral-500 absolute left-3.5 top-3" />
+              </div>
             </div>
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                {t.adminPassword}
+                Password *
               </label>
-              <input
-                type="password"
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-2.5 bg-neutral-950 rounded-xl border border-neutral-800 text-sm text-white focus:outline-none focus:border-red-500"
-              />
+              <div className="relative">
+                <input
+                  type="password"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  autoComplete="current-password"
+                  className="w-full pl-10 pr-4 py-2.5 bg-neutral-950 rounded-xl border border-neutral-800 text-sm text-white focus:outline-none focus:border-red-500 placeholder-neutral-600 transition-colors"
+                />
+                <Lock className="w-4 h-4 text-neutral-500 absolute left-3.5 top-3" />
+              </div>
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm uppercase tracking-wider font-sports shadow-lg shadow-red-950 transition-colors flex items-center justify-center gap-2"
+              disabled={isLoggingIn}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-600 text-white font-bold text-sm uppercase tracking-wider font-sports shadow-lg shadow-red-950/60 transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
             >
-              <Lock className="w-4 h-4" />
-              <span>{t.adminLoginBtn}</span>
+              {isLoggingIn ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Signing In with Firebase...</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>Sign In to Dashboard</span>
+                </>
+              )}
             </button>
           </form>
 
-          {/* Quick Admin Toggle / Demo Helper */}
-          <div className="pt-4 border-t border-neutral-800/80 space-y-2">
+          {/* Strict Security Policy: Login-Only Workflow */}
+          <div className="pt-4 border-t border-neutral-800/80 space-y-2 text-center">
+            <div className="flex items-center justify-center gap-1.5 text-neutral-400 text-xxs font-medium">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Firebase Auth Protected • Login-Only Workflow</span>
+            </div>
+            <p className="text-neutral-500 text-xxs">
+              Self-service registration and password reset are strictly disabled. Contact club administration for access credentials.
+            </p>
             <button
               type="button"
-              onClick={() => loginAdmin('staff', 'halaba1966')}
-              className="w-full py-2.5 px-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-emerald-400 border border-emerald-500/30 text-xs font-bold uppercase tracking-wider font-sports flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
+              onClick={() => setCurrentPage('home')}
+              className="text-neutral-400 hover:text-white text-xs underline underline-offset-4 pt-1 transition-colors"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>1-Click Admin Access (Quick Toggle)</span>
+              Return to Public Club Website
             </button>
-            <span className="text-xxs text-neutral-500 block">
-              Direct access for club managers & testers (Username: staff / Pass: halaba1966)
-            </span>
           </div>
         </div>
       </div>
@@ -678,10 +749,13 @@ export const AdminPage: React.FC = () => {
         <div className="flex items-center gap-4">
           <HalabaCrest size={48} />
           <div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                Staff Dashboard • Logged In as {adminUsername}
+            <div className="flex flex-wrap items-center gap-2 mb-1.5">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-xxs font-bold uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Firebase Authenticated Session
+              </span>
+              <span className="text-xs font-sports font-semibold text-neutral-300">
+                {adminUser?.email || adminUsername}
               </span>
             </div>
             <h1 className="font-sports font-black text-2xl sm:text-4xl text-white uppercase tracking-wider">
@@ -692,22 +766,36 @@ export const AdminPage: React.FC = () => {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={logoutAdmin}
-            className="px-4 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-bold uppercase tracking-wider font-sports flex items-center gap-1.5 transition-colors"
+            onClick={() => setCurrentPage('home')}
+            className="px-3.5 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-bold uppercase tracking-wider font-sports transition-colors"
           >
-            <LogOut className="w-4 h-4 text-red-400" />
-            <span>{t.adminLogoutBtn}</span>
+            Club Website
+          </button>
+          <button
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="px-4 py-2 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-700/60 text-red-200 hover:text-white text-xs font-bold uppercase tracking-wider font-sports flex items-center gap-2 shadow-lg shadow-red-950/40 transition-all hover:scale-[1.02] disabled:opacity-50"
+            title="Sign out of Firebase Admin"
+          >
+            {isLoggingOut ? (
+              <Loader2 className="w-4 h-4 animate-spin text-red-400" />
+            ) : (
+              <LogOut className="w-4 h-4 text-red-400" />
+            )}
+            <span>Log Out</span>
           </button>
         </div>
       </div>
 
-      {/* Demonstration Banner */}
-      <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-800/80 text-xs text-amber-200 flex items-start gap-3">
-        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-        <div className="space-y-1">
-          <strong className="block text-amber-300 font-semibold">{t.demoNotice}</strong>
-          <span className="text-amber-300/80">
-            All modifications you make below are live and reactive on this site.
+      {/* Firebase Cloud Live Notice Banner */}
+      <div className="p-4 rounded-xl bg-neutral-900 border border-neutral-800 text-xs text-neutral-300 flex items-start gap-3">
+        <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+        <div className="space-y-0.5">
+          <strong className="block text-white font-sports font-bold tracking-wide uppercase">
+            Firebase Authentication & Firestore Persistent Storage Active
+          </strong>
+          <span className="text-neutral-400">
+            All additions, updates, and removals of shop merchandise, news, and club schedules persist permanently in Firebase Cloud and synchronize in real-time.
           </span>
         </div>
       </div>
