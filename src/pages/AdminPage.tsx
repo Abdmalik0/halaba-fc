@@ -125,6 +125,86 @@ export const AdminPage: React.FC = () => {
   const [shopCategory, setShopCategory] = useState<'JERSEY' | 'KIT' | 'ACCESSORY'>('JERSEY');
   const [shopInStock, setShopInStock] = useState(true);
   const [shopFeatured, setShopFeatured] = useState(false);
+  const [shopUploadError, setShopUploadError] = useState<string | null>(null);
+  const [isShopUploading, setIsShopUploading] = useState(false);
+
+  // Compress & resize uploaded image to prevent exceeding browser storage quotas
+  const processImageFileToDataUrl = (file: File, maxDim = 1200): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (readerEvent) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(readerEvent.target?.result as string);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          resolve(compressedDataUrl);
+        };
+        img.onerror = () => resolve(readerEvent.target?.result as string);
+        img.src = readerEvent.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleShopImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 15 * 1024 * 1024) {
+        setShopUploadError('File size exceeds 15MB limit. Please select a smaller photo file.');
+        return;
+      }
+      setShopUploadError(null);
+      setIsShopUploading(true);
+      try {
+        const dataUrl = await processImageFileToDataUrl(file);
+        setShopImageUrl(dataUrl);
+      } catch {
+        setShopUploadError('Failed to read image file. Please try another image.');
+      } finally {
+        setIsShopUploading(false);
+      }
+    }
+  };
+
+  const handleShopImageDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      if (file.size > 15 * 1024 * 1024) {
+        setShopUploadError('File size exceeds 15MB limit. Please select a smaller photo file.');
+        return;
+      }
+      setShopUploadError(null);
+      setIsShopUploading(true);
+      try {
+        const dataUrl = await processImageFileToDataUrl(file);
+        setShopImageUrl(dataUrl);
+      } catch {
+        setShopUploadError('Failed to read image file. Please try another image.');
+      } finally {
+        setIsShopUploading(false);
+      }
+    }
+  };
 
   // Search & filter states
   const [memberSearch, setMemberSearch] = useState('');
@@ -361,6 +441,8 @@ export const AdminPage: React.FC = () => {
     setShopCategory('JERSEY');
     setShopInStock(true);
     setShopFeatured(false);
+    setShopUploadError(null);
+    setIsShopUploading(false);
     setIsShopModalOpen(true);
   };
 
@@ -385,6 +467,8 @@ export const AdminPage: React.FC = () => {
     setShopCategory(item.category || 'JERSEY');
     setShopInStock(item.inStock !== false);
     setShopFeatured(Boolean(item.featured));
+    setShopUploadError(null);
+    setIsShopUploading(false);
     setIsShopModalOpen(true);
   };
 
@@ -924,6 +1008,10 @@ export const AdminPage: React.FC = () => {
                           src={item.imageUrl}
                           alt={name}
                           className="w-20 h-20 object-cover rounded-xl bg-neutral-900 border border-neutral-800 shrink-0"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              'https://images.unsplash.com/photo-1577212017184-80cc0da11082?auto=format&fit=crop&w=800&q=80';
+                          }}
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
@@ -2249,60 +2337,149 @@ export const AdminPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Image URL & Preset Selection */}
+              {/* Product Image: Local Device Upload + URL Input + Drag & Drop */}
               <div className="space-y-2">
-                <label className="block font-bold text-neutral-300 uppercase tracking-wider">
-                  Product Image URL *
-                </label>
-                <div className="relative">
-                  <Link className="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="text"
-                    required
-                    value={shopImageUrl}
-                    onChange={(e) => setShopImageUrl(e.target.value)}
-                    placeholder="https://... image URL"
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-neutral-950 rounded-xl border border-neutral-800 text-white text-xs sm:text-sm focus:outline-none focus:border-red-500"
-                  />
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold text-neutral-300 uppercase tracking-wider">
+                    Product Image (Upload Local File or Image Link) *
+                  </label>
+                  {shopImageUrl && (
+                    <span className="text-xxs font-bold uppercase font-sports text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      <span>{shopImageUrl.startsWith('data:') ? 'Local Photo Ready' : 'Web Image Linked'}</span>
+                    </span>
+                  )}
                 </div>
+
+                {/* Unified Input Bar: Link URL + Direct Local File Picker Button */}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Link className="w-3.5 h-3.5 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      required
+                      value={shopImageUrl.startsWith('data:') ? 'Photo loaded from local device (ready to save)' : shopImageUrl}
+                      onChange={(e) => {
+                        setShopImageUrl(e.target.value);
+                        setShopUploadError(null);
+                      }}
+                      placeholder="Paste image link URL (https://...) or choose local file"
+                      className="w-full pl-9 pr-3.5 py-2.5 bg-neutral-950 rounded-xl border border-neutral-800 text-white text-xs sm:text-sm focus:outline-none focus:border-red-500"
+                    />
+                  </div>
+
+                  {/* Browse Local Device Button */}
+                  <label
+                    htmlFor="shop-image-file-input"
+                    className="px-3.5 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-100 hover:text-white rounded-xl border border-neutral-700 text-xs font-sports font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all hover:scale-[1.02] shrink-0 active:scale-95 shadow-md"
+                    title="Select image from local device"
+                  >
+                    <Upload className="w-4 h-4 text-red-400" />
+                    <span>Upload Local File</span>
+                    <input
+                      id="shop-image-file-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleShopImageFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {shopImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShopImageUrl('');
+                        setShopUploadError(null);
+                      }}
+                      className="p-2.5 rounded-xl bg-neutral-800 hover:bg-red-950 text-neutral-400 hover:text-red-400 transition-colors shrink-0 border border-neutral-700"
+                      title="Clear product image"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Drag & Drop File Zone */}
+                <label
+                  htmlFor="shop-image-file-input"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleShopImageDrop}
+                  className="py-2.5 px-4 rounded-xl border border-dashed border-neutral-800 hover:border-red-600/60 bg-neutral-950/70 hover:bg-neutral-950 text-neutral-400 text-xs flex items-center justify-between cursor-pointer transition-all group"
+                >
+                  <span className="flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-neutral-500 group-hover:text-red-400 transition-colors" />
+                    <span className="text-xxs sm:text-xs">
+                      {isShopUploading
+                        ? 'Optimizing and loading local photo...'
+                        : 'Drag & drop local jersey or merchandise photo here'}
+                    </span>
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-neutral-900 group-hover:bg-red-600 text-neutral-300 group-hover:text-white font-sports font-bold uppercase text-xxs transition-colors">
+                    {isShopUploading ? 'Processing...' : 'Browse Computer'}
+                  </span>
+                </label>
+
+                {/* Upload Error Banner */}
+                {shopUploadError && (
+                  <div className="p-2.5 rounded-xl bg-red-950/80 border border-red-800 text-red-200 text-xs flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+                    <span>{shopUploadError}</span>
+                  </div>
+                )}
 
                 {/* Quick Preset Buttons for Official Kits */}
                 <div className="pt-1">
                   <span className="text-xxs text-neutral-400 block mb-1 font-semibold uppercase">
-                    Quick Select Club Kits & Photos:
+                    Or Quick Select Official Club Kits:
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     <button
                       type="button"
-                      onClick={() => setShopImageUrl(ClubImages.homeJersey)}
+                      onClick={() => {
+                        setShopImageUrl(ClubImages.homeJersey);
+                        setShopUploadError(null);
+                      }}
                       className="px-2.5 py-1 rounded-lg bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-red-400 text-xxs font-bold uppercase"
                     >
                       Official Home Kit
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShopImageUrl(ClubImages.awayJersey)}
+                      onClick={() => {
+                        setShopImageUrl(ClubImages.awayJersey);
+                        setShopUploadError(null);
+                      }}
                       className="px-2.5 py-1 rounded-lg bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-emerald-400 text-xxs font-bold uppercase"
                     >
                       Official Away Kit
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShopImageUrl('https://images.unsplash.com/photo-1577212017184-80cc0da11082?auto=format&fit=crop&w=800&q=80')}
+                      onClick={() => {
+                        setShopImageUrl('https://images.unsplash.com/photo-1577212017184-80cc0da11082?auto=format&fit=crop&w=800&q=80');
+                        setShopUploadError(null);
+                      }}
                       className="px-2.5 py-1 rounded-lg bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-amber-400 text-xxs font-bold uppercase"
                     >
                       Onyx Third Kit
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShopImageUrl('https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?auto=format&fit=crop&w=800&q=80')}
+                      onClick={() => {
+                        setShopImageUrl('https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?auto=format&fit=crop&w=800&q=80');
+                        setShopUploadError(null);
+                      }}
                       className="px-2.5 py-1 rounded-lg bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 text-xxs font-bold uppercase"
                     >
                       Supporter Scarf
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShopImageUrl('https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=800&q=80')}
+                      onClick={() => {
+                        setShopImageUrl('https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=800&q=80');
+                        setShopUploadError(null);
+                      }}
                       className="px-2.5 py-1 rounded-lg bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-blue-400 text-xxs font-bold uppercase"
                     >
                       Anthem Jacket
@@ -2312,7 +2489,7 @@ export const AdminPage: React.FC = () => {
 
                 {/* Attached Image Preview */}
                 {shopImageUrl && (
-                  <div className="mt-2 p-3 bg-neutral-950 rounded-2xl border border-neutral-800 flex items-center justify-between gap-3 animate-in fade-in">
+                  <div className="mt-2.5 p-3 bg-neutral-950 rounded-2xl border border-neutral-800 flex items-center justify-between gap-3 animate-in fade-in">
                     <div className="flex items-center gap-3 min-w-0">
                       <img
                         src={shopImageUrl}
@@ -2325,14 +2502,30 @@ export const AdminPage: React.FC = () => {
                       />
                       <div className="min-w-0">
                         <span className="text-xxs font-bold uppercase text-emerald-400 flex items-center gap-1 font-sports">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Image Loaded for Storefront</span>
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>
+                            {shopImageUrl.startsWith('data:')
+                              ? 'Local Photo Loaded & Ready'
+                              : 'Image Loaded for Storefront'}
+                          </span>
                         </span>
                         <span className="text-xxs text-neutral-400 truncate block max-w-xs sm:max-w-md mt-0.5 font-mono">
-                          {shopImageUrl}
+                          {shopImageUrl.startsWith('data:')
+                            ? 'Uploaded from device (processed for store)'
+                            : shopImageUrl}
                         </span>
                       </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShopImageUrl('');
+                        setShopUploadError(null);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-neutral-900 hover:bg-red-950 border border-neutral-800 text-neutral-400 hover:text-red-400 text-xxs font-bold uppercase transition-colors shrink-0"
+                    >
+                      Remove
+                    </button>
                   </div>
                 )}
               </div>

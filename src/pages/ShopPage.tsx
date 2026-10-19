@@ -167,6 +167,10 @@ export const ShopPage: React.FC = () => {
                     src={item.imageUrl}
                     alt={name}
                     className="w-full h-full object-cover object-center rounded-2xl group-hover:scale-105 transition-transform duration-500 filter brightness-95 contrast-105"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        'https://images.unsplash.com/photo-1577212017184-80cc0da11082?auto=format&fit=crop&w=800&q=80';
+                    }}
                   />
 
                   {/* Badges */}
