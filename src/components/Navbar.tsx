@@ -305,30 +305,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
           </div>
 
           <div className="pt-2 space-y-2">
-            {!isInstalled && onOpenInstallModal && (
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenInstallModal();
-                }}
-                className="w-full py-2.5 px-4 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-emerald-500/40 text-emerald-400 font-bold text-center tracking-wide uppercase font-sports flex items-center justify-center gap-2 transition-colors"
-              >
-                <Smartphone className="w-4 h-4 text-emerald-400" />
-                <span>Install Official Mobile App</span>
-              </button>
-            )}
-
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                openDonationModal();
-              }}
-              className="w-full py-2.5 px-4 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-400 font-bold text-center tracking-wide uppercase font-sports flex items-center justify-center gap-2"
-            >
-              <Heart className="w-4 h-4 fill-emerald-400" />
-              <span>{t.navDonate} (Chapa)</span>
-            </button>
-
             <button
               onClick={() => handleNavClick('membership')}
               className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-red-600 to-amber-600 text-white font-bold text-center tracking-wide shadow-lg uppercase font-sports flex items-center justify-center gap-2"

@@ -140,13 +140,6 @@ export const HomePage: React.FC<HomePageProps> = ({
               <span>{t.navShop}</span>
             </button>
 
-            <button
-              onClick={() => setCurrentPage('fixtures')}
-              className="px-6 py-3.5 rounded-xl bg-neutral-900/90 hover:bg-neutral-800 text-white border border-neutral-700 font-bold text-sm sm:text-base tracking-wide uppercase font-sports backdrop-blur-md flex items-center gap-2 transition-all"
-            >
-              <Calendar className="w-5 h-5 text-emerald-400" />
-              <span>{t.heroBtnFixtures}</span>
-            </button>
           </div>
 
           {/* Next Match Quick Banner */}

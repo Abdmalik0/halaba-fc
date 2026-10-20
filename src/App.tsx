@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ClubProvider, useClub } from './context/ClubContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
+import { MobileFixedFooter } from './components/MobileFixedFooter';
 import { HomePage } from './pages/HomePage';
 import { FixturesPage } from './pages/FixturesPage';
 import { StandingsPage } from './pages/StandingsPage';
@@ -20,7 +21,6 @@ import { JerseyCheckoutModal } from './components/JerseyCheckoutModal';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { AppStoreInstallCard } from './components/pwa/AppStoreInstallCard';
 import { OfflineInterruptedOverlay } from './components/pwa/OfflineInterruptedOverlay';
-import { Smartphone } from 'lucide-react';
 
 const MainApp: React.FC = () => {
   const { currentPage, matches, news, isDossierOpen, closeDossier } = useClub();
@@ -45,7 +45,7 @@ const MainApp: React.FC = () => {
       <OfflineInterruptedOverlay />
 
       {/* Main Page Body */}
-      <main className="flex-1">
+      <main className="flex-1 pb-20 sm:pb-0">
         {currentPage === 'home' && (
           <HomePage
             onOpenMatchModal={(id) => setSelectedMatchId(id)}
@@ -66,19 +66,8 @@ const MainApp: React.FC = () => {
         {currentPage === 'admin' && <AdminPage />}
       </main>
 
-      {/* Floating Quick Install Pill for Mobile Web Visitors */}
-      {!isInstalled && (
-        <div className="fixed bottom-6 right-4 sm:right-6 z-30 lg:hidden">
-          <button
-            onClick={openInstallModal}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-red-600 via-red-600 to-emerald-600 text-white font-sports font-bold text-xs uppercase tracking-wider shadow-2xl shadow-black border border-white/20 active:scale-95 transition-transform"
-            aria-label="Install App"
-          >
-            <Smartphone className="w-4 h-4 text-amber-300" />
-            <span>Install App</span>
-          </button>
-        </div>
-      )}
+      {/* Mobile Fixed Footer */}
+      <MobileFixedFooter />
 
       {/* Footer */}
       <Footer />
