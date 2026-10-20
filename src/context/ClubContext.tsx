@@ -573,13 +573,38 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
             };
           });
 
-          const halabaFixtures = initialMatches.filter(
+          const currentMatchesStr = localStorage.getItem(STORAGE_KEYS.MATCHES);
+          let currentMatches: Match[] = [];
+          try {
+            if (currentMatchesStr) {
+              currentMatches = JSON.parse(currentMatchesStr);
+            }
+          } catch {
+            currentMatches = matches;
+          }
+          const currentMap = new Map(currentMatches.map(m => [m.id, m]));
+
+          const baseHalabaFixtures = initialMatches.filter(
             (m) =>
               m.homeTeam.isHalaba ||
               m.awayTeam.isHalaba ||
               m.homeTeam.name.toLowerCase().includes('halaba') ||
               m.awayTeam.name.toLowerCase().includes('halaba')
           );
+
+          const halabaFixtures = baseHalabaFixtures.map(fm => {
+            const existing = currentMap.get(fm.id);
+            if (existing && (
+              existing.status === 'FINISHED' ||
+              existing.status === 'LIVE' ||
+              (existing.score && (existing.score.home !== undefined || existing.score.away !== undefined)) ||
+              (existing.scorers && existing.scorers.length > 0)
+            )) {
+              return existing;
+            }
+            return fm;
+          });
+
           const otherMatches = formattedMatches.filter(
             (m) =>
               !m.homeTeam.isHalaba &&
@@ -593,6 +618,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
           localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(mergedMatches));
 
           for (const m of mergedMatches) {
+            const existing = currentMap.get(m.id);
+            if (existing && existing.status === 'FINISHED' && m.status !== 'FINISHED') {
+              continue;
+            }
             try {
               await setDoc(doc(db, 'matches', m.id), {
                 ...m,
