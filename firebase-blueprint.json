@@ -64,6 +64,122 @@
         "readTime": { "type": "string", "description": "Estimated reading duration" }
       },
       "required": ["title", "content"]
+    },
+    "Match": {
+      "title": "Match",
+      "description": "Club match fixture, schedule, and live result",
+      "type": "object",
+      "properties": {
+        "competition": { "type": "string", "description": "Competition identifier" },
+        "competitionName": { "type": "string", "description": "Competition name" },
+        "date": { "type": "string", "description": "Match date YYYY-MM-DD" },
+        "kickoffTime": { "type": "string", "description": "Kickoff time HH:MM" },
+        "venue": { "type": "string", "description": "Stadium location" },
+        "homeTeam": { "type": "object", "description": "Home team details" },
+        "awayTeam": { "type": "object", "description": "Away team details" },
+        "status": { "type": "string", "description": "UPCOMING, LIVE, or FINISHED" },
+        "score": { "type": "object", "description": "Match score" },
+        "round": { "type": "string", "description": "Tournament round" }
+      },
+      "required": ["date", "homeTeam", "awayTeam", "status"]
+    },
+    "StandingTeam": {
+      "title": "StandingTeam",
+      "description": "Ethiopian Premier League standings table entry",
+      "type": "object",
+      "properties": {
+        "position": { "type": "number", "description": "Rank position" },
+        "teamId": { "type": "string", "description": "Team identifier" },
+        "teamName": { "type": "string", "description": "Team name" },
+        "played": { "type": "number", "description": "Matches played" },
+        "won": { "type": "number", "description": "Matches won" },
+        "drawn": { "type": "number", "description": "Matches drawn" },
+        "lost": { "type": "number", "description": "Matches lost" },
+        "goalsFor": { "type": "number", "description": "Goals scored" },
+        "goalsAgainst": { "type": "number", "description": "Goals conceded" },
+        "goalDifference": { "type": "number", "description": "Goal differential" },
+        "points": { "type": "number", "description": "League points" },
+        "isHalaba": { "type": "boolean", "description": "Whether team is Halaba City FC" }
+      },
+      "required": ["position", "teamId", "teamName", "points"]
+    },
+    "Player": {
+      "title": "Player",
+      "description": "First-team squad player profile",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Player full name" },
+        "number": { "type": "number", "description": "Kit squad number" },
+        "position": { "type": "string", "description": "Field position" },
+        "nationality": { "type": "string", "description": "Country of nationality" },
+        "appearances": { "type": "number", "description": "League appearances" },
+        "goals": { "type": "number", "description": "Goals scored" },
+        "assists": { "type": "number", "description": "Assists provided" },
+        "cleanSheets": { "type": "number", "description": "Clean sheets for goalkeepers" },
+        "photoUrl": { "type": "string", "description": "Player portrait image URL" }
+      },
+      "required": ["name", "number", "position"]
+    },
+    "ClubInfo": {
+      "title": "ClubInfo",
+      "description": "Official club information and stadium metadata",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Club name" },
+        "shortName": { "type": "string", "description": "Short name" },
+        "nickname": { "type": "string", "description": "Club nickname" },
+        "foundedYear": { "type": "number", "description": "Year established" },
+        "stadium": { "type": "string", "description": "Home ground stadium" },
+        "capacity": { "type": "number", "description": "Stadium capacity" },
+        "city": { "type": "string", "description": "Home city" },
+        "league": { "type": "string", "description": "League competition" },
+        "president": { "type": "string", "description": "Club president" },
+        "manager": { "type": "string", "description": "First team head coach" }
+      },
+      "required": ["name", "stadium", "city"]
+    },
+    "Membership": {
+      "title": "Membership",
+      "description": "Supporter membership registration record",
+      "type": "object",
+      "properties": {
+        "referenceNumber": { "type": "string", "description": "Unique card reference number" },
+        "fullName": { "type": "string", "description": "Supporter full name" },
+        "dateOfBirth": { "type": "string", "description": "Birth date" },
+        "phone": { "type": "string", "description": "Contact phone" },
+        "email": { "type": "string", "description": "Contact email" },
+        "membershipType": { "type": "string", "description": "Membership tier" },
+        "status": { "type": "string", "description": "Application status" },
+        "registeredAt": { "type": "string", "description": "Registration timestamp" }
+      },
+      "required": ["referenceNumber", "fullName", "phone", "membershipType"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Shop customer jersey or merchandise order",
+      "type": "object",
+      "properties": {
+        "orderNumber": { "type": "string", "description": "Order reference code" },
+        "itemName": { "type": "string", "description": "Product name" },
+        "amount": { "type": "number", "description": "Order amount" },
+        "fullName": { "type": "string", "description": "Customer name" },
+        "phone": { "type": "string", "description": "Customer phone" },
+        "status": { "type": "string", "description": "Order status" }
+      },
+      "required": ["orderNumber", "amount", "fullName", "status"]
+    },
+    "Donation": {
+      "title": "Donation",
+      "description": "Supporter financial donation record",
+      "type": "object",
+      "properties": {
+        "donationNumber": { "type": "string", "description": "Donation transaction reference" },
+        "amount": { "type": "number", "description": "Donation amount" },
+        "fullName": { "type": "string", "description": "Donor name" },
+        "purpose": { "type": "string", "description": "Donation fund purpose" },
+        "status": { "type": "string", "description": "Payment status" }
+      },
+      "required": ["donationNumber", "amount", "fullName"]
     }
   },
   "firestore": {
@@ -74,6 +190,34 @@
     "/news/{newsId}": {
       "schema": "News",
       "description": "Stores official club news articles"
+    },
+    "/matches/{matchId}": {
+      "schema": "Match",
+      "description": "Stores official match fixtures, live scores, and finished results"
+    },
+    "/standings/{teamId}": {
+      "schema": "StandingTeam",
+      "description": "Stores Ethiopian Premier League standings"
+    },
+    "/players/{playerId}": {
+      "schema": "Player",
+      "description": "Stores first-team squad player profiles"
+    },
+    "/settings/{settingId}": {
+      "schema": "ClubInfo",
+      "description": "Stores club metadata and standings table snapshot"
+    },
+    "/memberships/{membershipId}": {
+      "schema": "Membership",
+      "description": "Stores supporter membership applications"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Stores merchandise purchase orders"
+    },
+    "/donations/{donationId}": {
+      "schema": "Donation",
+      "description": "Stores supporter club donations"
     }
   }
 }

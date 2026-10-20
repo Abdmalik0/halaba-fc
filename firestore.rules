@@ -14,7 +14,55 @@ service cloud.firestore {
       allow write: if true;
     }
 
-    // Fallback default deny for any other collections
+    // Match Schedules & Live Fixtures
+    match /matches/{matchId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Premier League Standings
+    match /standings/{teamId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Squad Players & Roster
+    match /players/{playerId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Club Settings & Configuration
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Supporter Membership Applications
+    match /memberships/{membershipId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Merchandise Orders
+    match /orders/{orderId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Supporter Donations
+    match /donations/{donationId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Connection testing doc
+    match /test/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Fallback default deny
     match /{document=**} {
       allow read, write: if false;
     }
