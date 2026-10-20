@@ -1,12 +1,28 @@
 import { useState, useEffect } from 'react';
 
-interface BeforeInstallPromptEvent extends Event {
+export interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
+// Module-level global prompt capture so we never miss early events before React hydration
+let globalPromptEvent: BeforeInstallPromptEvent | null = null;
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    globalPromptEvent = e as BeforeInstallPromptEvent;
+    window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+  });
+
+  window.addEventListener('appinstalled', () => {
+    globalPromptEvent = null;
+    window.dispatchEvent(new CustomEvent('pwa-installed'));
+  });
+}
+
 export function usePWAInstall() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(() => globalPromptEvent);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
@@ -30,43 +46,67 @@ export function usePWAInstall() {
     setIsIOS(isIOSDevice);
     setIsAndroid(isAndroidDevice);
 
+    if (globalPromptEvent && !deferredPrompt) {
+      setDeferredPrompt(globalPromptEvent);
+    }
+
+    const handlePromptReady = () => {
+      setDeferredPrompt(globalPromptEvent);
+    };
+
     const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent automatic mini-infobar or generic banner
       e.preventDefault();
+      globalPromptEvent = e as BeforeInstallPromptEvent;
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
 
     const handleAppInstalled = () => {
       setIsInstalled(true);
+      globalPromptEvent = null;
       setDeferredPrompt(null);
       setIsInstallModalOpen(false);
     };
 
+    window.addEventListener('pwa-prompt-ready', handlePromptReady);
+    window.addEventListener('pwa-installed', handleAppInstalled);
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
+      window.removeEventListener('pwa-prompt-ready', handlePromptReady);
+      window.removeEventListener('pwa-installed', handleAppInstalled);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [deferredPrompt]);
 
-  const triggerNativeInstall = async (): Promise<boolean> => {
-    if (!deferredPrompt) {
-      return false;
+  /**
+   * CRITICAL: Must be invoked synchronously inside the user's click event handler
+   * to satisfy the browser's User Activation requirement.
+   */
+  const triggerNativeInstall = async (): Promise<'accepted' | 'dismissed' | 'unavailable'> => {
+    const promptToUse = deferredPrompt || globalPromptEvent;
+
+    if (!promptToUse) {
+      console.warn('PWA: beforeinstallprompt is not available on this browser/session.');
+      return 'unavailable';
     }
+
     try {
-      await deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
+      // Trigger prompt immediately within user gesture context
+      await promptToUse.prompt();
+      const choice = await promptToUse.userChoice;
+
       if (choice.outcome === 'accepted') {
         setIsInstalled(true);
+        globalPromptEvent = null;
         setDeferredPrompt(null);
-        return true;
+        return 'accepted';
       }
-      return false;
+      return 'dismissed';
     } catch (err) {
-      console.warn('Error during native install prompt:', err);
-      return false;
+      console.warn('PWA prompt execution error:', err);
+      return 'unavailable';
     }
   };
 
@@ -74,8 +114,8 @@ export function usePWAInstall() {
   const closeInstallModal = () => setIsInstallModalOpen(false);
 
   return {
-    isInstallable: !!deferredPrompt || isIOS,
-    hasNativePrompt: !!deferredPrompt,
+    isInstallable: !!(deferredPrompt || globalPromptEvent) || isIOS,
+    hasNativePrompt: !!(deferredPrompt || globalPromptEvent),
     isInstalled,
     isIOS,
     isAndroid,

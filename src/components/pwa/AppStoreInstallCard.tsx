@@ -16,7 +16,10 @@ import {
   Info,
   Layers,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  MoreVertical,
+  AlertCircle,
+  RotateCcw
 } from 'lucide-react';
 
 interface AppStoreInstallCardProps {
@@ -41,11 +44,12 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
     return isIOS ? 'appstore' : 'playstore';
   });
 
-  // Simulated Download Progress State
-  const [isDownloading, setIsDownloading] = useState(false);
+  // Action status state
+  const [installState, setInstallState] = useState<
+    'idle' | 'downloading' | 'installed' | 'cancelled' | 'manual_guide'
+  >('idle');
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadPhase, setDownloadPhase] = useState('Connecting to Halaba CDN...');
-  const [isCompleted, setIsCompleted] = useState(false);
 
   // Keep platform view synced with OS if it changes
   useEffect(() => {
@@ -55,36 +59,41 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
   }, [isIOS]);
 
   const handleStartInstallation = async () => {
-    if (platformView === 'appstore') {
-      // On iOS, no programmatic install prompt exists; scroll to or open guided sheet
+    if (platformView === 'appstore' || isIOS) {
+      setPlatformView('appstore');
       return;
     }
 
-    setIsDownloading(true);
-    setDownloadProgress(0);
-    setDownloadPhase('Verifying Berberewochu Native Package...');
-
-    const steps = [
-      { progress: 18, text: 'Fetching Club Engine & Graphics Assets...' },
-      { progress: 38, text: 'Precaching 2026/27 Ethiopian Premier League...' },
-      { progress: 62, text: 'Initializing Offline Database & Jersey Store...' },
-      { progress: 84, text: 'Configuring Native Standalone Shell...' },
-      { progress: 100, text: 'Finalizing Installation...' },
-    ];
-
-    for (const step of steps) {
-      await new Promise((resolve) => setTimeout(resolve, 380));
-      setDownloadProgress(step.progress);
-      setDownloadPhase(step.text);
-    }
-
-    // Now trigger real browser install prompt
+    // 1. If the browser's native beforeinstallprompt is ready, invoke it immediately
+    // to preserve the active user gesture required by Chromium.
     if (hasNativePrompt) {
-      await triggerNativeInstall();
-    }
+      setInstallState('idle');
+      const outcome = await triggerNativeInstall();
 
-    setIsDownloading(false);
-    setIsCompleted(true);
+      if (outcome === 'accepted') {
+        // Run rapid progress animation on successful installation
+        setInstallState('downloading');
+        setDownloadProgress(25);
+        setDownloadPhase('Verifying Berberewochu Native Package...');
+        await new Promise((r) => setTimeout(r, 220));
+        setDownloadProgress(65);
+        setDownloadPhase('Precaching EPL match center & squad roster...');
+        await new Promise((r) => setTimeout(r, 220));
+        setDownloadProgress(100);
+        setDownloadPhase('Native Application Installed!');
+        await new Promise((r) => setTimeout(r, 150));
+        setInstallState('installed');
+      } else if (outcome === 'dismissed') {
+        setInstallState('cancelled');
+      } else {
+        // If prompt failed or expired, switch to direct browser menu steps
+        setInstallState('manual_guide');
+      }
+    } else {
+      // 2. If the browser hasn't fired beforeinstallprompt or blocked automatic prompts,
+      // show the exact, foolproof manual browser installation guide!
+      setInstallState('manual_guide');
+    }
   };
 
   const content = (
@@ -94,7 +103,10 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
         <div className="flex items-center gap-2">
           <div className="inline-flex rounded-xl bg-neutral-950 p-1 border border-neutral-800 text-xs">
             <button
-              onClick={() => setPlatformView('playstore')}
+              onClick={() => {
+                setPlatformView('playstore');
+                setInstallState('idle');
+              }}
               className={`px-3 py-1 rounded-lg text-xxs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
                 platformView === 'playstore'
                   ? 'bg-emerald-600 text-white shadow-sm'
@@ -104,10 +116,13 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3.6 1.8c-.3.4-.4.9-.4 1.6v17.2c0 .7.1 1.2.4 1.6l.1.1 9.6-9.6v-.2L3.7 1.7l-.1.1zM17 15.6l-3.3-3.3v-.2l3.3-3.3.1.1 4 2.3c1.1.6 1.1 1.6 0 2.3l-4.1 2.1zM13.3 12.1L3.7 21.7c.4.4.9.4 1.6.1l11.4-6.5-3.4-3.2zM13.3 11.9l3.4-3.2L5.3 2.2c-.7-.3-1.2-.3-1.6.1l9.6 9.6z" />
               </svg>
-              <span>Google Play</span>
+              <span>Google Play / Chrome</span>
             </button>
             <button
-              onClick={() => setPlatformView('appstore')}
+              onClick={() => {
+                setPlatformView('appstore');
+                setInstallState('idle');
+              }}
               className={`px-3 py-1 rounded-lg text-xxs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
                 platformView === 'appstore'
                   ? 'bg-blue-600 text-white shadow-sm'
@@ -117,7 +132,7 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M18.7 19.5c-.8 1.2-1.7 2.4-3 2.5-1.4.1-1.8-.8-3.4-.8-1.5 0-2.1.8-3.4.8-1.3-.1-2.2-1.3-3.1-2.5-1.7-2.5-3-7.1-1.3-10.1 1.1-1.9 3.1-3.1 5.2-3.1 1.6 0 3.1 1.1 4.1 1.1 1 0 2.8-1.4 4.8-1.2 1.9.1 3.5.8 4.6 2.3-2.9 1.7-2.4 5.5.4 6.7-1 2.2-2.3 4.4-3.9 6.8zM15.4 4.8C16.2 3.8 16.7 2.3 16.5 1c-1.3.1-2.8.9-3.6 1.9-.8.9-1.3 2.4-1.1 3.8 1.5.1 2.8-.9 3.6-1.9z" />
               </svg>
-              <span>Apple App Store</span>
+              <span>Apple iOS Safari</span>
             </button>
           </div>
         </div>
@@ -203,33 +218,33 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
           </div>
         </div>
 
-        {/* 4. Action Area: Download Simulator or iOS Guide */}
+        {/* 4. Action Area */}
         {platformView === 'playstore' ? (
-          /* ANDROID / CHROMIUM DOWNLOAD FLOW */
+          /* ANDROID / CHROMIUM FLOW */
           <div className="space-y-3">
             {isInstalled ? (
               <div className="p-4 rounded-2xl bg-emerald-950/70 border border-emerald-500/40 text-center space-y-1">
                 <div className="inline-flex items-center gap-2 text-emerald-300 font-sports font-black text-sm uppercase tracking-wider">
                   <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                  <span>Halaba City FC Native App Installed</span>
+                  <span>HALABA City FC Native App Active</span>
                 </div>
                 <p className="text-xs text-neutral-300">
-                  You are already running or have installed the standalone stealth app on this device.
+                  This device is already running the installed stealth application window without browser chrome.
                 </p>
               </div>
-            ) : isDownloading ? (
+            ) : installState === 'downloading' ? (
               <div className="p-5 rounded-2xl bg-neutral-900 border border-red-900/50 space-y-3">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-sports font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-                    Downloading HALABA City FC...
+                    Installing HALABA City FC...
                   </span>
                   <span className="font-mono font-bold text-white text-sm">
                     {downloadProgress}%
                   </span>
                 </div>
 
-                {/* Simulated Progress Bar */}
+                {/* Progress Bar */}
                 <div className="w-full h-3 rounded-full bg-neutral-950 overflow-hidden border border-neutral-800 p-0.5">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-red-600 via-amber-500 to-emerald-500 transition-all duration-300 shadow-sm"
@@ -242,19 +257,92 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
                   <span className="text-neutral-500 font-mono">8.2 MB / 8.2 MB</span>
                 </div>
               </div>
-            ) : isCompleted ? (
-              <div className="space-y-2">
-                <div className="p-4 rounded-2xl bg-emerald-950/80 border border-emerald-500/50 flex items-center gap-3">
+            ) : installState === 'installed' ? (
+              <div className="p-4 rounded-2xl bg-emerald-950/80 border border-emerald-500/50 space-y-2">
+                <div className="flex items-center gap-3">
                   <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
                   <div>
                     <h4 className="font-sports font-black text-sm text-white uppercase">
-                      Installation Triggered Successfully!
+                      HALABA City FC Installed Successfully!
                     </h4>
                     <p className="text-xs text-neutral-300">
-                      Tap "Install" or "Add to Home Screen" on your device prompt to launch the native full-screen app.
+                      The official club icon is now on your home screen and app launcher.
                     </p>
                   </div>
                 </div>
+              </div>
+            ) : installState === 'manual_guide' ? (
+              /* Fallback guide if browser blocked automatic prompt or on desktop */
+              <div className="p-4 rounded-2xl bg-neutral-900 border border-amber-500/40 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-amber-400 text-xs font-sports font-bold uppercase tracking-wider">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>Browser Direct Installation Guide</span>
+                  </div>
+                  <button
+                    onClick={handleStartInstallation}
+                    className="text-xxs text-neutral-400 hover:text-white underline"
+                  >
+                    Try Auto-Prompt
+                  </button>
+                </div>
+
+                <p className="text-xs text-neutral-300">
+                  Your browser requires 1 manual confirmation to add the app to your device:
+                </p>
+
+                <div className="space-y-2 text-xs text-neutral-300">
+                  <div className="flex items-start gap-2.5 p-2 rounded-xl bg-neutral-950 border border-neutral-800">
+                    <span className="w-5 h-5 rounded-md bg-neutral-800 text-neutral-300 flex items-center justify-center font-bold text-xxs shrink-0 mt-0.5">
+                      1
+                    </span>
+                    <div>
+                      <span>Tap the browser menu</span>
+                      <span className="inline-flex items-center gap-1 mx-1.5 px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 font-bold text-white text-xxs">
+                        <MoreVertical className="w-3 h-3 inline" /> 3 Dots (⋮)
+                      </span>
+                      <span>in the top-right corner of Chrome.</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 p-2 rounded-xl bg-neutral-950 border border-neutral-800">
+                    <span className="w-5 h-5 rounded-md bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center justify-center font-bold text-xxs shrink-0 mt-0.5">
+                      2
+                    </span>
+                    <div>
+                      <span>Tap </span>
+                      <strong className="text-emerald-400 font-semibold">"Install app"</strong>
+                      <span> or </span>
+                      <strong className="text-white font-semibold">"Add to Home screen"</strong>.
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setInstallState('idle')}
+                  className="w-full py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-sports font-bold uppercase transition-colors"
+                >
+                  Back to Install Card
+                </button>
+              </div>
+            ) : installState === 'cancelled' ? (
+              <div className="space-y-2">
+                <div className="p-3.5 rounded-2xl bg-neutral-900 border border-neutral-800 text-xs text-neutral-300 flex items-center justify-between">
+                  <span>Installation dialog was dismissed.</span>
+                  <button
+                    onClick={handleStartInstallation}
+                    className="text-red-400 hover:text-red-300 font-sports font-bold uppercase"
+                  >
+                    Retry Prompt
+                  </button>
+                </div>
+                <button
+                  onClick={handleStartInstallation}
+                  className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-red-600 via-red-600 to-emerald-600 hover:from-red-500 hover:to-emerald-500 text-white font-sports font-black text-base uppercase tracking-wider shadow-xl shadow-red-950/50 flex items-center justify-center gap-2.5 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                >
+                  <Download className="w-5 h-5" />
+                  <span>Install Official App (Google Play PWA)</span>
+                </button>
               </div>
             ) : (
               <div className="space-y-2">
