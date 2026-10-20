@@ -32,6 +32,12 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Coaching and Management Staff
+    match /staff/{staffId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Club Settings & Configuration
     match /settings/{settingId} {
       allow read: if true;

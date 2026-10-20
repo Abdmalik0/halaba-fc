@@ -120,6 +120,18 @@
       },
       "required": ["name", "number", "position"]
     },
+    "Staff": {
+      "title": "Staff",
+      "description": "Coaching and club management staff member",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Staff full name" },
+        "role": { "type": "string", "description": "Job title or role" },
+        "department": { "type": "string", "description": "Department (Coaching, Management, Medical)" },
+        "nationality": { "type": "string", "description": "Nationality" }
+      },
+      "required": ["name", "role"]
+    },
     "ClubInfo": {
       "title": "ClubInfo",
       "description": "Official club information and stadium metadata",
@@ -202,6 +214,10 @@
     "/players/{playerId}": {
       "schema": "Player",
       "description": "Stores first-team squad player profiles"
+    },
+    "/staff/{staffId}": {
+      "schema": "Staff",
+      "description": "Stores coaching and club management staff profiles"
     },
     "/settings/{settingId}": {
       "schema": "ClubInfo",
