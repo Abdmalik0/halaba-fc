@@ -2,75 +2,8 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Halaba City FC Official Shop Products
-    match /products/{productId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Official Club News & Articles
-    match /news/{newsId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Match Schedules & Live Fixtures
-    match /matches/{matchId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Premier League Standings
-    match /standings/{teamId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Squad Players & Roster
-    match /players/{playerId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Coaching and Management Staff
-    match /staff/{staffId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Club Settings & Configuration
-    match /settings/{settingId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Supporter Membership Applications
-    match /memberships/{membershipId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Merchandise Orders
-    match /orders/{orderId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Supporter Donations
-    match /donations/{donationId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Connection testing doc
-    match /test/{docId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // Fallback default deny
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if true;
     }
   }
 }

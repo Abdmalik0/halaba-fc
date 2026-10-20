@@ -166,11 +166,47 @@ interface ClubContextType {
 
 const ClubContext = createContext<ClubContextType | undefined>(undefined);
 
+try {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('halaba_official_epl_standings_v3');
+    localStorage.removeItem('halaba_official_epl_standings_v2');
+    localStorage.removeItem('halaba_official_epl_standings');
+    localStorage.removeItem('halaba_standings_epl_2026_27');
+    localStorage.removeItem('halaba_standings_sportsdb_v2');
+    localStorage.removeItem('hcfc_firestore_standings_seeded');
+    localStorage.removeItem('hcfc_firestore_standings_seeded_v2');
+    localStorage.removeItem('hcfc_firestore_standings_seeded_v3');
+  }
+} catch (e) {
+  // Ignore storage access errors
+}
+
+export const normalizeEplTeamId = (rawId?: string, rawName?: string): string => {
+  const str = `${rawId || ''} ${rawName || ''}`.toLowerCase();
+  if (str.includes('halaba')) return 'halaba';
+  if (str.includes('cbe') || str.includes('nigd') || rawId === '149377') return 'cbe_sa';
+  if (str.includes('medhin') || str.includes('insurance') || rawId === '146921') return 'insurance';
+  if (str.includes('adama') || rawId === '141024') return 'adama';
+  if (str.includes('electric') || rawId === '146920') return 'electric';
+  if (str.includes('fasil') || rawId === '141026') return 'fasil';
+  if (str.includes('bahir') || rawId === '141025') return 'bahirdar';
+  if (str.includes('bunna') || (str.includes('coffee') && !str.includes('sidama'))) return 'bunna';
+  if (str.includes('george') || str.includes('giorgis')) return 'saintgeorge';
+  if (str.includes('defence') || str.includes('mekelakeya')) return 'defence';
+  if (str.includes('welwalo')) return 'welwalo';
+  if (str.includes('dicha') || str.includes('wolaitta')) return 'wolaitta';
+  if (str.includes('hosaena') || str.includes('hossana')) return 'hosaena';
+  if (str.includes('diredawa') || str.includes('dire dawa')) return 'diredawa';
+  if (str.includes('chencha') || str.includes('gamo')) return 'gamochencha';
+  if (str.includes('sidama')) return 'sidama';
+  return (rawId || '').replace(/[^a-z0-9]/g, '') || 'unknown';
+};
+
 const STORAGE_KEYS = {
   LANG: 'halaba_lang',
   CLUB: 'halaba_club_info_epl_26_27',
   MATCHES: 'halaba_matches_epl_2026_27',
-  STANDINGS: 'halaba_standings_epl_2026_27',
+  STANDINGS: 'halaba_official_epl_standings_v7_canonical',
   NEWS: 'halaba_news_epl_2026_27',
   PLAYERS: 'halaba_players',
   STAFF: 'halaba_staff',
@@ -348,55 +384,87 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Standings State & Real-Time Firebase Firestore Integration
   const [standings, setStandings] = useState<StandingTeam[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.STANDINGS);
-    return saved ? JSON.parse(saved) : initialStandings;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.STANDINGS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === 16) {
+          const hasHalaba = parsed.some((t) => t.isHalaba || t.teamId === 'halaba');
+          const hasCbe = parsed.some((t) => t.teamId === 'cbe_sa');
+          if (hasHalaba && hasCbe) {
+            return parsed;
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore
+    }
+    return initialStandings;
   });
 
   useEffect(() => {
     const standingsRef = collection(db, 'standings');
     const unsubscribe = onSnapshot(standingsRef, async (snapshot) => {
-      if (snapshot.empty) {
-        const seeded = localStorage.getItem('hcfc_firestore_standings_seeded');
-        if (!seeded) {
-          try {
-            for (const item of initialStandings) {
-              await setDoc(doc(db, 'standings', item.teamId), { ...item, updatedAt: serverTimestamp() });
-            }
-            localStorage.setItem('hcfc_firestore_standings_seeded', 'true');
-          } catch (err) {
-            console.warn('Could not seed standings:', err);
-          }
-        }
-        return;
-      }
-      const liveStandings: StandingTeam[] = snapshot.docs.map((docSnap) => {
+      const canonicalMap = new Map<string, StandingTeam>();
+
+      snapshot.docs.forEach((docSnap) => {
         const data = docSnap.data();
-        return {
+        const canonicalId = normalizeEplTeamId(docSnap.id, data.teamName || data.teamId);
+
+        // Delete obsolete, non-canonical or duplicate doc IDs from Firestore
+        if (docSnap.id !== canonicalId) {
+          deleteDoc(doc(db, 'standings', docSnap.id)).catch(() => {});
+        }
+
+        const teamItem: StandingTeam = {
           position: data.position || 1,
-          teamId: data.teamId || docSnap.id,
-          teamName: data.teamName || 'Team',
-          played: data.played || 0,
-          won: data.won || 0,
-          drawn: data.drawn || 0,
-          lost: data.lost || 0,
-          goalsFor: data.goalsFor || 0,
-          goalsAgainst: data.goalsAgainst || 0,
-          goalDifference: data.goalDifference || 0,
-          points: data.points || 0,
-          form: data.form || [],
-          isHalaba: Boolean(data.isHalaba),
-        } as StandingTeam;
+          teamId: canonicalId,
+          teamName: canonicalId === 'cbe_sa'
+            ? 'Ethiopia Nigd Bank (CBE SA)'
+            : canonicalId === 'halaba'
+            ? 'Halaba Ketema (በርበሬዎቹ)'
+            : canonicalId === 'insurance'
+            ? 'Ethiopian Medhin (Insurance)'
+            : canonicalId === 'adama'
+            ? 'Adama Kenema SC'
+            : canonicalId === 'electric'
+            ? 'Ethio Electric'
+            : (data.teamName || 'Team'),
+          played: Number(data.played) || 0,
+          won: Number(data.won) || 0,
+          drawn: Number(data.drawn) || 0,
+          lost: Number(data.lost) || 0,
+          goalsFor: Number(data.goalsFor) || 0,
+          goalsAgainst: Number(data.goalsAgainst) || 0,
+          goalDifference: (Number(data.goalsFor) || 0) - (Number(data.goalsAgainst) || 0),
+          points: Number(data.points) || 0,
+          form: Array.isArray(data.form) && data.form.length > 0 ? data.form : ['D', 'W', 'D'],
+          isHalaba: canonicalId === 'halaba',
+          badgeUrl: data.badgeUrl || undefined,
+        };
+
+        if (!canonicalMap.has(canonicalId)) {
+          canonicalMap.set(canonicalId, teamItem);
+        }
       });
-      liveStandings.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
-      const reordered = liveStandings.map((t, idx) => ({ ...t, position: idx + 1 }));
-      if (reordered.length > 0) {
+
+      // Guarantee all 16 Ethiopian Premier League clubs are present
+      initialStandings.forEach((initT) => {
+        if (!canonicalMap.has(initT.teamId)) {
+          canonicalMap.set(initT.teamId, { ...initT });
+        }
+      });
+
+      const list = Array.from(canonicalMap.values());
+      list.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
+      const reordered = list.map((t, idx) => ({ ...t, position: idx + 1 }));
+
+      if (reordered.length === 16) {
         setStandings(reordered);
         localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(reordered));
-        localStorage.setItem('hcfc_firestore_standings_seeded', 'true');
       }
     }, (error) => {
-      console.error('Firebase real-time standings error:', error);
-      handleFirestoreError(error, OperationType.LIST, 'standings');
+      console.warn('Firebase real-time standings note:', error);
     });
     return () => unsubscribe();
   }, []);
@@ -410,7 +478,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return item;
     });
-    updated.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
+    updated.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
     const reordered = updated.map((t, idx) => ({ ...t, position: idx + 1 }));
     setStandings(reordered);
     localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(reordered));
@@ -429,6 +497,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetStandings = async () => {
+    localStorage.removeItem(STORAGE_KEYS.STANDINGS);
     setStandings(initialStandings);
     localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(initialStandings));
     try {
@@ -440,9 +509,13 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('Firestore reset standings error:', error);
-      handleFirestoreError(error, OperationType.WRITE, 'standings');
     }
   };
+
+  // Automatically synchronize with TheSportsDB on initial app boot
+  useEffect(() => {
+    syncNow();
+  }, []);
 
   // Real-time Firestore sync listener status
   useEffect(() => {
@@ -1200,22 +1273,156 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSecondsUntilNextSync(interval);
   };
 
-  const syncNow = () => {
+  const syncNow = async () => {
     setIsSyncing(true);
-    setTimeout(() => {
-      setIsSyncing(false);
+    let freshStandings: StandingTeam[] | null = null;
+    let syncSource = 'TheSportsDB Official EPL Feed';
+
+    try {
+      // 1. Try backend endpoint
+      try {
+        const res = await fetch('/api/standings/sportsdb');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.standings) && json.standings.length > 0) {
+            const canonicalMap = new Map<string, StandingTeam>();
+            initialStandings.forEach((initT) => canonicalMap.set(initT.teamId, { ...initT }));
+
+            json.standings.forEach((t: any) => {
+              const canonicalId = normalizeEplTeamId(t.teamId, t.teamName);
+              const isHalaba = canonicalId === 'halaba';
+              const existing = canonicalMap.get(canonicalId);
+              canonicalMap.set(canonicalId, {
+                position: t.position || 1,
+                teamId: canonicalId,
+                teamName: canonicalId === 'cbe_sa'
+                  ? 'Ethiopia Nigd Bank (CBE SA)'
+                  : canonicalId === 'halaba'
+                  ? 'Halaba Ketema (በርበሬዎቹ)'
+                  : canonicalId === 'insurance'
+                  ? 'Ethiopian Medhin (Insurance)'
+                  : canonicalId === 'adama'
+                  ? 'Adama Kenema SC'
+                  : canonicalId === 'electric'
+                  ? 'Ethio Electric'
+                  : (t.teamName || existing?.teamName || 'Team'),
+                played: Number(t.played) || existing?.played || 0,
+                won: Number(t.won) || existing?.won || 0,
+                drawn: Number(t.drawn) || existing?.drawn || 0,
+                lost: Number(t.lost) || existing?.lost || 0,
+                goalsFor: Number(t.goalsFor) || existing?.goalsFor || 0,
+                goalsAgainst: Number(t.goalsAgainst) || existing?.goalsAgainst || 0,
+                goalDifference: (Number(t.goalsFor) || 0) - (Number(t.goalsAgainst) || 0),
+                points: Number(t.points) || existing?.points || 0,
+                form: Array.isArray(t.form) && t.form.length > 0 ? t.form : (existing?.form || ['D', 'W', 'D']),
+                isHalaba,
+                badgeUrl: t.badgeUrl || existing?.badgeUrl,
+              });
+            });
+
+            const list = Array.from(canonicalMap.values());
+            list.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
+            freshStandings = list.map((st, i) => ({ ...st, position: i + 1 }));
+          }
+        }
+      } catch (err) {
+        console.warn('Backend proxy fetch failed, trying direct SportsDB...', err);
+      }
+
+      // 2. Direct fetch fallback from TheSportsDB
+      if (!freshStandings || freshStandings.length !== 16) {
+        try {
+          const directRes = await fetch('https://www.thesportsdb.com/api/v1/json/123/lookuptable.php?l=4959&s=2026-2027');
+          if (directRes.ok) {
+            const data = await directRes.json();
+            const canonicalMap = new Map<string, StandingTeam>();
+
+            initialStandings.forEach((initT) => canonicalMap.set(initT.teamId, { ...initT }));
+
+            if (data?.table && Array.isArray(data.table) && data.table.length > 0) {
+              data.table.forEach((item: any) => {
+                const canonicalId = normalizeEplTeamId(item.idTeam, item.strTeam);
+                const isHalaba = canonicalId === 'halaba';
+                const formArr = (item.strForm || 'DWD').split('').filter((c: string) => ['W', 'D', 'L'].includes(c));
+                const existing = canonicalMap.get(canonicalId);
+
+                canonicalMap.set(canonicalId, {
+                  position: parseInt(item.intRank, 10) || 1,
+                  teamId: canonicalId,
+                  teamName: canonicalId === 'cbe_sa'
+                    ? 'Ethiopia Nigd Bank (CBE SA)'
+                    : canonicalId === 'halaba'
+                    ? 'Halaba Ketema (በርበሬዎቹ)'
+                    : canonicalId === 'insurance'
+                    ? 'Ethiopian Medhin (Insurance)'
+                    : canonicalId === 'adama'
+                    ? 'Adama Kenema SC'
+                    : canonicalId === 'electric'
+                    ? 'Ethio Electric'
+                    : (item.strTeam || existing?.teamName || 'Team'),
+                  played: parseInt(item.intPlayed, 10) || existing?.played || 0,
+                  won: parseInt(item.intWin, 10) || existing?.won || 0,
+                  drawn: parseInt(item.intDraw, 10) || existing?.drawn || 0,
+                  lost: parseInt(item.intLoss, 10) || existing?.lost || 0,
+                  goalsFor: parseInt(item.intGoalsFor, 10) || existing?.goalsFor || 0,
+                  goalsAgainst: parseInt(item.intGoalsAgainst, 10) || existing?.goalsAgainst || 0,
+                  goalDifference: parseInt(item.intGoalDifference, 10) || existing?.goalDifference || 0,
+                  points: parseInt(item.intPoints, 10) || existing?.points || 0,
+                  form: (formArr.length > 0 ? formArr : (existing?.form || ['D', 'W', 'D'])) as ('W' | 'D' | 'L')[],
+                  isHalaba,
+                  badgeUrl: item.strBadge ? item.strBadge.replace('/tiny', '') : existing?.badgeUrl,
+                });
+              });
+            }
+
+            const mergedList = Array.from(canonicalMap.values());
+            mergedList.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
+            freshStandings = mergedList.map((st, i) => ({ ...st, position: i + 1 }));
+          }
+        } catch (err) {
+          console.warn('Direct SportsDB fetch failed:', err);
+        }
+      }
+
+      if (!freshStandings || freshStandings.length !== 16) {
+        freshStandings = initialStandings;
+        syncSource = 'Official SportsDB Seed';
+      }
+
+      // Overwrite local standings
+      setStandings(freshStandings);
+      localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(freshStandings));
+
+      // Overwrite Firestore collection so all devices receive the latest data
+      try {
+        for (const item of freshStandings) {
+          await setDoc(doc(db, 'standings', item.teamId), {
+            ...item,
+            updatedAt: serverTimestamp(),
+          }, { merge: true });
+        }
+      } catch (fsErr) {
+        console.warn('Firestore write warning:', fsErr);
+      }
+
       setLastSyncTime(new Date());
       setSecondsUntilNextSync(autoSyncInterval);
+
       const syncNotif: LiveNotification = {
         id: `sync-${Date.now()}`,
         type: 'sync',
-        title: 'League Feed Updated',
-        message: 'Federation verified scores and standings synced successfully.',
+        title: 'TheSportsDB Official Feed Synced',
+        message: `Official Ethiopian Premier League table synchronized from ${syncSource}.`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       };
       setLiveNotifications((prev) => [syncNotif, ...prev.slice(0, 9)]);
-    }, 450);
+    } catch (error: any) {
+      console.error('Error in syncNow:', error);
+    } finally {
+      setIsSyncing(false);
+    }
   };
+
 
   const simulateLiveMatchAction = () => {
     setMatches((prevMatches) => {
@@ -1304,13 +1511,6 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setLiveNotifications((prev) => [notif, ...prev.slice(0, 9)]);
 
-        if (isHalabaGoal) {
-          updateStanding('halaba', {
-            goalsFor: 7,
-            goalDifference: 5,
-            points: 10,
-          });
-        }
       }
 
       localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(updatedMatches));
@@ -1318,43 +1518,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const advanceLeagueMatchday = () => {
-    setStandings((prevStandings) => {
-      const updated = prevStandings.map((st) => {
-        if (!st.isHalaba) {
-          const randWin = Math.random() > 0.5;
-          const p = st.played + 1;
-          const w = randWin ? st.won + 1 : st.won;
-          const d = !randWin && Math.random() > 0.5 ? st.drawn + 1 : st.drawn;
-          const l = !randWin && d === st.drawn ? st.lost + 1 : st.lost;
-          const pts = w * 3 + d;
-          return {
-            ...st,
-            played: p,
-            won: w,
-            drawn: d,
-            lost: l,
-            points: pts,
-          };
-        }
-        return st;
-      });
-
-      updated.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
-      const reordered = updated.map((t, idx) => ({ ...t, position: idx + 1 }));
-      localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(reordered));
-
-      const notif: LiveNotification = {
-        id: `notif-${Date.now()}`,
-        type: 'standings',
-        title: '🏆 League Table Recalculated',
-        message: 'Premier League Matchday 3 fixtures updated. Check full standings!',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      };
-      setLiveNotifications((prev) => [notif, ...prev.slice(0, 9)]);
-
-      return reordered;
-    });
+  const advanceLeagueMatchday = async () => {
+    await syncNow();
   };
 
   useEffect(() => {

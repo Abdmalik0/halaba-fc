@@ -112,6 +112,7 @@ export interface StandingTeam {
   points: number;
   form: Array<'W' | 'D' | 'L'>;
   isHalaba: boolean;
+  badgeUrl?: string;
 }
 
 export type NewsCategory = 'CLUB_NEWS' | 'MATCH_REPORTS' | 'TRANSFERS' | 'INTERVIEWS' | 'ACADEMY' | 'COMMUNITY';

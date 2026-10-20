@@ -123,14 +123,15 @@ export const LiveSyncBar: React.FC = () => {
             <span className="sm:hidden">Goal!</span>
           </button>
 
-          {/* Advance League Round */}
+          {/* Official League Sync */}
           <button
             onClick={advanceLeagueMatchday}
-            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 font-sports font-bold uppercase tracking-wider transition-colors"
-            title="Simulate all other matches in Ethiopian Higher League"
+            disabled={isSyncing}
+            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 font-sports font-bold uppercase tracking-wider transition-colors disabled:opacity-50"
+            title="Fetch latest verified standings from TheSportsDB"
           >
             <Trophy className="w-3.5 h-3.5 text-amber-400" />
-            <span>Update All Teams</span>
+            <span>Sync Official League</span>
           </button>
 
           {/* Interval & Pause Dropdown */}

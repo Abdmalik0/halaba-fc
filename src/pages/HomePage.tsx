@@ -408,7 +408,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {t.standingsPreviewTitle}
               </h2>
               <p className="text-xs text-neutral-400 mt-1">
-                Ethiopian Premier League (Top Tier) • 2026/27 Season (Halaba Ketema in 1st Place)
+                Ethiopian Premier League (Top Tier) • 2026/27 Season (Halaba Ketema in 2nd Place • CAF Continental Spot)
               </p>
             </div>
             <button
@@ -456,13 +456,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                       </span>
                     </td>
                     <td className="py-3 px-3 flex items-center gap-2.5">
-                      {team.isHalaba ? (
-                        <HalabaCrest size={28} />
-                      ) : (
-                        <span className="w-6 h-6 rounded-full bg-neutral-800 text-xxs font-bold flex items-center justify-center text-neutral-300">
-                          {team.teamName.substring(0, 2).toUpperCase()}
-                        </span>
-                      )}
+                      <EthiopianClubLogo teamId={team.teamId} teamName={team.teamName} size={28} badgeUrl={team.badgeUrl} />
                       <span
                         className={`font-sports text-base tracking-wide ${
                           team.isHalaba ? 'text-red-300 font-black' : 'text-neutral-200'

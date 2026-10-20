@@ -1901,7 +1901,7 @@ export const AdminPage: React.FC = () => {
                 className="px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-500 hover:to-green-600 text-white font-sports font-bold text-sm uppercase tracking-wider shadow-lg flex items-center gap-2 active:scale-95 transition-all"
               >
                 <Trophy className="w-4 h-4 text-amber-300" />
-                <span>Advance Other League Matches (8 Teams)</span>
+                <span>Sync Official League Standings (TheSportsDB)</span>
               </button>
             </div>
           </div>

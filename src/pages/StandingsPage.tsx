@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { useClub } from '../context/ClubContext';
 import { HalabaCrest } from '../components/HalabaCrest';
 import { EthiopianClubLogo } from '../components/EthiopianClubLogo';
-import { Trophy, Filter, Info, ShieldCheck, Flame, TrendingUp } from 'lucide-react';
+import { Trophy, Filter, Info, ShieldCheck, Flame, TrendingUp, RefreshCw } from 'lucide-react';
 
 export const StandingsPage: React.FC = () => {
-  const { t, standings } = useClub();
+  const { t, standings, isSyncing, syncNow, resetStandings } = useClub();
   const [competition, setCompetition] = useState('ETHIOPIAN_PREMIER_LEAGUE');
 
   const halabaStanding = standings.find((s) => s.isHalaba) || standings[0];
@@ -18,7 +18,7 @@ export const StandingsPage: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-400 mb-1">
               <Trophy className="w-4 h-4" />
-              <span>Official Season 2026 / 2027 • Verified October 2026</span>
+              <span>Official Ethiopian Premier League • Season 2026 / 2027 (16 Clubs)</span>
             </div>
             <h1 className="font-sports font-black text-3xl sm:text-5xl text-white uppercase tracking-wider">
               {t.standingsTitle}
@@ -26,17 +26,43 @@ export const StandingsPage: React.FC = () => {
             <p className="text-neutral-400 text-sm mt-1 max-w-xl">{t.standingsSubtitle}</p>
           </div>
 
-          {/* Competition Selector */}
-          <div className="flex items-center gap-2 bg-neutral-950 p-1.5 rounded-xl border border-neutral-800 self-start md:self-auto">
-            <Filter className="w-4 h-4 text-neutral-400 ml-2" />
-            <select
-              value={competition}
-              onChange={(e) => setCompetition(e.target.value)}
-              className="bg-transparent text-neutral-200 text-xs sm:text-sm font-semibold rounded-lg px-2 py-1.5 focus:outline-none"
+          <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+            {/* Live Sync Button */}
+            <button
+              onClick={syncNow}
+              disabled={isSyncing}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-sports font-bold text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 disabled:opacity-50"
+              title="Sync directly with TheSportsDB official data"
             >
-              <option value="ETHIOPIAN_PREMIER_LEAGUE">Ethiopian Premier League (Top Tier) • Official</option>
-              <option value="ETHIOPIAN_CUP">Ethiopian Cup 2026/27</option>
-            </select>
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span>{isSyncing ? 'Syncing...' : 'Sync TheSportsDB'}</span>
+            </button>
+
+            {/* Hard Reset Button */}
+            <button
+              onClick={async () => {
+                await resetStandings();
+                await syncNow();
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white font-sports font-bold text-xs uppercase tracking-wider border border-neutral-700 transition-all active:scale-95"
+              title="Clear all local caches and re-seed official 16-club Premier League table"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Reset Table</span>
+            </button>
+
+            {/* Competition Selector */}
+            <div className="flex items-center gap-2 bg-neutral-950 p-1.5 rounded-xl border border-neutral-800">
+              <Filter className="w-4 h-4 text-neutral-400 ml-2" />
+              <select
+                value={competition}
+                onChange={(e) => setCompetition(e.target.value)}
+                className="bg-transparent text-neutral-200 text-xs sm:text-sm font-semibold rounded-lg px-2 py-1.5 focus:outline-none"
+              >
+                <option value="ETHIOPIAN_PREMIER_LEAGUE">Ethiopian Premier League (Top Tier) • Official</option>
+                <option value="ETHIOPIAN_CUP">Ethiopian Cup 2026/27</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -48,14 +74,16 @@ export const StandingsPage: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/50 text-amber-300 font-sports font-bold text-xs uppercase tracking-wider">
-                    Official League Status: 1st Place
+                    Official League Status: {halabaStanding.position === 1 ? '1st Place' : halabaStanding.position === 2 ? '2nd Place' : `${halabaStanding.position}rd Place`}
                   </span>
                   <span className="text-emerald-400 text-xs font-bold uppercase tracking-wider hidden sm:inline">
                     • Ethiopian Premier League (Top Tier)
                   </span>
                 </div>
                 <h3 className="font-sports font-black text-white text-lg sm:text-xl mt-0.5">
-                  Halaba Ketema (በርበሬዎቹ) leads the Ethiopian Premier League
+                  {halabaStanding.position === 1
+                    ? 'Halaba Ketema (በርበሬዎቹ) leads the Ethiopian Premier League'
+                    : `Halaba Ketema (በርበሬዎቹ) stands in position #${halabaStanding.position} (Continental Qualification Spot)`}
                 </h3>
               </div>
             </div>
@@ -83,15 +111,15 @@ export const StandingsPage: React.FC = () => {
         <div className="mt-6 pt-6 border-t border-neutral-800 flex flex-wrap items-center gap-6 text-xs text-neutral-400">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded bg-amber-500 shadow-sm shadow-amber-500/50" />
-            <span className="text-neutral-300 font-medium">1st Place • Ethiopian Premier League Leaders (CAF Champions League Spot)</span>
+            <span className="text-neutral-300 font-medium">1st Place • CAF Champions League Qualification</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded bg-emerald-500" />
-            <span>2nd Place (CAF Confederation Cup Spot)</span>
+            <span className="text-emerald-300 font-medium">2nd Place • CAF Confederation Cup Qualification (Halaba Ketema Spot)</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded bg-red-600" />
-            <span>Relegation Risk Zone (Positions 9-10)</span>
+            <span>Relegation Zone (Positions 14–16)</span>
           </div>
         </div>
       </div>
@@ -119,7 +147,7 @@ export const StandingsPage: React.FC = () => {
               {standings.map((team) => {
                 const isLeader = team.position === 1;
                 const isConfed = team.position === 2;
-                const isRelegation = team.position >= 9;
+                const isRelegation = team.position >= 14;
 
                 return (
                   <tr
@@ -150,7 +178,7 @@ export const StandingsPage: React.FC = () => {
                     {/* Club */}
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
-                        <EthiopianClubLogo teamId={team.teamId} teamName={team.teamName} size={34} />
+                        <EthiopianClubLogo teamId={team.teamId} teamName={team.teamName} size={34} badgeUrl={team.badgeUrl} />
                         <div>
                           <span
                             className={`font-sports text-base tracking-wide ${
