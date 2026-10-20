@@ -318,8 +318,14 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setMatches(updated);
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(updated));
     try {
+      const cleanUpdates: Record<string, any> = {};
+      for (const [key, value] of Object.entries(updates)) {
+        if (value !== undefined) {
+          cleanUpdates[key] = value;
+        }
+      }
       await setDoc(doc(db, 'matches', id), {
-        ...updates,
+        ...cleanUpdates,
         updatedAt: serverTimestamp(),
       }, { merge: true });
     } catch (error) {
@@ -438,202 +444,14 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // AUTOMATIC BACKGROUND SYNC FOR STANDINGS & FIXTURES FROM ETHIOPIAN PREMIER LEAGUE API & FIRESTORE
+  // Real-time Firestore sync listener status
   useEffect(() => {
-    let isMounted = true;
+    // Keep local cache in sync and ensure authoritative Firestore data persists
+    if (matches.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(matches));
+    }
+  }, [matches]);
 
-    const fetchSportsDB = async (endpoint: string) => {
-      const primaryUrl = `https://www.thesportsdb.com/api/v1/json/123/${endpoint}`;
-      try {
-        const res = await fetch(primaryUrl, {
-          method: 'GET',
-          headers: { Accept: 'application/json' },
-          referrerPolicy: 'no-referrer',
-        });
-        if (res.ok) {
-          const text = await res.text();
-          if (!text.includes('permanently disabled') && !text.includes('Free Sports API key')) {
-            return JSON.parse(text);
-          }
-        }
-      } catch (err) {
-        console.warn(`Direct fetch to TheSportsDB failed for ${endpoint}:`, err);
-      }
-
-      try {
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(primaryUrl)}`;
-        const proxyRes = await fetch(proxyUrl, {
-          method: 'GET',
-          headers: { Accept: 'application/json' },
-        });
-        if (proxyRes.ok) {
-          return await proxyRes.json();
-        }
-      } catch (proxyErr) {
-        console.warn(`Proxy fetch failed for ${endpoint}:`, proxyErr);
-      }
-
-      return null;
-    };
-
-    const syncFromSportsDB = async () => {
-      try {
-        // 1. Fetch Ethiopian Premier League Standings (League ID 4959, Season 2026-2027)
-        const standingsData = await fetchSportsDB('lookuptable.php?l=4959&s=2026-2027');
-
-        if (isMounted && standingsData && Array.isArray(standingsData.table) && standingsData.table.length > 0) {
-          const formattedStandings: StandingTeam[] = standingsData.table.map((item: any, idx: number) => {
-            const isHalaba = item.strTeam?.toLowerCase().includes('halaba') || item.idTeam === '157333' || item.strTeam?.toLowerCase().includes('halaba ketema');
-            const formStr = item.strForm || '';
-            const parsedForm: Array<'W' | 'D' | 'L'> = formStr
-              .split('')
-              .filter((c: string): c is 'W' | 'D' | 'L' => c === 'W' || c === 'D' || c === 'L');
-
-            return {
-              position: parseInt(item.intRank, 10) || idx + 1,
-              teamId: item.idTeam || `team-${idx + 1}`,
-              teamName: item.strTeam || `Team ${idx + 1}`,
-              played: parseInt(item.intPlayed, 10) || 0,
-              won: parseInt(item.intWin, 10) || 0,
-              drawn: parseInt(item.intDraw, 10) || 0,
-              lost: parseInt(item.intLoss, 10) || 0,
-              goalsFor: parseInt(item.intGoalsFor, 10) || 0,
-              goalsAgainst: parseInt(item.intGoalsAgainst, 10) || 0,
-              goalDifference: parseInt(item.intGoalDifference, 10) || 0,
-              points: parseInt(item.intPoints, 10) || 0,
-              form: parsedForm,
-              isHalaba,
-            };
-          });
-
-          formattedStandings.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
-          const reordered = formattedStandings.map((t, idx) => ({ ...t, position: idx + 1 }));
-
-          setStandings(reordered);
-          localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(reordered));
-
-          // Save to Firestore so all clients sync automatically
-          for (const item of reordered) {
-            try {
-              await setDoc(doc(db, 'standings', item.teamId), {
-                ...item,
-                updatedAt: serverTimestamp(),
-              }, { merge: true });
-            } catch (fsErr) {
-              console.warn('Could not persist EPL standings to Firestore:', fsErr);
-            }
-          }
-        }
-
-        // 2. Fetch Ethiopian Premier League Matches / Events
-        const eventsData = await fetchSportsDB('eventsseason.php?id=4959&s=2026-2027');
-
-        if (isMounted && eventsData && Array.isArray(eventsData.events) && eventsData.events.length > 0) {
-          const formattedMatches: Match[] = eventsData.events.map((ev: any, idx: number) => {
-            const homeIsHalaba = ev.strHomeTeam?.toLowerCase().includes('halaba') || ev.idHomeTeam === '157333';
-            const awayIsHalaba = ev.strAwayTeam?.toLowerCase().includes('halaba') || ev.idAwayTeam === '157333';
-            const isFinished = ev.strStatus === 'FT' || ev.strStatus === 'Finished';
-            const isLive = ev.strStatus === 'LIVE' || ev.strStatus === '1H' || ev.strStatus === '2H';
-
-            const homeScore =
-              ev.intHomeScore !== null && ev.intHomeScore !== undefined && ev.intHomeScore !== ''
-                ? parseInt(ev.intHomeScore, 10)
-                : undefined;
-            const awayScore =
-              ev.intAwayScore !== null && ev.intAwayScore !== undefined && ev.intAwayScore !== ''
-                ? parseInt(ev.intAwayScore, 10)
-                : undefined;
-
-            return {
-              id: ev.idEvent || `m-thesportsdb-${idx}`,
-              competition: 'ETHIOPIAN_PREMIER_LEAGUE',
-              competitionName: ev.strLeague || 'Ethiopian Premier League',
-              date: ev.dateEvent || '',
-              kickoffTime: ev.strTime ? ev.strTime.slice(0, 5) : '15:00',
-              venue: ev.strVenue || (homeIsHalaba ? 'Halaba Stadium, Halaba Kulito' : 'Stadium'),
-              homeTeam: {
-                id: ev.idHomeTeam || `team-${ev.strHomeTeam}`,
-                name: ev.strHomeTeam || 'Home Team',
-                isHalaba: homeIsHalaba,
-                logo: ev.strHomeTeamBadge,
-              },
-              awayTeam: {
-                id: ev.idAwayTeam || `team-${ev.strAwayTeam}`,
-                name: ev.strAwayTeam || 'Away Team',
-                isHalaba: awayIsHalaba,
-                logo: ev.strAwayTeamBadge,
-              },
-              status: isFinished ? 'FINISHED' : isLive ? 'LIVE' : 'UPCOMING',
-              score:
-                homeScore !== undefined && awayScore !== undefined
-                  ? { home: homeScore, away: awayScore }
-                  : undefined,
-              round: ev.intRound ? `Round ${ev.intRound}` : undefined,
-              summary: ev.strEvent || '',
-            };
-          });
-
-          const currentMatchesStr = localStorage.getItem(STORAGE_KEYS.MATCHES);
-          let currentMatches: Match[] = [];
-          try {
-            if (currentMatchesStr) {
-              currentMatches = JSON.parse(currentMatchesStr);
-            }
-          } catch {
-            currentMatches = matches;
-          }
-          const currentMap = new Map(currentMatches.map(m => [m.id, m]));
-
-          const baseHalabaFixtures = currentMatches.filter(
-            (m) =>
-              m.homeTeam.isHalaba ||
-              m.awayTeam.isHalaba ||
-              m.homeTeam.name.toLowerCase().includes('halaba') ||
-              m.awayTeam.name.toLowerCase().includes('halaba')
-          );
-          const halabaFixtures = baseHalabaFixtures.length > 0 ? baseHalabaFixtures : initialMatches.filter(
-            (m) =>
-              m.homeTeam.isHalaba ||
-              m.awayTeam.isHalaba ||
-              m.homeTeam.name.toLowerCase().includes('halaba') ||
-              m.awayTeam.name.toLowerCase().includes('halaba')
-          );
-
-          const otherMatches = formattedMatches.filter(
-            (m) =>
-              !m.homeTeam.isHalaba &&
-              !m.awayTeam.isHalaba &&
-              !m.homeTeam.name.toLowerCase().includes('halaba') &&
-              !m.awayTeam.name.toLowerCase().includes('halaba')
-          );
-          const mergedMatches = [...halabaFixtures, ...otherMatches];
-
-          setMatches(mergedMatches);
-          localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(mergedMatches));
-
-          // Only persist non-Halaba matches to Firestore from API sync. Halaba matches are 100% protected admin data.
-          for (const m of otherMatches) {
-            try {
-              await setDoc(doc(db, 'matches', m.id), {
-                ...m,
-                updatedAt: serverTimestamp(),
-              }, { merge: true });
-            } catch (matchErr) {
-              console.warn('Could not persist EPL match to Firestore:', matchErr);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error auto-syncing standings and fixtures from Ethiopian Premier League API:', error);
-      }
-    };
-
-    syncFromSportsDB();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   // News State & Real-Time Firebase Firestore Integration
   const [news, setNews] = useState<NewsArticle[]>(() => {
@@ -641,16 +459,12 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!saved) return initialNews;
     try {
       const parsed: NewsArticle[] = JSON.parse(saved);
-      return parsed.map((item) => {
-        if (item.id === 'news-1' && (item.imageUrl?.includes('match_action') || !item.imageUrl?.includes('squad_lineup'))) {
-          return { ...item, imageUrl: initialNews[0].imageUrl };
-        }
-        return item;
-      });
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : initialNews;
     } catch {
       return initialNews;
     }
   });
+
 
   useEffect(() => {
     const q = query(collection(db, "news"), orderBy("createdAt", "desc"));

@@ -353,27 +353,51 @@ export const initialStandings: StandingTeam[] = [
 
 export const initialNews: NewsArticle[] = [
   {
-    id: 'news-1',
+    id: 'news-rd3',
     title: {
-      en: 'Halaba Ketema Beats Bahir Dar Kenema 1-0 to Claim 1st Place in Ethiopian Premier League',
-      am: 'ሀላባ ከተማ ባህርዳር ከነማን 1-0 በማሸነፍ የኢትዮጵያ ፕሪሚየር ሊግን በ4 ነጥብ መምራት ጀመረ',
-      om: 'Halaba Ketema Bahir Dar Kenema 1-0 Mo’achuun Liigii Piriimeeraa Itoophiyaa Sadarkaa 1ffaan Durse',
+      en: 'Halaba Ketema 1 - 1 Fasil Kenema: Berberewochu Share Spoils in High-Voltage Stalemate',
+      am: 'ሀላባ ከተማ 1 - 1 ፋሲል ከነማ፡ በ3ኛው ሳምንት አቻ ውጤት ተጠናቀቀ',
+      om: 'Halaba Ketema 1 - 1 Fasil Kenema: Marsaa 3ffaa Liigichaatiin Qixa Xumuraniiru',
     },
     summary: {
-      en: 'A heroic 68th-minute strike from Mulugeta Wolde against Bahir Dar Kenema secures consecutive unbeaten matches, pushing Halaba Ketema to the top of the Ethiopian Premier League table with 4 points.',
-      am: 'በ68ኛው ደቂቃ ሙሉጌታ ወልዴ ባስቆጠራት ግሩም ጎል ሀላባ ከተማ ባህርዳር ከነማን 1 ለ 0 በማሸነፍ የኢትዮጵያ ፕሪሚየር ሊግ ደረጃ ሰንጠረዥን በአንደኝነት ደረጃ መምራት ጀምሯል።',
-      om: 'Mulugeta Wolde daqiiqaa 68ffaa irratti goolii galcheen Halaba Ketema Bahir Dar Kenema 1-0n mo’atee qabxii 4n liigicha dursaa jira.',
+      en: 'In an electric Round 3 fixture at Halaba Stadium on October 20, 2026, Halaba Ketema and Fasil Kenema drew 1-1, keeping Halaba unbeaten at the top of the Premier League.',
+      am: 'በCBE የኢትዮጵያ ፕሪሚየር ሊግ 3ኛ ሳምንት መርሃ ግብር ዛሬ በተደረገው ጨዋታ ክለባችን ሀላባ ከተማ ከፋሲል ከነማ ጋር 1-1 በሆነ የአቻ ውጤት ተለያይቷል።',
+      om: 'Dorgommii Liigii Piriimeeraa Itoophiyaa marsaa 3ffaa irratti Halaba Ketema fi Fasil Kenema 1-1n qixa ba’anii qabxii 7n liigicha dursa jiru.',
     },
     content: {
-      en: 'HALABA KULITO — Halaba Ketema reached the summit of the 2026/27 Ethiopian Premier League on Friday afternoon after a courageous 1-0 triumph over Bahir Dar Kenema at a rapturous Halaba Stadium.\n\nFollowing a hard-fought 1-1 opening draw against Welwalo Adigrat University on October 9, the Berberewochu entered Round 2 full of purpose. Both teams tested each other across a tense first half with goalkeepers and defenses holding firm.\n\nThe decisive moment arrived in the 68th minute when winger Amanuel Tesfaye whipped a sublime cross into the penalty box. Mulugeta Wolde rose highest to plant an unstoppable header past the Bahir Dar goalkeeper, igniting delirium in the stands.\n\nWith 4 points from 2 matches (1 Win, 1 Draw, 0 Losses, +1 GD), Halaba Ketema now sits proudly at 1st Place in the Ethiopian Premier League. Next up: an epic Round 3 clash at Halaba Stadium against Fasil Kenema on October 20, 2026.',
-      am: 'ሀላባ ቁሊቶ — ሀላባ ከተማ (በርበሬዎቹ) በ2026/27 የኢትዮጵያ ፕሪሚየር ሊግ ሁለተኛ ሳምንት ጨዋታ ባህርዳር ከነማን 1 ለ 0 በማሸነፍ የሊጉን መሪነት ተረክቧል።\n\nበመጀመሪያው ሳምንት ከወልዋሎ አዲግራት ዩኒቨርሲቲ ጋር 1 ለ 1 አቻ የተለያየው ክለቡ፣ በሁለተኛው ሳምንት በሜዳው በደጋፊው ፊት ጠንካራውን ባህርዳር ከነማ ገጥሞ በሙሉጌታ ወልዴ ብቸኛ ጎል ሙሉ 3 ነጥብ ወስዷል።\n\nክለቡ በአሁኑ ወቅት ባደረጋቸው 2 ጨዋታዎች 4 ነጥብ (1 አሸነፈ፣ 1 አቻ፣ 0 ሽንፈት፣ +1 የግብ ልዩነት) በመያዝ በፕሪሚየር ሊጉ 1ኛ ደረጃ ላይ ተቀምጧል። በቀጣይ በ3ኛው ሳምንት ጥቅምት 10 ቀን 2019 ዓ.ም (October 20, 2026) ከፋሲል ከነማ ጋር ይጫወታል።',
-      om: 'Halaba Ketema tapha marsaa 2ffaa Liigii Piriimeeraa Itoophiyaa bara 2026/27 keessatti Bahir Dar Kenema 1-0 mo’achuun sadarkaa 1ffaa qabateera.\n\nTapha jalqabaa Welwalo Adigrat Univ. waliin 1-1n xumuree ture. Amma qabxii 4 qabaachuun (Mo’annoo 1, Qixa 1, Qabxii 4, GG +1) liigicha dursa jira.',
+      en: 'HALABA KULITO — Halaba Stadium witnessed an electric atmosphere on Tuesday afternoon as Halaba Ketema fought to a hard-earned 1-1 draw against title contenders Fasil Kenema.\n\nDawit Fekadu put the hosts ahead in the 34th minute with a sensational strike that had the 15,000-strong capacity crowd on their feet. Fasil Kenema struck back in the 73rd minute via Getaneh Kebede.\n\nWith 7 points from their opening three games (2 Wins, 1 Draw, 0 Losses), the Berberewochu maintain their historic position at the summit of the Ethiopian Premier League table. Next up: away trip to Wolaita Sodo Stadium to face Wolaitta Dicha in Round 4 on October 26, 2026.',
+      am: 'ሀላባ ቁሊቶ — በCBE የኢትዮጵያ ፕሪሚየር ሊግ 3ኛ ሳምንት መርሃ ግብር ዛሬ ጥቅምት 10 ቀን 2019 ዓ.ም በሀላባ ስታዲየም በተደረገው ጨዋታ ክለባችን ሀላባ ከተማ ከፋሲል ከነማ ጋር 1 ለ 1 በሆነ የአቻ ውጤት ተለያይተዋል።\n\nበ34ኛው ደቂቃ ዳዊት ፈቃዱ ባስቆጠረው ጎል በርበሬዎቹ መሪ መሆን የቻሉ ሲሆን፣ በ73ኛው ደቂቃ ጌታነህ ከበደ ለፋሲል ከነማ አቻ አድርጓል። ክለባችን በ7 ነጥብ የሊጉን መሪነት አጠናክሮ ቀጥሏል።',
+      om: 'Halaba Ketema tapha marsaa 3ffaa Liigii Piriimeeraa Itoophiyaa keessatti Fasil Kenema waliin 1-1n qixa baheera. Dawit Fekadu daqiiqaa 34ffaa irratti goolii eegalchiisaa yoo galchu, Fasil Kenema daqiiqaa 73ffaa irratti deebiseera. Halaba Ketema qabxii 7n sadarkaa 1ffaa irra jira.',
+    },
+    category: 'MATCH_REPORTS',
+    date: '2026-10-20',
+    author: 'Halaba FC Media Team',
+    imageUrl: ClubImages.matchAction,
+    isFeatured: true,
+    readTime: '3 min read',
+  },
+  {
+    id: 'news-1',
+    title: {
+      en: 'Halaba Ketema Beats Bahir Dar Kenema 1-0 in Round 2 Thriller',
+      am: 'ሀላባ ከተማ ባህርዳር ከነማን 1-0 በማሸነፍ የመጀመሪያ ድሉን አስመዘገበ',
+      om: 'Halaba Ketema Bahir Dar Kenema 1-0 Mo’ate',
+    },
+    summary: {
+      en: 'A heroic 68th-minute strike from Mulugeta Wolde against Bahir Dar Kenema secures consecutive unbeaten matches, pushing Halaba Ketema to the top of the Ethiopian Premier League table.',
+      am: 'በ68ኛው ደቂቃ ሙሉጌታ ወልዴ ባስቆጠራት ግሩም ጎል ሀላባ ከተማ ባህርዳር ከነማን 1 ለ 0 በማሸነፍ የኢትዮጵያ ፕሪሚየር ሊግ ደረጃ ሰንጠረዥን መምራት ጀምሯል።',
+      om: 'Mulugeta Wolde daqiiqaa 68ffaa irratti goolii galcheen Halaba Ketema Bahir Dar Kenema 1-0n mo’ateera.',
+    },
+    content: {
+      en: 'HALABA KULITO — Halaba Ketema reached the summit of the 2026/27 Ethiopian Premier League after a courageous 1-0 triumph over Bahir Dar Kenema at a rapturous Halaba Stadium.\n\nFollowing a hard-fought 1-1 opening draw against Welwalo Adigrat University on October 9, the Berberewochu entered Round 2 full of purpose. Both teams tested each other across a tense first half with goalkeepers and defenses holding firm.\n\nThe decisive moment arrived in the 68th minute when winger Amanuel Tesfaye whipped a sublime cross into the penalty box. Mulugeta Wolde rose highest to plant an unstoppable header past the Bahir Dar goalkeeper, igniting delirium in the stands.',
+      am: 'ሀላባ ቁሊቶ — ሀላባ ከተማ (በርበሬዎቹ) በ2026/27 የኢትዮጵያ ፕሪሚየር ሊግ ሁለተኛ ሳምንት ጨዋታ ባህርዳር ከነማን 1 ለ 0 በማሸነፍ የሊጉን መሪነት ተረክቧል። በሜዳው በደጋፊው ፊት ጠንካራውን ባህርዳር ከነማ ገጥሞ በሙሉጌታ ወልዴ ብቸኛ ጎል ሙሉ 3 ነጥብ ወስዷል።',
+      om: 'Halaba Ketema tapha marsaa 2ffaa Liigii Piriimeeraa Itoophiyaa bara 2026/27 keessatti Bahir Dar Kenema 1-0 mo’achuun sadarkaa 1ffaa qabateera.',
     },
     category: 'MATCH_REPORTS',
     date: '2026-10-16',
     author: 'Halaba FC Media Team',
     imageUrl: ClubImages.squadLineup,
-    isFeatured: true,
+    isFeatured: false,
     readTime: '4 min read',
   },
   {

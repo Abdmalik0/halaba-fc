@@ -53,18 +53,22 @@ export const HomePage: React.FC<HomePageProps> = ({
         m.awayTeam?.name?.toLowerCase().includes('halaba'))
     );
 
-  // Strictly find next upcoming match of Halaba City FC (e.g. Halaba Ketema vs Fasil Kenema)
-  const nextMatch =
-    matches.find((m) => (m.status === 'UPCOMING' || m.status === 'LIVE') && isHalabaMatch(m)) ||
-    matches.find(isHalabaMatch) ||
-    initialMatches[0];
+  // Find next upcoming fixture of Halaba City FC (strictly UPCOMING or LIVE, sorted by date ascending)
+  const upcomingHalabaMatches = matches
+    .filter((m) => (m.status === 'UPCOMING' || m.status === 'LIVE') && isHalabaMatch(m))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  // Find latest finished match of Halaba City FC (sorted by date descending)
+  const nextMatch =
+    upcomingHalabaMatches[0] ||
+    matches.find((m) => (m.status === 'UPCOMING' || m.status === 'LIVE')) ||
+    null;
+
+  // Find latest finished match of Halaba City FC (strictly FINISHED, sorted by date descending)
   const finishedHalabaMatches = matches
     .filter((m) => m.status === 'FINISHED' && isHalabaMatch(m))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const latestResult = finishedHalabaMatches[0] || initialMatches[3];
+  const latestResult = finishedHalabaMatches[0] || matches.find((m) => m.status === 'FINISHED') || null;
   // Latest 3 news items
   const recentNews = news.slice(0, 3);
   // Top 5 standings

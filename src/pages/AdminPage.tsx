@@ -407,13 +407,28 @@ export const AdminPage: React.FC = () => {
     const isHome = matchHomeTeam.toLowerCase().includes('halaba');
 
     if (editingMatchId) {
-      updateMatch(editingMatchId, {
+      const matchUpdates: Partial<Match> = {
         date: matchDate,
         kickoffTime: matchTime,
         venue: matchVenue,
         status: matchStatus,
-        score: matchStatus === 'FINISHED' || matchStatus === 'LIVE' ? { home: Number(homeScore), away: Number(awayScore) } : undefined,
-      });
+        homeTeam: {
+          id: isHome ? 'halaba' : 'opponent',
+          name: matchHomeTeam,
+          isHalaba: isHome,
+        },
+        awayTeam: {
+          id: !isHome ? 'halaba' : 'opponent',
+          name: matchAwayTeam,
+          isHalaba: !isHome,
+        },
+        competition: matchComp,
+        competitionName: matchComp.replace(/_/g, ' '),
+      };
+      if (matchStatus === 'FINISHED' || matchStatus === 'LIVE') {
+        matchUpdates.score = { home: Number(homeScore), away: Number(awayScore) };
+      }
+      updateMatch(editingMatchId, matchUpdates);
     } else {
       addMatch({
         competition: matchComp,
