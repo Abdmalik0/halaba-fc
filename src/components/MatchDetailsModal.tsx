@@ -1,6 +1,7 @@
 import React from 'react';
 import { Match } from '../types';
 import { HalabaCrest } from './HalabaCrest';
+import { EthiopianClubLogo } from './EthiopianClubLogo';
 import { useClub } from '../context/ClubContext';
 import { X, Calendar, MapPin, User, Users, Shield, Clock } from 'lucide-react';
 
@@ -44,13 +45,7 @@ export const MatchDetailsModal: React.FC<MatchDetailsModalProps> = ({ match, onC
           <div className="p-6 rounded-xl bg-gradient-to-b from-neutral-950 to-neutral-900/90 border border-neutral-800 flex items-center justify-between">
             {/* Home Team */}
             <div className="flex-1 flex flex-col items-center text-center">
-              {match.homeTeam.isHalaba ? (
-                <HalabaCrest size={64} showGlow />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-neutral-800 border-2 border-neutral-700 flex items-center justify-center font-sports font-black text-xl text-neutral-200">
-                  {match.homeTeam.name.substring(0, 3).toUpperCase()}
-                </div>
-              )}
+              <EthiopianClubLogo teamId={match.homeTeam.id} teamName={match.homeTeam.name} size={64} />
               <h4 className="mt-3 font-sports font-bold text-base sm:text-lg text-white">
                 {match.homeTeam.name}
               </h4>
@@ -103,13 +98,7 @@ export const MatchDetailsModal: React.FC<MatchDetailsModalProps> = ({ match, onC
 
             {/* Away Team */}
             <div className="flex-1 flex flex-col items-center text-center">
-              {match.awayTeam.isHalaba ? (
-                <HalabaCrest size={64} showGlow />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-neutral-800 border-2 border-neutral-700 flex items-center justify-center font-sports font-black text-xl text-neutral-200">
-                  {match.awayTeam.name.substring(0, 3).toUpperCase()}
-                </div>
-              )}
+              <EthiopianClubLogo teamId={match.awayTeam.id} teamName={match.awayTeam.name} size={64} />
               <h4 className="mt-3 font-sports font-bold text-base sm:text-lg text-white">
                 {match.awayTeam.name}
               </h4>

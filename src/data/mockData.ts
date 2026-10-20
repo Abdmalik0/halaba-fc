@@ -59,7 +59,7 @@ export const initialMatches: Match[] = [
     },
     status: 'FINISHED',
     score: {
-      home: 2,
+      home: 1,
       away: 1,
     },
     halftimeScore: {
@@ -70,11 +70,10 @@ export const initialMatches: Match[] = [
     attendance: '15,000 (Capacity Crowd)',
     referee: 'Eyasu Fanta (FIFA Referee)',
     scorers: [
-      { player: 'Dawit Fekadu', minute: 28, team: 'home' },
-      { player: 'Getaneh Kebede', minute: 52, team: 'away' },
-      { player: 'Mulugeta Wolde', minute: 81, team: 'home' },
+      { player: 'Dawit Fekadu', minute: 34, team: 'home' },
+      { player: 'Getaneh Kebede', minute: 73, team: 'away' },
     ],
-    summary: 'Halaba Ketema 2 - 1 Fasil Kenema (October 20, 2026). A breathtaking thriller at Halaba Stadium saw Mulugeta Wolde net an 81st-minute winner to secure a monumental victory and cement Halaba at the summit of the Ethiopian Premier League.',
+    summary: 'Halaba Ketema 1 - 1 Fasil Kenema (October 20, 2026). A tightly contested Premier League clash at Halaba Stadium ending in a 1-1 stalemate.',
   },
   // Round 4 (Upcoming - Oct 26, 2026)
   {

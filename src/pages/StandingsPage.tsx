@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useClub } from '../context/ClubContext';
 import { HalabaCrest } from '../components/HalabaCrest';
+import { EthiopianClubLogo } from '../components/EthiopianClubLogo';
 import { Trophy, Filter, Info, ShieldCheck, Flame, TrendingUp } from 'lucide-react';
 
 export const StandingsPage: React.FC = () => {
@@ -149,13 +150,7 @@ export const StandingsPage: React.FC = () => {
                     {/* Club */}
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
-                        {team.isHalaba ? (
-                          <HalabaCrest size={34} />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-xs font-sports font-black text-neutral-300">
-                            {team.teamName.substring(0, 2).toUpperCase()}
-                          </div>
-                        )}
+                        <EthiopianClubLogo teamId={team.teamId} teamName={team.teamName} size={34} />
                         <div>
                           <span
                             className={`font-sports text-base tracking-wide ${

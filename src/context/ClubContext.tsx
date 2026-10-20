@@ -584,26 +584,20 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           const currentMap = new Map(currentMatches.map(m => [m.id, m]));
 
-          const baseHalabaFixtures = initialMatches.filter(
+          const baseHalabaFixtures = currentMatches.filter(
             (m) =>
               m.homeTeam.isHalaba ||
               m.awayTeam.isHalaba ||
               m.homeTeam.name.toLowerCase().includes('halaba') ||
               m.awayTeam.name.toLowerCase().includes('halaba')
           );
-
-          const halabaFixtures = baseHalabaFixtures.map(fm => {
-            const existing = currentMap.get(fm.id);
-            if (existing && (
-              existing.status === 'FINISHED' ||
-              existing.status === 'LIVE' ||
-              (existing.score && (existing.score.home !== undefined || existing.score.away !== undefined)) ||
-              (existing.scorers && existing.scorers.length > 0)
-            )) {
-              return existing;
-            }
-            return fm;
-          });
+          const halabaFixtures = baseHalabaFixtures.length > 0 ? baseHalabaFixtures : initialMatches.filter(
+            (m) =>
+              m.homeTeam.isHalaba ||
+              m.awayTeam.isHalaba ||
+              m.homeTeam.name.toLowerCase().includes('halaba') ||
+              m.awayTeam.name.toLowerCase().includes('halaba')
+          );
 
           const otherMatches = formattedMatches.filter(
             (m) =>
@@ -617,11 +611,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setMatches(mergedMatches);
           localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(mergedMatches));
 
-          for (const m of mergedMatches) {
-            const existing = currentMap.get(m.id);
-            if (existing && existing.status === 'FINISHED' && m.status !== 'FINISHED') {
-              continue;
-            }
+          // Only persist non-Halaba matches to Firestore from API sync. Halaba matches are 100% protected admin data.
+          for (const m of otherMatches) {
             try {
               await setDoc(doc(db, 'matches', m.id), {
                 ...m,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useClub } from '../context/ClubContext';
 import { HalabaCrest } from '../components/HalabaCrest';
+import { EthiopianClubLogo } from '../components/EthiopianClubLogo';
 import { ClubImages } from '../assets/images';
 import { initialMatches } from '../data/mockData';
 import {
@@ -190,13 +191,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {/* Teams Display */}
                 <div className="py-6 flex items-center justify-around">
                   <div className="flex flex-col items-center text-center w-2/5">
-                    {nextMatch.homeTeam.isHalaba ? (
-                      <HalabaCrest size={68} showGlow />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full bg-neutral-800 border-2 border-neutral-700 flex items-center justify-center font-sports font-black text-lg text-neutral-200">
-                        {nextMatch.homeTeam.name.substring(0, 3).toUpperCase()}
-                      </div>
-                    )}
+                    <EthiopianClubLogo teamId={nextMatch.homeTeam.id} teamName={nextMatch.homeTeam.name} size={68} />
                     <span className="font-sports font-bold text-base text-white mt-2">
                       {nextMatch.homeTeam.name}
                     </span>
@@ -211,13 +206,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </div>
 
                   <div className="flex flex-col items-center text-center w-2/5">
-                    {nextMatch.awayTeam.isHalaba ? (
-                      <HalabaCrest size={68} showGlow />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full bg-neutral-800 border-2 border-neutral-700 flex items-center justify-center font-sports font-black text-lg text-neutral-200">
-                        {nextMatch.awayTeam.name.substring(0, 3).toUpperCase()}
-                      </div>
-                    )}
+                    <EthiopianClubLogo teamId={nextMatch.awayTeam.id} teamName={nextMatch.awayTeam.name} size={68} />
                     <span className="font-sports font-bold text-base text-white mt-2">
                       {nextMatch.awayTeam.name}
                     </span>
@@ -278,13 +267,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {/* Scoreline */}
                 <div className="py-6 flex items-center justify-between gap-2 sm:gap-4">
                   <div className="flex-1 min-w-0 flex flex-col items-center text-center">
-                    {latestResult.homeTeam.isHalaba ? (
-                      <HalabaCrest size={68} showGlow />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full bg-neutral-800 border-2 border-neutral-700 flex items-center justify-center font-sports font-black text-lg text-neutral-200">
-                        {latestResult.homeTeam.name.substring(0, 3).toUpperCase()}
-                      </div>
-                    )}
+                    <EthiopianClubLogo teamId={latestResult.homeTeam.id} teamName={latestResult.homeTeam.name} size={68} />
                     <span className="font-sports font-bold text-base text-white mt-2 truncate max-w-full">
                       {latestResult.homeTeam.name}
                     </span>
@@ -300,13 +283,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </div>
 
                   <div className="flex-1 min-w-0 flex flex-col items-center text-center">
-                    {latestResult.awayTeam.isHalaba ? (
-                      <HalabaCrest size={68} showGlow />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full bg-neutral-800 border-2 border-neutral-700 flex items-center justify-center font-sports font-black text-lg text-neutral-200">
-                        {latestResult.awayTeam.name.substring(0, 3).toUpperCase()}
-                      </div>
-                    )}
+                    <EthiopianClubLogo teamId={latestResult.awayTeam.id} teamName={latestResult.awayTeam.name} size={68} />
                     <span className="font-sports font-bold text-base text-white mt-2 truncate max-w-full">
                       {latestResult.awayTeam.name}
                     </span>
