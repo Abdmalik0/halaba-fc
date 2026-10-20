@@ -13,8 +13,10 @@ import {
   ArrowRight,
   Heart,
   ShoppingBag,
-  Sparkles
+  Sparkles,
+  Smartphone
 } from 'lucide-react';
+import { AppStoreInstallCard } from '../components/pwa/AppStoreInstallCard';
 
 interface HomePageProps {
   onOpenMatchModal: (matchId: string) => void;
@@ -647,7 +649,29 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 7. Membership CTA Card */}
+      {/* 7. Official Mobile App Marketplace Card */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-neutral-800 pb-4">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-xs font-sports font-bold uppercase tracking-wider mb-2">
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>Stealth Progressive Web App</span>
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-sports font-black text-white uppercase tracking-wider">
+                Download Official Club App
+              </h2>
+            </div>
+            <p className="text-xs text-neutral-400 max-w-md">
+              Install directly onto iPhone, Android, or Tablet with zero browser address bars, rigid touch controls, and offline capabilities.
+            </p>
+          </div>
+
+          <AppStoreInstallCard mode="embedded" />
+        </div>
+      </section>
+
+      {/* 8. Membership CTA Card */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-red-950 via-neutral-900 to-green-950 border border-red-800/40 p-8 sm:p-12 shadow-2xl">
           <div className="relative z-10 max-w-2xl space-y-4">

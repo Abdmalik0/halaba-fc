@@ -16,10 +16,17 @@ import {
   Info,
   Phone,
   Lock,
-  ChevronDown
+  ChevronDown,
+  Smartphone,
+  Download
 } from 'lucide-react';
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  onOpenInstallModal?: () => void;
+  isInstalled?: boolean;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled = false }) => {
   const { language, setLanguage, t, currentPage, setCurrentPage, isAdminLoggedIn, openDossier, openDonationModal } = useClub();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
@@ -67,6 +74,23 @@ export const Navbar: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* PWA App Store Install Trigger */}
+          {isInstalled ? (
+            <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-xxs font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span>Native App</span>
+            </span>
+          ) : onOpenInstallModal ? (
+            <button
+              onClick={onOpenInstallModal}
+              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-red-600/40 to-emerald-600/40 hover:from-red-600/60 hover:to-emerald-600/60 border border-red-500/50 text-white text-xs font-bold transition-all shadow-sm active:scale-95"
+              title="Install official Halaba City FC App"
+            >
+              <Smartphone className="w-3 h-3 text-amber-300" />
+              <span>Install App</span>
+            </button>
+          ) : null}
+
           <button
             onClick={openDossier}
             className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-600/30 hover:bg-red-600/50 border border-red-500/50 text-red-200 text-xs font-bold transition-all shadow-sm active:scale-95"
@@ -281,6 +305,19 @@ export const Navbar: React.FC = () => {
           </div>
 
           <div className="pt-2 space-y-2">
+            {!isInstalled && onOpenInstallModal && (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenInstallModal();
+                }}
+                className="w-full py-2.5 px-4 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-emerald-500/40 text-emerald-400 font-bold text-center tracking-wide uppercase font-sports flex items-center justify-center gap-2 transition-colors"
+              >
+                <Smartphone className="w-4 h-4 text-emerald-400" />
+                <span>Install Official Mobile App</span>
+              </button>
+            )}
+
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
