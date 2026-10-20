@@ -5,7 +5,7 @@ import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 
 export default defineConfig(({ command }) => {
-  const base = process.env.BASE_PATH || 'halaba-fc';
+  const base = process.env.BASE_PATH || '/halaba-fc/';
 
   return {
     base,
@@ -14,9 +14,9 @@ export default defineConfig(({ command }) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.png', 'apple-touch-icon.png', 'icon.svg', 'offline.html'],
+        includeAssets: ['favicon.png', 'apple-touch-icon.png', 'icon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png'],
         manifest: {
-          id: '/',
+          id: './',
           name: 'HALABA City FC - Official Club App',
           short_name: 'Halaba FC',
           description: 'Official Progressive Web App for HALABA City FC (Berberewochu). Live matches, Premier League standings, merchandise shop, and digital fan membership.',
@@ -24,39 +24,44 @@ export default defineConfig(({ command }) => {
           background_color: '#0a0a0a',
           display: 'standalone',
           orientation: 'portrait',
-          start_url: base,
-          scope: base,
+          start_url: './',
+          scope: './',
           categories: ['sports', 'news', 'shopping'],
           icons: [
             {
-              src: '/pwa-192x192.png',
+              src: './pwa-192x192.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any',
             },
             {
-              src: '/pwa-512x512.png',
+              src: './pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any',
             },
             {
-              src: '/pwa-maskable-512x512.png',
+              src: './pwa-maskable-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable',
             },
             {
-              src: '/apple-touch-icon.png',
+              src: './apple-touch-icon.png',
               sizes: '180x180',
               type: 'image/png',
+              purpose: 'any',
+            },
+            {
+              src: './icon.svg',
+              sizes: '512x512',
+              type: 'image/svg+xml',
               purpose: 'any',
             },
           ],
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-          navigateFallback: '/offline.html',
           navigateFallbackDenylist: [/^\/api/],
           runtimeCaching: [
             {

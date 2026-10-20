@@ -336,27 +336,45 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let isMounted = true;
 
+    const fetchSportsDB = async (endpoint: string) => {
+      const primaryUrl = `https://www.thesportsdb.com/api/v1/json/123/${endpoint}`;
+      try {
+        const res = await fetch(primaryUrl, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          referrerPolicy: 'no-referrer',
+        });
+        if (res.ok) {
+          const text = await res.text();
+          if (!text.includes('permanently disabled') && !text.includes('Free Sports API key')) {
+            return JSON.parse(text);
+          }
+        }
+      } catch (err) {
+        console.warn(`Direct fetch to TheSportsDB failed for ${endpoint}:`, err);
+      }
+
+      // Proxy fallback for GitHub Pages CORS / Cloudflare origin restriction
+      try {
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(primaryUrl)}`;
+        const proxyRes = await fetch(proxyUrl, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+        });
+        if (proxyRes.ok) {
+          return await proxyRes.json();
+        }
+      } catch (proxyErr) {
+        console.warn(`Proxy fetch failed for ${endpoint}:`, proxyErr);
+      }
+
+      return null;
+    };
+
     const syncFromSportsDB = async () => {
       try {
         // 1. Fetch Ethiopian Premier League Standings
-        let standingsData: any = null;
-        try {
-          const res = await fetch('https://www.thesportsdb.com/api/v1/json/3/lookuptable.php?l=4959&s=2026-2027');
-          const text = await res.text();
-          if (text.includes('permanently disabled') || text.includes('Free Sports API key')) {
-            const fallbackRes = await fetch('https://www.thesportsdb.com/api/v1/json/123/lookuptable.php?l=4959&s=2026-2027');
-            standingsData = await fallbackRes.json();
-          } else {
-            standingsData = JSON.parse(text);
-          }
-        } catch {
-          try {
-            const fallbackRes = await fetch('https://www.thesportsdb.com/api/v1/json/123/lookuptable.php?l=4959&s=2026-2027');
-            standingsData = await fallbackRes.json();
-          } catch (e) {
-            console.warn('Failed to fetch standings from TheSportsDB:', e);
-          }
-        }
+        const standingsData = await fetchSportsDB('lookuptable.php?l=4959&s=2026-2027');
 
         if (isMounted && standingsData && Array.isArray(standingsData.table) && standingsData.table.length > 0) {
           const formattedStandings: StandingTeam[] = standingsData.table.map((item: any, idx: number) => {
@@ -388,24 +406,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         // 2. Fetch Ethiopian Premier League Match Schedules / Events
-        let eventsData: any = null;
-        try {
-          const res = await fetch('https://www.thesportsdb.com/api/v1/json/3/eventsseason.php?id=4959&s=2026-2027');
-          const text = await res.text();
-          if (text.includes('permanently disabled') || text.includes('Free Sports API key')) {
-            const fallbackRes = await fetch('https://www.thesportsdb.com/api/v1/json/123/eventsseason.php?id=4959&s=2026-2027');
-            eventsData = await fallbackRes.json();
-          } else {
-            eventsData = JSON.parse(text);
-          }
-        } catch {
-          try {
-            const fallbackRes = await fetch('https://www.thesportsdb.com/api/v1/json/123/eventsseason.php?id=4959&s=2026-2027');
-            eventsData = await fallbackRes.json();
-          } catch (e) {
-            console.warn('Failed to fetch events from TheSportsDB:', e);
-          }
-        }
+        const eventsData = await fetchSportsDB('eventsseason.php?id=4959&s=2026-2027');
 
         if (isMounted && eventsData && Array.isArray(eventsData.events) && eventsData.events.length > 0) {
           const formattedMatches: Match[] = eventsData.events.map((ev: any, idx: number) => {
