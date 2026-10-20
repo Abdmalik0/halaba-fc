@@ -512,10 +512,6 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Automatically synchronize with TheSportsDB on initial app boot
-  useEffect(() => {
-    syncNow();
-  }, []);
 
   // Real-time Firestore sync listener status
   useEffect(() => {
