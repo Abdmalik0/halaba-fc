@@ -39,7 +39,7 @@ export const initialClubInfo: ClubInfo = {
 };
 
 export const initialMatches: Match[] = [
-  // Round 3 (Completed - Oct 20, 2026) [FT]
+  // Round 3 (Upcoming - Oct 20, 2026)
   {
     id: 'm-epl-rd3',
     competition: 'ETHIOPIAN_PREMIER_LEAGUE',
@@ -57,24 +57,11 @@ export const initialMatches: Match[] = [
       name: 'Fasil Kenema',
       isHalaba: false,
     },
-    status: 'FINISHED',
-    score: {
-      home: 2,
-      away: 1,
-    },
-    halftimeScore: {
-      home: 1,
-      away: 0,
-    },
+    status: 'UPCOMING',
     round: 'Round 3',
-    attendance: '15,000 (Capacity Crowd)',
+    attendance: 'Expected 15,000 (Capacity Crowd)',
     referee: 'Eyasu Fanta (FIFA Referee)',
-    scorers: [
-      { player: 'Dawit Fekadu', minute: 28, team: 'home' },
-      { player: 'Getaneh Kebede', minute: 52, team: 'away' },
-      { player: 'Mulugeta Wolde', minute: 81, team: 'home' },
-    ],
-    summary: 'Halaba Ketema 2 - 1 Fasil Kenema (October 20, 2026). A breathtaking thriller at Halaba Stadium saw Mulugeta Wolde net an 81st-minute winner to secure a monumental victory and cement Halaba at the summit of the Ethiopian Premier League.',
+    summary: 'Table-topping Halaba Ketema host Ethiopian football powerhouse Fasil Kenema in a mouth-watering Round 3 Premier League encounter at the fortress of Halaba Stadium.',
   },
   // Round 4 (Upcoming - Oct 26, 2026)
   {
@@ -204,15 +191,15 @@ export const initialStandings: StandingTeam[] = [
     position: 1,
     teamId: 'halaba',
     teamName: 'Halaba Ketema (በርበሬዎቹ)',
-    played: 3,
-    won: 2,
+    played: 2,
+    won: 1,
     drawn: 1,
     lost: 0,
-    goalsFor: 4,
-    goalsAgainst: 2,
-    goalDifference: 2,
-    points: 7,
-    form: ['D', 'W', 'W'],
+    goalsFor: 2,
+    goalsAgainst: 1,
+    goalDifference: 1,
+    points: 4,
+    form: ['D', 'W'],
     isHalaba: true,
   },
   {
