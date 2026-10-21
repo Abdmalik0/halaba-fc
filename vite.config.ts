@@ -12,7 +12,6 @@ export default defineConfig(({ command }) => {
     base,
     build: {
       target: 'es2015',
-      cssTarget: 'chrome61',
     },
     plugins: [
       react(),

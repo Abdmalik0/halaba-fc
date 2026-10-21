@@ -19,7 +19,10 @@ export const HalabaCrest: React.FC<HalabaCrestProps> = ({
     >
       {showGlow && (
         <div 
-          className="absolute inset-0 bg-red-600/30 blur-xl rounded-full pointer-events-none scale-125"
+          className="absolute inset-0 rounded-full pointer-events-none scale-125"
+          style={{
+            background: 'radial-gradient(circle, rgba(220, 38, 38, 0.35) 0%, rgba(220, 38, 38, 0.12) 45%, rgba(220, 38, 38, 0) 70%)'
+          }}
           aria-hidden="true"
         />
       )}

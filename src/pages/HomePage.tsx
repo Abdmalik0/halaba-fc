@@ -122,8 +122,11 @@ export const HomePage: React.FC<HomePageProps> = ({
           </h1>
 
           {/* Nickname & Ethiopic Badge */}
-          <div className="mt-2 text-xl sm:text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-emerald-400 to-amber-300 flex items-center justify-center gap-2">
-            <span className="text-white font-ethiopic font-bold">({clubInfo.nickname.am})</span>
+          <div className="mt-2 text-xl sm:text-2xl md:text-3xl font-extrabold flex items-center justify-center gap-2">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-emerald-400 to-amber-300">
+              “Berberewochu”
+            </span>
+            <span className="text-amber-300 font-ethiopic font-bold">({clubInfo.nickname.am})</span>
           </div>
 
           <p className="mt-4 max-w-2xl text-neutral-300 text-sm sm:text-base md:text-lg leading-relaxed font-normal">
@@ -186,7 +189,12 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Next Match Card */}
           {nextMatch && (
             <div className="rounded-2xl bg-gradient-to-br from-neutral-900 to-neutral-950 border border-red-900/40 p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 blur-3xl pointer-events-none" />
+              <div 
+                className="absolute top-0 right-0 w-32 h-32 pointer-events-none"
+                style={{
+                  background: 'radial-gradient(circle at top right, rgba(220, 38, 38, 0.15), transparent 70%)'
+                }}
+              />
               
               <div>
                 <div className="flex items-center justify-between pb-4 border-b border-neutral-800">
