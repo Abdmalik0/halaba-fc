@@ -5,7 +5,7 @@ import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 
 export default defineConfig(({ command }) => {
-  const base = process.env.BASE_PATH || '/halaba-fc/';
+  const base = process.env.BASE_PATH !== undefined ? process.env.BASE_PATH : '/halaba-fc/';
 
   return {
     base,
