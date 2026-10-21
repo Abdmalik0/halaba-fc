@@ -648,7 +648,7 @@ export const AdminPage: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleLogin} noValidate className="space-y-4 text-left">
+          <form onSubmit={handleLogin} className="space-y-4 text-left">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
                 {language === 'am' ? 'የአስተዳዳሪ ኢሜይል *' : 'Admin Email *'}
@@ -657,7 +657,7 @@ export const AdminPage: React.FC = () => {
                 <input
                   type="email"
                   value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value.trim())}
+                  onChange={(e) => setEmailInput(e.target.value)}
                   placeholder="admin@halabafc.et"
                   required
                   autoComplete="email"
@@ -688,12 +688,7 @@ export const AdminPage: React.FC = () => {
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm uppercase tracking-wider font-sports shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
-              style={{
-                backgroundColor: '#dc2626',
-                backgroundImage: 'linear-gradient(to right, #dc2626, #ef4444)',
-                color: '#ffffff',
-              }}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-600 text-white font-bold text-sm uppercase tracking-wider font-sports shadow-lg shadow-red-950/60 transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
             >
               {isLoggingIn ? (
                 <>

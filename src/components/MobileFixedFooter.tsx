@@ -43,37 +43,22 @@ export const MobileFixedFooter: React.FC = () => {
     },
   ];
 
-  if (currentPage === 'admin') return null;
-
   return (
-    <nav 
-      aria-label="Mobile Fixed Navigation" 
-      className="fixed bottom-0 left-0 right-0 z-50 py-2 px-2 flex items-center justify-around sm:hidden shadow-2xl border-t"
-      style={{
-        backgroundColor: '#0a0a0a',
-        borderColor: '#262626',
-      }}
-    >
+    <nav aria-label="Mobile Fixed Navigation" className="fixed bottom-0 left-0 right-0 z-50 bg-neutral-950/95 border-t border-neutral-800 backdrop-blur-md py-2 px-3 flex items-center justify-around sm:hidden shadow-2xl">
       {navButtons.map((btn) => (
         <button
           key={btn.id}
           onClick={btn.onClick}
           className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all ${
             btn.isActive
-              ? 'scale-105 font-bold'
-              : 'hover:text-white'
+              ? 'text-red-500 font-bold scale-105'
+              : 'text-neutral-400 hover:text-white'
           }`}
-          style={{
-            color: btn.isActive ? '#ef4444' : '#a3a3a3',
-          }}
         >
-          <span style={{ color: btn.isActive ? '#ef4444' : btn.id === 'donate' ? '#10b981' : '#d4d4d4' }}>
+          <span className={btn.isActive ? 'text-red-500' : 'text-neutral-400'}>
             {btn.icon}
           </span>
-          <span 
-            className="text-xxs uppercase font-sports tracking-wider mt-1 truncate max-w-[64px]"
-            style={{ color: btn.isActive ? '#ef4444' : '#d4d4d4' }}
-          >
+          <span className="text-xxs uppercase font-sports tracking-wider mt-1 truncate max-w-[64px]">
             {btn.label}
           </span>
         </button>
