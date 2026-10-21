@@ -9,11 +9,10 @@ import {
   Send,
   CheckCircle2,
   ExternalLink,
-  MessageSquare
 } from 'lucide-react';
 
 export const ContactPage: React.FC = () => {
-  const { t, clubInfo } = useClub();
+  const { t, language, clubInfo } = useClub();
 
   // Form state
   const [name, setName] = useState('');
@@ -27,7 +26,11 @@ export const ContactPage: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !emailOrPhone.trim() || !message.trim()) {
-      setError('Please fill in your name, contact information, and message.');
+      setError(
+        language === 'am'
+          ? 'እባክዎ ስምዎን፣ የመገናኛ አድራሻዎን እና መልዕክትዎን ያስገቡ።'
+          : 'Please fill in your name, contact information, and message.'
+      );
       return;
     }
 
@@ -43,6 +46,14 @@ export const ContactPage: React.FC = () => {
     }, 600);
   };
 
+  const address = language === 'am'
+    ? 'ሀላባ ስታዲየም የስፖርት ኮምፕሌክስ፣ ዋና ጎዳና፣ ሀላባ ቁሊቶ፣ ኢትዮጵያ'
+    : clubInfo.contact.address;
+
+  const officeHours = language === 'am'
+    ? 'ከሰኞ - አርብ፡ 2:30 ጥዋት - 11:30 ከሰዓት (በጨዋታ ቀናት፡ 1:00 ጥዋት - 1:00 ምሽት)'
+    : clubInfo.contact.hours;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
       {/* Header */}
@@ -51,7 +62,7 @@ export const ContactPage: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-400 mb-1">
               <Mail className="w-4 h-4" />
-              <span>Official Communications</span>
+              <span>{t.officialCommunications}</span>
             </div>
             <h1 className="font-sports font-black text-3xl sm:text-5xl text-white uppercase tracking-wider">
               {t.contactTitle}
@@ -68,7 +79,7 @@ export const ContactPage: React.FC = () => {
         <div className="lg:col-span-5 space-y-6">
           <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
             <h3 className="font-sports font-black text-2xl text-white uppercase tracking-wider pb-3 border-b border-neutral-800">
-              Club Headquarters
+              {t.clubHeadquarters}
             </h3>
 
             <div className="space-y-5 text-sm">
@@ -77,9 +88,9 @@ export const ContactPage: React.FC = () => {
                   <MapPin className="w-4 h-4" />
                 </div>
                 <div>
-                  <strong className="text-white block text-sm">Address</strong>
+                  <strong className="text-white block text-sm">{t.addressLabel}</strong>
                   <span className="text-neutral-400 text-xs sm:text-sm leading-relaxed">
-                    {clubInfo.contact.address}
+                    {address}
                   </span>
                 </div>
               </div>
@@ -89,7 +100,7 @@ export const ContactPage: React.FC = () => {
                   <Phone className="w-4 h-4" />
                 </div>
                 <div>
-                  <strong className="text-white block text-sm">Official Phone</strong>
+                  <strong className="text-white block text-sm">{t.officialPhoneLabel}</strong>
                   <span className="text-neutral-300 font-mono text-xs sm:text-sm block">
                     {clubInfo.contact.phone}
                   </span>
@@ -101,15 +112,15 @@ export const ContactPage: React.FC = () => {
                   <Mail className="w-4 h-4" />
                 </div>
                 <div>
-                  <strong className="text-white block text-sm">Inquiries & Press</strong>
+                  <strong className="text-white block text-sm">{t.inquiriesPressLabel}</strong>
                   <span className="text-neutral-300 font-mono text-xs sm:text-sm block">
-                    General: {clubInfo.contact.email}
+                    {t.generalLabel}: {clubInfo.contact.email}
                   </span>
                   <span className="text-neutral-400 font-mono text-xs block">
-                    Media: {clubInfo.contact.mediaEmail}
+                    {t.mediaLabel}: {clubInfo.contact.mediaEmail}
                   </span>
                   <span className="text-neutral-400 font-mono text-xs block">
-                    Tickets: {clubInfo.contact.ticketOffice}
+                    {t.ticketsLabel}: {clubInfo.contact.ticketOffice}
                   </span>
                 </div>
               </div>
@@ -119,9 +130,9 @@ export const ContactPage: React.FC = () => {
                   <Clock className="w-4 h-4" />
                 </div>
                 <div>
-                  <strong className="text-white block text-sm">Office Hours</strong>
+                  <strong className="text-white block text-sm">{t.officeHoursLabel}</strong>
                   <span className="text-neutral-400 text-xs leading-relaxed block">
-                    {clubInfo.contact.hours}
+                    {officeHours}
                   </span>
                 </div>
               </div>
@@ -131,7 +142,7 @@ export const ContactPage: React.FC = () => {
           {/* Social Channels */}
           <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl">
             <h3 className="font-sports font-bold text-xl text-white uppercase tracking-wider">
-              Official Social Channels
+              {t.officialSocialChannels}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <a
@@ -185,7 +196,9 @@ export const ContactPage: React.FC = () => {
                 {t.sendUsMessage}
               </h3>
               <p className="text-neutral-400 text-xs sm:text-sm mt-1">
-                Reach out to the club secretariat, fan liaison officer, or press department.
+                {language === 'am'
+                  ? 'ከክለቡ ሴክሬታሪያት፣ ከደጋፊዎች ግንኙነት ኦፊሰር ወይም ከሚዲያ ክፍል ጋር ይገናኙ።'
+                  : 'Reach out to the club secretariat, fan liaison officer, or press department.'}
               </p>
             </div>
 
@@ -193,113 +206,88 @@ export const ContactPage: React.FC = () => {
               <div className="p-8 text-center space-y-3 bg-emerald-950/40 border border-emerald-800/80 rounded-2xl animate-in fade-in">
                 <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
                 <h4 className="font-sports font-bold text-2xl text-white uppercase">
-                  Message Transmitted
+                  {t.messageTransmitted}
                 </h4>
                 <p className="text-neutral-300 text-sm max-w-md mx-auto">
                   {t.messageSentSuccess}
                 </p>
                 <button
                   onClick={() => setIsSent(false)}
-                  className="mt-4 px-5 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-bold uppercase tracking-wider font-sports"
+                  className="mt-4 px-5 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-xs font-sports font-bold uppercase text-white transition-colors"
                 >
-                  Send Another Inquiry
+                  {language === 'am' ? 'ሌላ መልዕክት ላክ' : 'Send Another Message'}
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
-                  <div className="p-3.5 rounded-xl bg-red-950/80 border border-red-800 text-red-200 text-xs">
+                  <div className="p-3 rounded-xl bg-red-950/60 border border-red-800 text-red-300 text-xs font-semibold">
                     {error}
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
-                      Your Full Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Dawit Kebede"
-                      className="w-full px-4 py-3 bg-neutral-950 rounded-xl border border-neutral-800 text-sm text-white focus:outline-none focus:border-red-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
-                      Email or Phone <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={emailOrPhone}
-                      onChange={(e) => setEmailOrPhone(e.target.value)}
-                      placeholder="+251 9... or fan@example.com"
-                      className="w-full px-4 py-3 bg-neutral-950 rounded-xl border border-neutral-800 text-sm text-white focus:outline-none focus:border-red-500"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-xs font-sports font-bold uppercase tracking-wider text-neutral-300 mb-1">
+                    {t.yourName} *
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={t.fullNamePlaceholder}
+                    className="w-full px-4 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-white placeholder-neutral-500 text-sm focus:outline-none focus:border-red-500"
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
+                  <label className="block text-xs font-sports font-bold uppercase tracking-wider text-neutral-300 mb-1">
+                    {t.emailOrPhone} *
+                  </label>
+                  <input
+                    type="text"
+                    value={emailOrPhone}
+                    onChange={(e) => setEmailOrPhone(e.target.value)}
+                    placeholder={t.phonePlaceholder}
+                    className="w-full px-4 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-white placeholder-neutral-500 text-sm focus:outline-none focus:border-red-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-sports font-bold uppercase tracking-wider text-neutral-300 mb-1">
                     {t.messageSubject}
                   </label>
                   <input
                     type="text"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
-                    placeholder="General Inquiry, Ticket Question, Partnership, Media..."
-                    className="w-full px-4 py-3 bg-neutral-950 rounded-xl border border-neutral-800 text-sm text-white focus:outline-none focus:border-red-500"
+                    placeholder={language === 'am' ? 'ለምሳሌ፡ የትኬት ጥያቄ፣ የአባልነት መረጃ...' : 'e.g. Ticket Inquiry, Sponsorship, Fan Club...'}
+                    className="w-full px-4 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-white placeholder-neutral-500 text-sm focus:outline-none focus:border-red-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
-                    {t.messageBody} <span className="text-red-500">*</span>
+                  <label className="block text-xs font-sports font-bold uppercase tracking-wider text-neutral-300 mb-1">
+                    {t.messageBody} *
                   </label>
                   <textarea
-                    rows={5}
+                    rows={4}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Write your message to HALABA City FC..."
-                    className="w-full px-4 py-3 bg-neutral-950 rounded-xl border border-neutral-800 text-sm text-white focus:outline-none focus:border-red-500"
+                    placeholder={language === 'am' ? 'የመልዕክትዎን ዝርዝር እዚህ ይጻፉ...' : 'Type your detailed inquiry here...'}
+                    className="w-full px-4 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-white placeholder-neutral-500 text-sm focus:outline-none focus:border-red-500 resize-none"
                   />
                 </div>
 
-                <div className="pt-2 flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="px-8 py-3.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm uppercase tracking-wider font-sports shadow-lg shadow-red-950 flex items-center gap-2 transition-all"
-                  >
-                    <Send className="w-4 h-4" />
-                    <span>{isSubmitting ? 'Sending...' : t.sendMessageBtn}</span>
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-sports font-bold uppercase tracking-wider text-sm shadow-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>{isSubmitting ? t.submitting : t.sendMessageBtn}</span>
+                </button>
               </form>
             )}
-          </div>
-
-          {/* Interactive Halaba Stadium Representation Map */}
-          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 sm:p-8 space-y-3 shadow-xl">
-            <h4 className="font-sports font-bold text-lg text-white uppercase tracking-wider flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-emerald-400" />
-              <span>Halaba Stadium Location</span>
-            </h4>
-            <div className="rounded-2xl bg-neutral-950 border border-neutral-800 p-6 flex flex-col items-center justify-center text-center space-y-2 relative overflow-hidden min-h-[160px]">
-              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#056b2b_1px,transparent_1px)] [background-size:16px_16px]" />
-              <HalabaCrest size={48} />
-              <span className="font-sports font-bold text-lg text-white">
-                Halaba Stadium (ሀላባ ስታዲየም)
-              </span>
-              <p className="text-xs text-neutral-400 max-w-md">
-                Halaba Kulito, Central Ethiopia Regional State • Coordinates: 7.31° N, 38.09° E
-              </p>
-              <span className="text-xxs px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono">
-                Official Matchday Ground
-              </span>
-            </div>
           </div>
         </div>
       </div>

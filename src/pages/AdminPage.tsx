@@ -648,13 +648,15 @@ export const AdminPage: React.FC = () => {
           <div className="text-center space-y-1">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-950/80 border border-red-800/60 text-red-400 text-xxs font-bold uppercase tracking-wider mb-1">
               <Lock className="w-3 h-3" />
-              <span>Official Administrator Portal</span>
+              <span>{language === 'am' ? 'ይፋዊ የአስተዳዳሪ ፖርታል' : 'Official Administrator Portal'}</span>
             </div>
             <h1 className="font-sports font-black text-2xl sm:text-3xl text-white uppercase tracking-wider">
-              Admin Sign In
+              {language === 'am' ? 'የአስተዳዳሪ መግቢያ' : 'Admin Sign In'}
             </h1>
             <p className="text-neutral-400 text-xs">
-              Authorized HALABA City FC management and club IT personnel only.
+              {language === 'am'
+                ? 'ለተፈቀደላቸው የሀላባ ከተማ እግር ኳስ ክለብ አመራሮች ብቻ የተፈቀደ።'
+                : 'Authorized HALABA City FC management and club IT personnel only.'}
             </p>
           </div>
 
@@ -668,7 +670,7 @@ export const AdminPage: React.FC = () => {
           <form onSubmit={handleLogin} className="space-y-4 text-left">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                Admin Email *
+                {language === 'am' ? 'የአስተዳዳሪ ኢሜይል *' : 'Admin Email *'}
               </label>
               <div className="relative">
                 <input
@@ -686,7 +688,7 @@ export const AdminPage: React.FC = () => {
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                Password *
+                {language === 'am' ? 'የይለፍ ቃል *' : 'Password *'}
               </label>
               <div className="relative">
                 <input
@@ -710,12 +712,12 @@ export const AdminPage: React.FC = () => {
               {isLoggingIn ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Signing In with Firebase...</span>
+                  <span>{language === 'am' ? 'በፈርቤዝ በመግባት ላይ...' : 'Signing In with Firebase...'}</span>
                 </>
               ) : (
                 <>
                   <Lock className="w-4 h-4" />
-                  <span>Sign In to Dashboard</span>
+                  <span>{language === 'am' ? 'ወደ ዳሽቦርድ ግባ' : 'Sign In to Dashboard'}</span>
                 </>
               )}
             </button>
@@ -725,17 +727,19 @@ export const AdminPage: React.FC = () => {
           <div className="pt-4 border-t border-neutral-800/80 space-y-2 text-center">
             <div className="flex items-center justify-center gap-1.5 text-neutral-400 text-xxs font-medium">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Firebase Auth Protected • Login-Only Workflow</span>
+              <span>{language === 'am' ? 'በፈርቤዝ የተጠበቀ • አስተዳዳሪ ብቻ' : 'Firebase Auth Protected • Login-Only Workflow'}</span>
             </div>
             <p className="text-neutral-500 text-xxs">
-              Self-service registration and password reset are strictly disabled. Contact club administration for access credentials.
+              {language === 'am'
+                ? 'የይለፍ ቃል ለመቀየር ወይም አዲስ መለያ ለማግኘት የክለቡን አስተዳደር ያነጋግሩ።'
+                : 'Self-service registration and password reset are strictly disabled. Contact club administration for access credentials.'}
             </p>
             <button
               type="button"
               onClick={() => setCurrentPage('home')}
-              className="text-neutral-400 hover:text-white text-xs underline underline-offset-4 pt-1 transition-colors"
+              className="text-neutral-400 hover:text-white text-xs underline underline-offset-4 pt-1 transition-colors cursor-pointer"
             >
-              Return to Public Club Website
+              {language === 'am' ? 'ወደ ክለቡ ድረ-ገጽ ተመለስ' : 'Return to Public Club Website'}
             </button>
           </div>
         </div>
@@ -782,22 +786,22 @@ export const AdminPage: React.FC = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setCurrentPage('home')}
-            className="px-3.5 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-bold uppercase tracking-wider font-sports transition-colors"
+            className="px-3.5 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-bold uppercase tracking-wider font-sports transition-colors cursor-pointer"
           >
-            Club Website
+            {language === 'am' ? 'የክለቡ ድረ-ገጽ' : 'Club Website'}
           </button>
           <button
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="px-4 py-2 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-700/60 text-red-200 hover:text-white text-xs font-bold uppercase tracking-wider font-sports flex items-center gap-2 shadow-lg shadow-red-950/40 transition-all hover:scale-[1.02] disabled:opacity-50"
-            title="Sign out of Firebase Admin"
+            className="px-4 py-2 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-700/60 text-red-200 hover:text-white text-xs font-bold uppercase tracking-wider font-sports flex items-center gap-2 shadow-lg shadow-red-950/40 transition-all hover:scale-[1.02] disabled:opacity-50 cursor-pointer"
+            title={language === 'am' ? 'ከአስተዳዳሪ ውጣ' : 'Sign out of Firebase Admin'}
           >
             {isLoggingOut ? (
               <Loader2 className="w-4 h-4 animate-spin text-red-400" />
             ) : (
               <LogOut className="w-4 h-4 text-red-400" />
             )}
-            <span>Log Out</span>
+            <span>{language === 'am' ? 'ውጣ' : 'Log Out'}</span>
           </button>
         </div>
       </div>
@@ -807,10 +811,14 @@ export const AdminPage: React.FC = () => {
         <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
         <div className="space-y-0.5">
           <strong className="block text-white font-sports font-bold tracking-wide uppercase">
-            Firebase Authentication & Firestore Persistent Storage Active
+            {language === 'am'
+              ? 'የፈርቤዝ ማረጋገጫ እና ቋሚ የክላውድ ዳታቤዝ ነቅቷል'
+              : 'Firebase Authentication & Firestore Persistent Storage Active'}
           </strong>
           <span className="text-neutral-400">
-            All additions, updates, and removals of shop merchandise, news, and club schedules persist permanently in Firebase Cloud and synchronize in real-time.
+            {language === 'am'
+              ? 'በሱቁ፣ በዜናዎች እና በጨዋታዎች ላይ የሚደረጉ ለውጦች በሙሉ በቀጥታ በፈርቤዝ ይቀመጣሉ።'
+              : 'All additions, updates, and removals of shop merchandise, news, and club schedules persist permanently in Firebase Cloud and synchronize in real-time.'}
           </span>
         </div>
       </div>
@@ -819,42 +827,50 @@ export const AdminPage: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="p-4 rounded-xl bg-neutral-900 border border-neutral-800">
           <span className="text-xs text-neutral-400 font-bold uppercase block">
-            Registered Members
+            {language === 'am' ? 'የተመዘገቡ አባላት' : 'Registered Members'}
           </span>
           <span className="font-sports font-black text-3xl text-emerald-400 mt-1 block">
             {memberships.length}
           </span>
-          <span className="text-xxs text-neutral-500">Live fan registrations</span>
+          <span className="text-xxs text-neutral-500">
+            {language === 'am' ? 'የደጋፊዎች ምዝገባዎች' : 'Live fan registrations'}
+          </span>
         </div>
 
         <div className="p-4 rounded-xl bg-neutral-900 border border-neutral-800">
           <span className="text-xs text-neutral-400 font-bold uppercase block">
-            News Articles
+            {language === 'am' ? 'የዜና መጣጥፎች' : 'News Articles'}
           </span>
           <span className="font-sports font-black text-3xl text-white mt-1 block">
             {news.length}
           </span>
-          <span className="text-xxs text-neutral-500">Published stories</span>
+          <span className="text-xxs text-neutral-500">
+            {language === 'am' ? 'የታተሙ ዜናዎች' : 'Published stories'}
+          </span>
         </div>
 
         <div className="p-4 rounded-xl bg-neutral-900 border border-neutral-800">
           <span className="text-xs text-neutral-400 font-bold uppercase block">
-            Matches Scheduled
+            {language === 'am' ? 'የተያዙ ጨዋታዎች' : 'Matches Scheduled'}
           </span>
           <span className="font-sports font-black text-3xl text-amber-400 mt-1 block">
             {matches.length}
           </span>
-          <span className="text-xxs text-neutral-500">Fixtures & completed</span>
+          <span className="text-xxs text-neutral-500">
+            {language === 'am' ? 'የተደረጉና የሚደረጉ' : 'Fixtures & completed'}
+          </span>
         </div>
 
         <div className="p-4 rounded-xl bg-neutral-900 border border-neutral-800">
           <span className="text-xs text-neutral-400 font-bold uppercase block">
-            Squad Roster
+            {language === 'am' ? 'የተጫዋቾች ስብስብ' : 'Squad Roster'}
           </span>
           <span className="font-sports font-black text-3xl text-red-400 mt-1 block">
             {players.length}
           </span>
-          <span className="text-xxs text-neutral-500">First team players</span>
+          <span className="text-xxs text-neutral-500">
+            {language === 'am' ? 'የዋናው ቡድን ተጫዋቾች' : 'First team players'}
+          </span>
         </div>
       </div>
 
@@ -862,7 +878,7 @@ export const AdminPage: React.FC = () => {
       <div className="flex flex-wrap gap-2 border-b border-neutral-800 pb-2">
         <button
           onClick={() => setAdminTab('memberships')}
-          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider font-sports flex items-center gap-2 transition-all ${
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider font-sports flex items-center gap-2 transition-all cursor-pointer ${
             adminTab === 'memberships'
               ? 'bg-red-600 text-white shadow-md'
               : 'bg-neutral-900 text-neutral-400 hover:text-white'
@@ -874,14 +890,14 @@ export const AdminPage: React.FC = () => {
 
         <button
           onClick={() => setAdminTab('shop')}
-          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider font-sports flex items-center gap-2 transition-all ${
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider font-sports flex items-center gap-2 transition-all cursor-pointer ${
             adminTab === 'shop'
               ? 'bg-red-600 text-white shadow-md'
               : 'bg-neutral-900 text-neutral-400 hover:text-white'
           }`}
         >
           <ShoppingBag className="w-4 h-4 text-amber-400" />
-          <span>Jersey Shop & Donations ({shopItems.length})</span>
+          <span>{language === 'am' ? 'የማሊያ ሱቅና ልገሳ' : 'Jersey Shop & Donations'} ({shopItems.length})</span>
         </button>
 
         <button

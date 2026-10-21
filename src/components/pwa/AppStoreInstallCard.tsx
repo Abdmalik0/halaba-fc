@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
+import { useClub } from '../../context/ClubContext';
 import { HalabaCrest } from '../HalabaCrest';
 import {
   Download,
@@ -10,16 +11,11 @@ import {
   Star,
   ShieldCheck,
   Zap,
-  ArrowRight,
   X,
   Sparkles,
-  Info,
   Layers,
-  ChevronRight,
-  ExternalLink,
   MoreVertical,
-  AlertCircle,
-  RotateCcw
+  AlertCircle
 } from 'lucide-react';
 
 interface AppStoreInstallCardProps {
@@ -31,10 +27,10 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
   mode = 'embedded',
   onClose
 }) => {
+  const { language } = useClub();
   const {
     isInstalled,
     isIOS,
-    isAndroid,
     hasNativePrompt,
     triggerNativeInstall
   } = usePWAInstall();
@@ -49,7 +45,9 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
     'idle' | 'downloading' | 'installed' | 'cancelled' | 'manual_guide'
   >('idle');
   const [downloadProgress, setDownloadProgress] = useState(0);
-  const [downloadPhase, setDownloadPhase] = useState('Connecting to Halaba CDN...');
+  const [downloadPhase, setDownloadPhase] = useState(
+    language === 'am' ? 'ከሀላባ ሰርቨር ጋር በመገናኘት ላይ...' : 'Connecting to Halaba CDN...'
+  );
 
   // Keep platform view synced with OS if it changes
   useEffect(() => {
@@ -64,34 +62,28 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
       return;
     }
 
-    // 1. If the browser's native beforeinstallprompt is ready, invoke it immediately
-    // to preserve the active user gesture required by Chromium.
     if (hasNativePrompt) {
       setInstallState('idle');
       const outcome = await triggerNativeInstall();
 
       if (outcome === 'accepted') {
-        // Run rapid progress animation on successful installation
         setInstallState('downloading');
         setDownloadProgress(25);
-        setDownloadPhase('Verifying Berberewochu Native Package...');
+        setDownloadPhase(language === 'am' ? 'የበርበሬዎቹን ይፋዊ ፓኬጅ በማረጋገጥ ላይ...' : 'Verifying Berberewochu Native Package...');
         await new Promise((r) => setTimeout(r, 220));
         setDownloadProgress(65);
-        setDownloadPhase('Precaching EPL match center & squad roster...');
+        setDownloadPhase(language === 'am' ? 'የጨዋታ ማዕከል እና የተጫዋቾች መረጃ በመጫን ላይ...' : 'Precaching EPL match center & squad roster...');
         await new Promise((r) => setTimeout(r, 220));
         setDownloadProgress(100);
-        setDownloadPhase('Native Application Installed!');
+        setDownloadPhase(language === 'am' ? 'ይፋዊ መተግበሪያው በስኬት ተጭኗል!' : 'Native Application Installed!');
         await new Promise((r) => setTimeout(r, 150));
         setInstallState('installed');
       } else if (outcome === 'dismissed') {
         setInstallState('cancelled');
       } else {
-        // If prompt failed or expired, switch to direct browser menu steps
         setInstallState('manual_guide');
       }
     } else {
-      // 2. If the browser hasn't fired beforeinstallprompt or blocked automatic prompts,
-      // show the exact, foolproof manual browser installation guide!
       setInstallState('manual_guide');
     }
   };
@@ -107,7 +99,7 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
                 setPlatformView('playstore');
                 setInstallState('idle');
               }}
-              className={`px-3 py-1 rounded-lg text-xxs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1 rounded-lg text-xxs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
                 platformView === 'playstore'
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'text-neutral-400 hover:text-white'
@@ -123,7 +115,7 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
                 setPlatformView('appstore');
                 setInstallState('idle');
               }}
-              className={`px-3 py-1 rounded-lg text-xxs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1 rounded-lg text-xxs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
                 platformView === 'appstore'
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-neutral-400 hover:text-white'
@@ -140,12 +132,12 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
         <div className="flex items-center gap-2">
           <span className="text-xxs px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-500/30 text-emerald-400 font-bold uppercase flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Verified PWA
+            {language === 'am' ? 'የተረጋገጠ መተግበሪያ' : 'Verified PWA'}
           </span>
           {onClose && (
             <button
               onClick={onClose}
-              className="p-1 rounded-full text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+              className="p-1 rounded-full text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
               aria-label="Close"
             >
               <X className="w-4 h-4" />
@@ -167,25 +159,25 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl sm:text-2xl font-sports font-black text-white tracking-wide uppercase truncate">
-                HALABA City FC
+                {language === 'am' ? 'ሀላባ ከተማ እግርኳስ ክለብ' : 'HALABA City FC'}
               </h2>
               <span className="px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-800/60 font-sports font-bold text-xxs uppercase">
-                Official
+                {language === 'am' ? 'ይፋዊ' : 'Official'}
               </span>
             </div>
 
             <p className="text-xs sm:text-sm text-neutral-300 font-medium mt-0.5 truncate">
-              Halaba Ketema SC • Berberewochu
+              {language === 'am' ? 'ሀላባ ከተማ ስፖርት ክለብ • በርበሬዎቹ' : 'Halaba Ketema SC • Berberewochu'}
             </p>
 
             <p className="text-xxs text-neutral-400 mt-1 flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span>Official Ethiopian Premier League Club Software</span>
+              <span>{language === 'am' ? 'ይፋዊ የኢትዮጵያ ፕሪሚየር ሊግ ክለብ ሶፍትዌር' : 'Official Ethiopian Premier League Club Software'}</span>
             </p>
 
             <div className="mt-2 flex items-center gap-2 text-xxs font-medium text-emerald-400">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span>Stealth Standalone Progressive Web App</span>
+              <span>{language === 'am' ? 'ሙሉ ራሱን የቻለ ፕሮግረሲቭ ዌብ አፕ' : 'Stealth Standalone Progressive Web App'}</span>
             </div>
           </div>
         </div>
@@ -197,24 +189,32 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
               <span>4.9</span>
               <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
             </div>
-            <div className="text-xxs text-neutral-400 mt-0.5">18.4K reviews</div>
+            <div className="text-xxs text-neutral-400 mt-0.5">
+              {language === 'am' ? '18.4 ሺህ ግምገማዎች' : '18.4K reviews'}
+            </div>
           </div>
 
           <div className="border-r border-neutral-800 pr-1">
             <div className="text-xs sm:text-sm font-bold text-white uppercase">8.2 MB</div>
-            <div className="text-xxs text-neutral-400 mt-0.5">Instant PWA</div>
+            <div className="text-xxs text-neutral-400 mt-0.5">
+              {language === 'am' ? 'ፈጣን PWA' : 'Instant PWA'}
+            </div>
           </div>
 
           <div className="border-r border-neutral-800 pr-1">
             <div className="inline-block px-1.5 py-0.2 rounded border border-neutral-700 text-xxs font-bold text-neutral-300">
               3+
             </div>
-            <div className="text-xxs text-neutral-400 mt-0.5">Rated for 3+</div>
+            <div className="text-xxs text-neutral-400 mt-0.5">
+              {language === 'am' ? 'ለሁሉም ዕድሜ' : 'Rated for 3+'}
+            </div>
           </div>
 
           <div>
             <div className="text-xs sm:text-sm font-bold text-emerald-400">100K+</div>
-            <div className="text-xxs text-neutral-400 mt-0.5">Halaba Fans</div>
+            <div className="text-xxs text-neutral-400 mt-0.5">
+              {language === 'am' ? 'ደጋፊዎች' : 'Halaba Fans'}
+            </div>
           </div>
         </div>
 
@@ -226,10 +226,12 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
               <div className="p-4 rounded-2xl bg-emerald-950/70 border border-emerald-500/40 text-center space-y-1">
                 <div className="inline-flex items-center gap-2 text-emerald-300 font-sports font-black text-sm uppercase tracking-wider">
                   <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                  <span>HALABA City FC Native App Active</span>
+                  <span>{language === 'am' ? 'የሀላባ ከተማ መተግበሪያ በስልክዎ ላይ ተጭኗል' : 'HALABA City FC Native App Active'}</span>
                 </div>
                 <p className="text-xs text-neutral-300">
-                  This device is already running the installed stealth application window without browser chrome.
+                  {language === 'am'
+                    ? 'ይህ መሳሪያ ይፋዊውን የክለቡን መተግበሪያ በቀጥታ እየተጠቀመ ነው።'
+                    : 'This device is already running the installed stealth application window without browser chrome.'}
                 </p>
               </div>
             ) : installState === 'downloading' ? (
@@ -237,7 +239,7 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-sports font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-                    Installing HALABA City FC...
+                    {language === 'am' ? 'የሀላባ ከተማ መተግበሪያ በመጫን ላይ...' : 'Installing HALABA City FC...'}
                   </span>
                   <span className="font-mono font-bold text-white text-sm">
                     {downloadProgress}%
@@ -263,10 +265,12 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
                   <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
                   <div>
                     <h4 className="font-sports font-black text-sm text-white uppercase">
-                      HALABA City FC Installed Successfully!
+                      {language === 'am' ? 'የሀላባ ከተማ መተግበሪያ በስኬት ተጭኗል!' : 'HALABA City FC Installed Successfully!'}
                     </h4>
                     <p className="text-xs text-neutral-300">
-                      The official club icon is now on your home screen and app launcher.
+                      {language === 'am'
+                        ? 'ይፋዊው የክለቡ አርማ በስልክዎ ዋና ገጽ ላይ ተቀምጧል።'
+                        : 'The official club icon is now on your home screen and app launcher.'}
                     </p>
                   </div>
                 </div>
@@ -277,18 +281,20 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-amber-400 text-xs font-sports font-bold uppercase tracking-wider">
                     <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>Browser Direct Installation Guide</span>
+                    <span>{language === 'am' ? 'የቀጥታ አጫጫን መመሪያ' : 'Browser Direct Installation Guide'}</span>
                   </div>
                   <button
                     onClick={handleStartInstallation}
-                    className="text-xxs text-neutral-400 hover:text-white underline"
+                    className="text-xxs text-neutral-400 hover:text-white underline cursor-pointer"
                   >
-                    Try Auto-Prompt
+                    {language === 'am' ? 'አውቶማቲክ ሞክር' : 'Try Auto-Prompt'}
                   </button>
                 </div>
 
                 <p className="text-xs text-neutral-300">
-                  Your browser requires 1 manual confirmation to add the app to your device:
+                  {language === 'am'
+                    ? 'መተግበሪያውን ወደ ስልክዎ ለመጨመር 1 ማረጋገጫ ይስጡ፡'
+                    : 'Your browser requires 1 manual confirmation to add the app to your device:'}
                 </p>
 
                 <div className="space-y-2 text-xs text-neutral-300">
@@ -297,11 +303,11 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
                       1
                     </span>
                     <div>
-                      <span>Tap the browser menu</span>
+                      <span>{language === 'am' ? 'የብሮውዘሩን 3 ነጥብ ምናሌ ይጫኑ' : 'Tap the browser menu'}</span>
                       <span className="inline-flex items-center gap-1 mx-1.5 px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 font-bold text-white text-xxs">
-                        <MoreVertical className="w-3 h-3 inline" /> 3 Dots (⋮)
+                        <MoreVertical className="w-3 h-3 inline" /> {language === 'am' ? '3 ነጥቦች (⋮)' : '3 Dots (⋮)'}
                       </span>
-                      <span>in the top-right corner of Chrome.</span>
+                      <span>{language === 'am' ? 'በChrome አናት ላይ።' : 'in the top-right corner of Chrome.'}</span>
                     </div>
                   </div>
 
@@ -310,30 +316,31 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
                       2
                     </span>
                     <div>
-                      <span>Tap </span>
-                      <strong className="text-emerald-400 font-semibold">"Install app"</strong>
-                      <span> or </span>
-                      <strong className="text-white font-semibold">"Add to Home screen"</strong>.
+                      <span>{language === 'am' ? 'ከዚያም ' : 'Tap '}</span>
+                      <strong className="text-emerald-400 font-semibold">{language === 'am' ? '“መተግበሪያውን ጫን”' : '"Install app"'}</strong>
+                      <span> {language === 'am' ? 'ወይም ' : ' or '}</span>
+                      <strong className="text-white font-semibold">{language === 'am' ? '“ወደ ዋና ገጽ ጨምር”' : '"Add to Home screen"'}</strong>
+                      <span> {language === 'am' ? 'የሚለውን ይምረጡ።' : '.'}</span>
                     </div>
                   </div>
                 </div>
 
                 <button
                   onClick={() => setInstallState('idle')}
-                  className="w-full py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-sports font-bold uppercase transition-colors"
+                  className="w-full py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-sports font-bold uppercase transition-colors cursor-pointer"
                 >
-                  Back to Install Card
+                  {language === 'am' ? 'ወደ ካርድ ተመለስ' : 'Back to Install Card'}
                 </button>
               </div>
             ) : installState === 'cancelled' ? (
               <div className="space-y-2">
                 <div className="p-3.5 rounded-2xl bg-neutral-900 border border-neutral-800 text-xs text-neutral-300 flex items-center justify-between">
-                  <span>Installation dialog was dismissed.</span>
+                  <span>{language === 'am' ? 'የመጫኛ መስኮቱ ተዘግቷል።' : 'Installation dialog was dismissed.'}</span>
                   <button
                     onClick={handleStartInstallation}
-                    className="text-red-400 hover:text-red-300 font-sports font-bold uppercase"
+                    className="text-red-400 hover:text-red-300 font-sports font-bold uppercase cursor-pointer"
                   >
-                    Retry Prompt
+                    {language === 'am' ? 'እንደገና ሞክር' : 'Retry Prompt'}
                   </button>
                 </div>
                 <button
@@ -341,7 +348,7 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
                   className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-red-600 via-red-600 to-emerald-600 hover:from-red-500 hover:to-emerald-500 text-white font-sports font-black text-base uppercase tracking-wider shadow-xl shadow-red-950/50 flex items-center justify-center gap-2.5 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
                 >
                   <Download className="w-5 h-5" />
-                  <span>Install Official App (Google Play PWA)</span>
+                  <span>{language === 'am' ? 'ይፋዊ መተግበሪያውን ጫን (Google Play PWA)' : 'Install Official App (Google Play PWA)'}</span>
                 </button>
               </div>
             ) : (
@@ -351,10 +358,12 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
                   className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-red-600 via-red-600 to-emerald-600 hover:from-red-500 hover:to-emerald-500 text-white font-sports font-black text-base uppercase tracking-wider shadow-xl shadow-red-950/50 flex items-center justify-center gap-2.5 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
                 >
                   <Download className="w-5 h-5" />
-                  <span>Install Official App (Google Play PWA)</span>
+                  <span>{language === 'am' ? 'ይፋዊ መተግበሪያውን ጫን (Google Play PWA)' : 'Install Official App (Google Play PWA)'}</span>
                 </button>
                 <p className="text-center text-xxs text-neutral-400">
-                  Instant stealth install • No bulky download • Zero browser navigation bars
+                  {language === 'am'
+                    ? 'ፈጣን አጫጫን • ማከማቻ የማይጨርስ • ያለ ብሮውዘር መስመር በቀጥታ'
+                    : 'Instant stealth install • No bulky download • Zero browser navigation bars'}
                 </p>
               </div>
             )}
@@ -365,7 +374,7 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
             <div className="p-4 rounded-2xl bg-neutral-900 border border-blue-900/40 space-y-3">
               <div className="flex items-center gap-2 text-blue-400 text-xs font-sports font-bold uppercase tracking-wider">
                 <Smartphone className="w-4 h-4" />
-                <span>Apple iOS Safari Native Installation</span>
+                <span>{language === 'am' ? 'የአይፎን ሳፋሪ አጫጫን መመሪያ' : 'Apple iOS Safari Native Installation'}</span>
               </div>
 
               <div className="space-y-2.5 text-xs text-neutral-300">
@@ -374,13 +383,15 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
                     1
                   </div>
                   <div>
-                    <span className="font-bold text-white">Tap the Safari Share Icon</span>
+                    <span className="font-bold text-white">{language === 'am' ? 'የሳፋሪ ማጋሪያ (Share) ምልክትን ይጫኑ' : 'Tap the Safari Share Icon'}</span>
                     <p className="text-xxs text-neutral-400 mt-0.5">
-                      In the bottom toolbar of Safari on your iPhone, tap the square with an arrow pointing up:
+                      {language === 'am'
+                        ? 'በስልክዎ የታችኛው ክፍል ላይ ያለውን ወደ ላይ የሚያሳይ ቀስት ምልክት ይጫኑ፡'
+                        : 'In the bottom toolbar of Safari on your iPhone, tap the square with an arrow pointing up:'}
                     </p>
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-900 border border-neutral-700 text-blue-400 font-semibold text-xxs mt-1.5">
                       <Share2 className="w-3.5 h-3.5" />
-                      <span>Share</span>
+                      <span>{language === 'am' ? 'Share (አጋራ)' : 'Share'}</span>
                     </div>
                   </div>
                 </div>
@@ -390,13 +401,15 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
                     2
                   </div>
                   <div>
-                    <span className="font-bold text-white">Select "Add to Home Screen"</span>
+                    <span className="font-bold text-white">{language === 'am' ? '“Add to Home Screen” የሚለውን ይምረጡ' : 'Select "Add to Home Screen"'}</span>
                     <p className="text-xxs text-neutral-400 mt-0.5">
-                      Scroll down through the share sheet options and tap:
+                      {language === 'am'
+                        ? 'ከተዘረዘሩት አማራጮች ውስጥ ወደ ታች ወርደው ይጫኑ፡'
+                        : 'Scroll down through the share sheet options and tap:'}
                     </p>
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-900 border border-neutral-700 text-white font-semibold text-xxs mt-1.5">
                       <PlusSquare className="w-3.5 h-3.5 text-neutral-300" />
-                      <span>Add to Home Screen</span>
+                      <span>{language === 'am' ? 'Add to Home Screen (ወደ ዋና ገጽ)' : 'Add to Home Screen'}</span>
                     </div>
                   </div>
                 </div>
@@ -406,9 +419,11 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
                     3
                   </div>
                   <div>
-                    <span className="font-bold text-white">Tap "Add" in Top Right</span>
+                    <span className="font-bold text-white">{language === 'am' ? 'በቀኝ በኩል “Add” የሚለውን ይጫኑ' : 'Tap "Add" in Top Right'}</span>
                     <p className="text-xxs text-neutral-400 mt-0.5">
-                      Confirm by tapping <strong className="text-white">Add</strong>. The official Halaba City FC icon will appear on your home screen and open without any Safari address bar!
+                      {language === 'am'
+                        ? '“Add” የሚለውን በመጫን ያረጋግጡ። የሀላባ ከተማ ክለብ አርማ በስልክዎ ላይ በቀጥታ ይቀመጣል!'
+                        : 'Confirm by tapping Add. The official Halaba City FC icon will appear on your home screen and open without any Safari address bar!'}
                     </p>
                   </div>
                 </div>
@@ -421,36 +436,52 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
         <div className="space-y-3 pt-2 border-t border-neutral-900">
           <div className="flex items-center justify-between">
             <h3 className="font-sports font-black text-sm uppercase tracking-wider text-neutral-300">
-              Stealth App Features
+              {language === 'am' ? 'የመተግበሪያው ዋና ዋና ባህሪያት' : 'Stealth App Features'}
             </h3>
             <span className="text-xxs text-emerald-400 font-bold uppercase">
-              Full Native Experience
+              {language === 'am' ? 'ሙሉ የስልክ መተግበሪያ ልምድ' : 'Full Native Experience'}
             </span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             <div className="p-3 rounded-xl bg-neutral-900/80 border border-neutral-800 text-left space-y-1">
               <Zap className="w-4 h-4 text-amber-400" />
-              <h4 className="font-sports font-bold text-xs text-white uppercase">Live Match Center</h4>
-              <p className="text-xxs text-neutral-400 leading-tight">Instant Ethiopian Premier League live scores & tables</p>
+              <h4 className="font-sports font-bold text-xs text-white uppercase">
+                {language === 'am' ? 'የቀጥታ ጨዋታ ማዕከል' : 'Live Match Center'}
+              </h4>
+              <p className="text-xxs text-neutral-400 leading-tight">
+                {language === 'am' ? 'የኢትዮጵያ ፕሪሚየር ሊግ የቀጥታ ውጤቶችና የደረጃ ሰንጠረዥ' : 'Instant Ethiopian Premier League live scores & tables'}
+              </p>
             </div>
 
             <div className="p-3 rounded-xl bg-neutral-900/80 border border-neutral-800 text-left space-y-1">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <h4 className="font-sports font-bold text-xs text-white uppercase">Fan ID & Pass</h4>
-              <p className="text-xxs text-neutral-400 leading-tight">Digital supporter membership with offline access</p>
+              <h4 className="font-sports font-bold text-xs text-white uppercase">
+                {language === 'am' ? 'የደጋፊ መታወቂያ' : 'Fan ID & Pass'}
+              </h4>
+              <p className="text-xxs text-neutral-400 leading-tight">
+                {language === 'am' ? 'ከመስመር ውጭም የሚሰራ ይፋዊ ዲጂታል መታወቂያ' : 'Digital supporter membership with offline access'}
+              </p>
             </div>
 
             <div className="p-3 rounded-xl bg-neutral-900/80 border border-neutral-800 text-left space-y-1">
               <Sparkles className="w-4 h-4 text-red-400" />
-              <h4 className="font-sports font-bold text-xs text-white uppercase">Official Shop</h4>
-              <p className="text-xxs text-neutral-400 leading-tight">Order official scarlet & green kits with Chapa</p>
+              <h4 className="font-sports font-bold text-xs text-white uppercase">
+                {language === 'am' ? 'ይፋዊ የክለቡ ሱቅ' : 'Official Shop'}
+              </h4>
+              <p className="text-xxs text-neutral-400 leading-tight">
+                {language === 'am' ? 'የክለቡን ደማቅ ቀይና አረንጓዴ ማሊያዎች በቻፓ ይዘዙ' : 'Order official scarlet & green kits with Chapa'}
+              </p>
             </div>
 
             <div className="p-3 rounded-xl bg-neutral-900/80 border border-neutral-800 text-left space-y-1">
               <Layers className="w-4 h-4 text-blue-400" />
-              <h4 className="font-sports font-bold text-xs text-white uppercase">Offline Shield</h4>
-              <p className="text-xxs text-neutral-400 leading-tight">Cached access when connectivity is interrupted</p>
+              <h4 className="font-sports font-bold text-xs text-white uppercase">
+                {language === 'am' ? 'ከመስመር ውጭ አገልግሎት' : 'Offline Shield'}
+              </h4>
+              <p className="text-xxs text-neutral-400 leading-tight">
+                {language === 'am' ? 'ኢንተርኔት ሲቋረጥም መረጃዎችን ያለምንም ችግር ያግኙ' : 'Cached access when connectivity is interrupted'}
+              </p>
             </div>
           </div>
         </div>
@@ -458,12 +489,12 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
         {/* 6. Technical App Information Footer */}
         <div className="pt-3 border-t border-neutral-900 text-xxs text-neutral-500 space-y-1">
           <div className="flex items-center justify-between">
-            <span>Version: 2.4.0 (2026/27 EPL Season)</span>
-            <span>Developer: Halaba SC Digital Media</span>
+            <span>{language === 'am' ? 'ስሪት፡ 2.4.0 (2026/27 የፕሪሚየር ሊግ ዘመን)' : 'Version: 2.4.0 (2026/27 EPL Season)'}</span>
+            <span>{language === 'am' ? 'አዘጋጅ፡ የሀላባ ስፖርት ክለብ ዲጂታል ሚዲያ' : 'Developer: Halaba SC Digital Media'}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span>Security: Firebase Firestore + Chapa Secure SSL</span>
-            <span>Compat: Android 8+ • iOS 14+ • Chrome/Safari</span>
+            <span>{language === 'am' ? 'ደህንነት፡ ፈርቤዝ እና ቻፓ ደህንነቱ የተጠበቀ ክፍያ' : 'Security: Firebase Firestore + Chapa Secure SSL'}</span>
+            <span>Android 8+ • iOS 14+ • Chrome/Safari</span>
           </div>
         </div>
       </div>

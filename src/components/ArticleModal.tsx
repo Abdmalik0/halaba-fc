@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NewsArticle } from '../types';
 import { useClub } from '../context/ClubContext';
 import { X, Calendar, Clock, User, Share2, Tag } from 'lucide-react';
+import { getLocalizedCategory } from '../utils/localization';
 
 interface ArticleModalProps {
   article: NewsArticle | null;
@@ -43,7 +44,7 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) 
           <div className="flex items-center gap-2">
             <Tag className="w-4 h-4 text-emerald-400" />
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-              {article.category.replace('_', ' ')}
+              {getLocalizedCategory(article.category, language)}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -53,7 +54,7 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) 
               title="Share article"
             >
               <Share2 className="w-4 h-4" />
-              {copied && <span className="text-emerald-400 text-xs">Copied!</span>}
+              {copied && <span className="text-emerald-400 text-xs">{t.copied}</span>}
             </button>
             <button
               onClick={onClose}
@@ -92,7 +93,7 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) 
               </span>
               <span className="flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-neutral-500" />
-                {t.author}: <strong className="text-neutral-300">{article.author}</strong>
+                {t.author}: <strong className="text-neutral-300">{language === 'am' ? 'የክለቡ አስተዳደር' : article.author}</strong>
               </span>
               <span className="flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-neutral-500" />
@@ -110,7 +111,7 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) 
         {/* Modal Footer */}
         <div className="px-6 py-4 bg-neutral-950 border-t border-neutral-800 flex items-center justify-between">
           <span className="text-xs text-neutral-500">
-            HALABA City FC Official Media & Communications
+            {t.mediaCommsFooter}
           </span>
           <button
             onClick={onClose}

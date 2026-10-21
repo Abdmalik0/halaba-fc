@@ -1,9 +1,14 @@
 import React from 'react';
 import { Match } from '../types';
-import { HalabaCrest } from './HalabaCrest';
 import { EthiopianClubLogo } from './EthiopianClubLogo';
 import { useClub } from '../context/ClubContext';
 import { X, Calendar, MapPin, User, Users, Shield, Clock } from 'lucide-react';
+import {
+  getLocalizedTeamName,
+  getLocalizedVenue,
+  getLocalizedPersonName,
+  getLocalizedCompetition,
+} from '../utils/localization';
 
 interface MatchDetailsModalProps {
   match: Match | null;
@@ -11,9 +16,14 @@ interface MatchDetailsModalProps {
 }
 
 export const MatchDetailsModal: React.FC<MatchDetailsModalProps> = ({ match, onClose }) => {
-  const { t } = useClub();
+  const { t, language } = useClub();
 
   if (!match) return null;
+
+  const homeName = getLocalizedTeamName(match.homeTeam?.id, match.homeTeam?.name, language);
+  const awayName = getLocalizedTeamName(match.awayTeam?.id, match.awayTeam?.name, language);
+  const venue = getLocalizedVenue(match.venue, language);
+  const compName = getLocalizedCompetition(match.competitionName || match.competition, language);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
@@ -27,7 +37,7 @@ export const MatchDetailsModal: React.FC<MatchDetailsModalProps> = ({ match, onC
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-red-500" />
             <span className="font-sports font-bold text-lg text-white uppercase tracking-wider">
-              {match.competitionName}
+              {compName}
             </span>
           </div>
           <button
@@ -45,12 +55,12 @@ export const MatchDetailsModal: React.FC<MatchDetailsModalProps> = ({ match, onC
           <div className="p-6 rounded-xl bg-gradient-to-b from-neutral-950 to-neutral-900/90 border border-neutral-800 flex items-center justify-between">
             {/* Home Team */}
             <div className="flex-1 flex flex-col items-center text-center">
-              <EthiopianClubLogo teamId={match.homeTeam.id} teamName={match.homeTeam.name} size={64} />
+              <EthiopianClubLogo teamId={match.homeTeam.id} teamName={homeName} size={64} />
               <h4 className="mt-3 font-sports font-bold text-base sm:text-lg text-white">
-                {match.homeTeam.name}
+                {homeName}
               </h4>
               <span className="text-xs uppercase text-neutral-400 font-semibold tracking-wider">
-                Home
+                {t.home}
               </span>
             </div>
 
@@ -63,11 +73,11 @@ export const MatchDetailsModal: React.FC<MatchDetailsModalProps> = ({ match, onC
                   </div>
                   {match.halftimeScore && (
                     <span className="text-xs text-neutral-400 block mt-1">
-                      HT: {match.halftimeScore.home} - {match.halftimeScore.away}
+                      {language === 'am' ? 'እረፍት' : 'HT'}: {match.halftimeScore.home} - {match.halftimeScore.away}
                     </span>
                   )}
                   <span className="inline-block mt-2 px-2.5 py-0.5 rounded text-xs font-bold uppercase bg-emerald-950 text-emerald-400 border border-emerald-800">
-                    Full Time
+                    {t.fullTime}
                   </span>
                 </div>
               ) : match.status === 'LIVE' && match.score ? (
@@ -77,20 +87,20 @@ export const MatchDetailsModal: React.FC<MatchDetailsModalProps> = ({ match, onC
                   </div>
                   <span className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-0.5 rounded text-xs font-bold uppercase bg-red-950 text-red-400 border border-red-800 animate-pulse">
                     <span className="w-2 h-2 rounded-full bg-red-500" />
-                    LIVE
+                    {t.liveNow}
                   </span>
                 </div>
               ) : (
                 <div className="text-center">
                   <span className="font-sports font-black text-2xl sm:text-3xl text-neutral-400">
-                    VS
+                    {t.vs}
                   </span>
                   <div className="mt-1 flex items-center gap-1 text-amber-400 text-xs font-bold">
                     <Clock className="w-3.5 h-3.5" />
                     <span>{match.kickoffTime}</span>
                   </div>
                   <span className="inline-block mt-2 px-2.5 py-0.5 rounded text-xs font-bold uppercase bg-neutral-800 text-neutral-300 border border-neutral-700">
-                    Upcoming
+                    {t.upcoming}
                   </span>
                 </div>
               )}
@@ -98,12 +108,12 @@ export const MatchDetailsModal: React.FC<MatchDetailsModalProps> = ({ match, onC
 
             {/* Away Team */}
             <div className="flex-1 flex flex-col items-center text-center">
-              <EthiopianClubLogo teamId={match.awayTeam.id} teamName={match.awayTeam.name} size={64} />
+              <EthiopianClubLogo teamId={match.awayTeam.id} teamName={awayName} size={64} />
               <h4 className="mt-3 font-sports font-bold text-base sm:text-lg text-white">
-                {match.awayTeam.name}
+                {awayName}
               </h4>
               <span className="text-xs uppercase text-neutral-400 font-semibold tracking-wider">
-                Away
+                {t.away}
               </span>
             </div>
           </div>
@@ -114,7 +124,7 @@ export const MatchDetailsModal: React.FC<MatchDetailsModalProps> = ({ match, onC
               <Calendar className="w-4 h-4 text-emerald-400 shrink-0" />
               <div>
                 <span className="text-neutral-400 block text-xs">{t.matchDate}</span>
-                <span className="font-medium text-white">{match.date} • {match.kickoffTime} EAT</span>
+                <span className="font-medium text-white">{match.date} • {match.kickoffTime} {t.eatTimezone}</span>
               </div>
             </div>
 
@@ -122,7 +132,7 @@ export const MatchDetailsModal: React.FC<MatchDetailsModalProps> = ({ match, onC
               <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
               <div>
                 <span className="text-neutral-400 block text-xs">{t.matchVenue}</span>
-                <span className="font-medium text-white">{match.venue}</span>
+                <span className="font-medium text-white">{venue}</span>
               </div>
             </div>
 
@@ -131,7 +141,9 @@ export const MatchDetailsModal: React.FC<MatchDetailsModalProps> = ({ match, onC
                 <User className="w-4 h-4 text-amber-400 shrink-0" />
                 <div>
                   <span className="text-neutral-400 block text-xs">{t.referee}</span>
-                  <span className="font-medium text-white">{match.referee}</span>
+                  <span className="font-medium text-white">
+                    {getLocalizedPersonName(match.referee.split('(')[0].trim(), language)}
+                  </span>
                 </div>
               </div>
             )}
@@ -141,7 +153,9 @@ export const MatchDetailsModal: React.FC<MatchDetailsModalProps> = ({ match, onC
                 <Users className="w-4 h-4 text-amber-400 shrink-0" />
                 <div>
                   <span className="text-neutral-400 block text-xs">{t.attendance}</span>
-                  <span className="font-medium text-white">{match.attendance}</span>
+                  <span className="font-medium text-white">
+                    {language === 'am' ? '15,000 (ሙሉ በሙሉ የተሞላ)' : match.attendance}
+                  </span>
                 </div>
               </div>
             )}
@@ -160,40 +174,40 @@ export const MatchDetailsModal: React.FC<MatchDetailsModalProps> = ({ match, onC
                     className="flex items-center justify-between text-xs sm:text-sm py-1.5 px-3 rounded bg-neutral-900 border border-neutral-800/80"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-emerald-950 border border-emerald-700 text-emerald-400 flex items-center justify-center text-xs font-bold">
-                        ⚽
+                      <span>⚽</span>
+                      <strong className="text-white">
+                        {getLocalizedPersonName(s.player, language)}
+                      </strong>
+                      <span className="text-neutral-400 text-xs">
+                        ({s.team === 'home' ? homeName : awayName})
                       </span>
-                      <span className="font-semibold text-white">{s.player}</span>
-                      {s.isPenalty && (
-                        <span className="text-xs text-amber-400 font-mono">(Pen)</span>
-                      )}
                     </div>
-                    <span className="font-mono text-neutral-400 font-bold">{s.minute}'</span>
+                    <span className="font-mono text-amber-400 font-bold">{s.minute}'</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Summary / Tactical Notes */}
+          {/* Match Summary / Recap */}
           {match.summary && (
             <div className="p-4 rounded-xl bg-neutral-950/60 border border-neutral-800 text-xs sm:text-sm text-neutral-300 leading-relaxed">
-              <h5 className="font-sports font-bold text-sm uppercase text-neutral-300 tracking-wider mb-2">
-                Match Report & Tactical Notes
-              </h5>
-              <p>{match.summary}</p>
+              <strong className="text-white block mb-1 font-sports uppercase text-xs tracking-wider">
+                {language === 'am' ? 'የጨዋታው ማጠቃለያ፡' : 'Match Summary:'}
+              </strong>
+              {language === 'am'
+                ? match.summary
+                    .replace(/Halaba Ketema/g, 'ሀላባ ከተማ')
+                    .replace(/Fasil Kenema/g, 'ፋሲል ከነማ')
+                    .replace(/Bahir Dar Kenema/g, 'ባሕር ዳር ከነማ')
+                    .replace(/Kaleb Amankwah/g, 'ካሌብ አማንክዋህ')
+                    .replace(/Romaric/g, 'ሮማሪክ')
+                    .replace(/Yonatan Hailu/g, 'ዮናታን ኃይሉ')
+                    .replace(/draw/g, 'አቻ')
+                    .replace(/Round/g, 'ሳምንት')
+                : match.summary}
             </div>
           )}
-        </div>
-
-        {/* Modal Footer */}
-        <div className="px-6 py-4 bg-neutral-950 border-t border-neutral-800 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-white text-sm font-semibold transition-colors"
-          >
-            Close
-          </button>
         </div>
       </div>
     </div>

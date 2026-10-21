@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useClub } from '../context/ClubContext';
-import { NewsCategory } from '../types';
-import { Search, Calendar, ChevronRight, Newspaper } from 'lucide-react';
+import { Search, ChevronRight, Newspaper } from 'lucide-react';
+import { getLocalizedCategory } from '../utils/localization';
 
 interface NewsPageProps {
   onOpenArticleModal: (articleId: string) => void;
@@ -43,7 +43,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({ onOpenArticleModal }) => {
           <div>
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-400 mb-1">
               <Newspaper className="w-4 h-4" />
-              <span>Halaba City FC Media Center</span>
+              <span>{t.mediaCenterTag}</span>
             </div>
             <h1 className="font-sports font-black text-3xl sm:text-5xl text-white uppercase tracking-wider">
               {t.newsTitle}
@@ -101,7 +101,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({ onOpenArticleModal }) => {
             <div className="lg:col-span-5 p-6 sm:p-10 flex flex-col justify-between space-y-4">
               <div className="space-y-3">
                 <span className="inline-block px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider bg-red-600 text-white font-sports">
-                  Featured Story • {featuredArticle.category.replace('_', ' ')}
+                  {t.featuredStory} • {getLocalizedCategory(featuredArticle.category, language)}
                 </span>
                 <span className="text-xs text-neutral-400 block font-medium">
                   {featuredArticle.date} • {featuredArticle.readTime}
@@ -116,7 +116,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({ onOpenArticleModal }) => {
 
               <div className="pt-4 border-t border-neutral-800/80 flex items-center justify-between">
                 <span className="text-xs text-neutral-500 font-medium">
-                  By {featuredArticle.author}
+                  {t.author} {featuredArticle.author}
                 </span>
                 <span className="text-xs font-bold uppercase font-sports tracking-wider text-red-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                   <span>{t.readArticle}</span>
@@ -131,12 +131,12 @@ export const NewsPage: React.FC<NewsPageProps> = ({ onOpenArticleModal }) => {
       {/* Articles Grid */}
       <div>
         <h3 className="font-sports font-bold text-xl uppercase tracking-wider text-neutral-300 mb-6">
-          {selectedCategory === 'ALL' ? 'All Stories' : selectedCategory.replace('_', ' ')}
+          {selectedCategory === 'ALL' ? t.allStories : getLocalizedCategory(selectedCategory, language)}
         </h3>
 
         {filteredNews.length === 0 ? (
           <div className="text-center py-16 bg-neutral-900/40 rounded-2xl border border-neutral-800">
-            <p className="text-neutral-400 text-base">No articles found matching your criteria.</p>
+            <p className="text-neutral-400 text-base">{t.noArticlesFound}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -158,7 +158,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({ onOpenArticleModal }) => {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                       <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-black/75 text-emerald-400 backdrop-blur-md">
-                        {article.category.replace('_', ' ')}
+                        {getLocalizedCategory(article.category, language)}
                       </div>
                     </div>
 

@@ -55,7 +55,7 @@ export const MembershipPage: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size exceeds 5MB limit. Please choose a smaller photo.');
+        alert(language === 'am' ? 'የፎቶው መጠን ከ5 ሜጋባይት በላይ ነው። እባክዎ አነስ ያለ ፎቶ ይምረጡ።' : 'File size exceeds 5MB limit. Please choose a smaller photo.');
         return;
       }
       const reader = new FileReader();
@@ -254,7 +254,7 @@ export const MembershipPage: React.FC = () => {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 text-red-400 text-xs font-bold uppercase tracking-wider">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Official Supporter Program</span>
+              <span>{language === 'am' ? 'ይፋዊ የደጋፊዎች የአባልነት ፕሮግራም' : 'Official Supporter Program'}</span>
             </div>
             <h1 className="font-sports font-black text-3xl sm:text-5xl text-white uppercase tracking-wider">
               {t.membershipTitle}
@@ -294,10 +294,10 @@ export const MembershipPage: React.FC = () => {
                 <ShieldCheck className="w-5 h-5 text-emerald-400" />
                 <div className="text-left">
                   <span className="text-xxs text-neutral-400 block uppercase font-mono tracking-wider">
-                    Chapa Verified Payment
+                    {language === 'am' ? 'በቻፓ የተረጋገጠ ክፍያ' : 'Chapa Verified Payment'}
                   </span>
                   <span className="font-mono font-bold text-sm text-emerald-400">
-                    {registrationResult.amountPaid} ETB PAID
+                    {registrationResult.amountPaid} {t.etbCurrency} {language === 'am' ? 'ተከፍሏል' : 'PAID'}
                   </span>
                 </div>
               </div>
@@ -319,15 +319,19 @@ export const MembershipPage: React.FC = () => {
                     <HalabaCrest size={38} />
                     <div>
                       <span className="font-sports font-black text-lg tracking-wider text-white uppercase block leading-none">
-                        HALABA CITY FC
+                        {language === 'am' ? 'ሀላባ ከተማ እግርኳስ ክለብ' : 'HALABA CITY FC'}
                       </span>
                       <span className="text-xxs text-emerald-400 font-bold uppercase tracking-widest font-ethiopic">
-                        በርበሬዎቹ • OFFICIAL SUPPORTER
+                        {language === 'am' ? 'በርበሬዎቹ • ይፋዊ ደጋፊ' : 'በርበሬዎቹ • OFFICIAL SUPPORTER'}
                       </span>
                     </div>
                   </div>
                   <span className="px-2.5 py-0.5 rounded text-xxs font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono">
-                    {registrationResult.membershipType}
+                    {registrationResult.membershipType === 'PREMIUM'
+                      ? (language === 'am' ? 'ፕሪሚየም' : 'PREMIUM')
+                      : registrationResult.membershipType === 'STANDARD'
+                      ? (language === 'am' ? 'መደበኛ' : 'STANDARD')
+                      : (language === 'am' ? 'ደጋፊ' : 'SUPPORTER')}
                   </span>
                 </div>
 
@@ -335,17 +339,17 @@ export const MembershipPage: React.FC = () => {
                 <div className="py-4 flex items-center justify-between gap-4">
                   <div className="space-y-1 min-w-0">
                     <span className="text-xxs uppercase tracking-wider text-neutral-400 block font-sports font-bold">
-                      Member Name
+                      {language === 'am' ? 'የአባል ስም' : 'Member Name'}
                     </span>
                     <h3 className="font-sports font-black text-2xl text-white uppercase tracking-wide truncate">
                       {registrationResult.fullName}
                     </h3>
                     <div className="flex items-center gap-4 text-xs text-neutral-300 pt-1">
                       <span>
-                        <strong className="text-neutral-500">Region:</strong> {registrationResult.cityOrRegion}
+                        <strong className="text-neutral-500">{language === 'am' ? 'ክልል/ከተማ፡' : 'Region:'}</strong> {registrationResult.cityOrRegion}
                       </span>
                       <span>
-                        <strong className="text-neutral-500">Season:</strong> 2026/2027
+                        <strong className="text-neutral-500">{language === 'am' ? 'ዘመን፡' : 'Season:'}</strong> 2026/2027
                       </span>
                     </div>
                   </div>
@@ -359,7 +363,7 @@ export const MembershipPage: React.FC = () => {
                   ) : (
                     <div className="w-14 h-16 rounded-xl bg-neutral-900 border border-neutral-700 flex flex-col items-center justify-center text-neutral-500 shrink-0">
                       <Camera className="w-6 h-6 text-neutral-600" />
-                      <span className="text-xxs font-mono mt-0.5">ID PHOTO</span>
+                      <span className="text-xxs font-mono mt-0.5">{language === 'am' ? 'ፎቶ' : 'ID PHOTO'}</span>
                     </div>
                   )}
                 </div>
@@ -367,14 +371,14 @@ export const MembershipPage: React.FC = () => {
                 {/* Card Bottom: Reference & Verified Graphic */}
                 <div className="pt-3 border-t border-neutral-800/80 flex items-center justify-between text-xs">
                   <div>
-                    <span className="text-xxs text-neutral-400 block font-mono">ID REFERENCE</span>
+                    <span className="text-xxs text-neutral-400 block font-mono">{language === 'am' ? 'የመታወቂያ ቁጥር' : 'ID REFERENCE'}</span>
                     <span className="font-mono font-bold text-amber-400">
                       {registrationResult.referenceNumber}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white text-black font-mono text-xxs font-bold">
                     <QrCode className="w-4 h-4 text-black" />
-                    <span>VERIFIED PAID</span>
+                    <span>{language === 'am' ? 'የተረጋገጠ ክፍያ' : 'VERIFIED PAID'}</span>
                   </div>
                 </div>
               </div>
@@ -385,7 +389,7 @@ export const MembershipPage: React.FC = () => {
               <div className="mt-4 p-3 rounded-xl bg-neutral-950 border border-neutral-800 text-xxs font-mono text-neutral-400 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <Receipt className="w-3.5 h-3.5 text-neutral-500" />
-                  <span>Chapa TX Ref:</span>
+                  <span>{language === 'am' ? 'የቻፓ መለያ፡' : 'Chapa TX Ref:'}</span>
                 </span>
                 <span className="text-neutral-300 font-bold">{registrationResult.tx_ref}</span>
               </div>
@@ -396,14 +400,14 @@ export const MembershipPage: React.FC = () => {
           <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
             <button
               onClick={handlePrintCard}
-              className="px-6 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-bold text-sm uppercase tracking-wider font-sports flex items-center gap-2 transition-colors"
+              className="px-6 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-bold text-sm uppercase tracking-wider font-sports flex items-center gap-2 transition-colors cursor-pointer"
             >
               <Printer className="w-4 h-4" />
               <span>{t.downloadCard}</span>
             </button>
             <button
               onClick={handleResetForm}
-              className="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm uppercase tracking-wider font-sports flex items-center gap-2 transition-colors shadow-lg shadow-red-950"
+              className="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm uppercase tracking-wider font-sports flex items-center gap-2 transition-colors shadow-lg shadow-red-950 cursor-pointer"
             >
               <UserPlus className="w-4 h-4" />
               <span>{t.newRegistrationBtn}</span>
@@ -420,7 +424,9 @@ export const MembershipPage: React.FC = () => {
                 {t.membershipPlansTitle}
               </h2>
               <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-                Choose your membership tier. The corresponding payment amount (200, 500, or 1000 ETB) is initialized via Chapa.
+                {language === 'am'
+                  ? 'የአባልነት ደረጃዎን ይምረጡ። ተዛማጁ የክፍያ መጠን (200፣ 500 ወይም 1000 ብር) በቻፓ በኩል ይከፈላል።'
+                  : 'Choose your membership tier. The corresponding payment amount (200, 500, or 1000 ETB) is initialized via Chapa.'}
               </p>
             </div>
 
@@ -443,31 +449,35 @@ export const MembershipPage: React.FC = () => {
                       {t.tierSupporter}
                     </span>
                     <span className="text-xs uppercase font-mono px-2 py-0.5 rounded bg-neutral-800 text-neutral-300">
-                      Tier 1
+                      {language === 'am' ? 'ደረጃ 1' : 'Tier 1'}
                     </span>
                   </div>
 
                   {/* Price display */}
                   <div className="mt-4 mb-2 flex items-baseline gap-1.5">
                     <span className="font-sports font-black text-3xl text-white font-mono">200</span>
-                    <span className="text-xs font-bold text-red-400 uppercase tracking-wider">ETB / Season</span>
+                    <span className="text-xs font-bold text-red-400 uppercase tracking-wider">
+                      {language === 'am' ? 'ብር / የውድድር ዘመን' : 'ETB / Season'}
+                    </span>
                   </div>
 
                   <p className="text-neutral-400 text-xs sm:text-sm mt-2 leading-relaxed">
-                    Official digital membership for passionate fans worldwide with digital card & club newsletter.
+                    {language === 'am'
+                      ? 'በዓለም ዙሪያ ላሉ የክለባችን ታማኝ ደጋፊዎች ይፋዊ የዲጂታል ደጋፊ ካርድ እና የክለቡ ወቅታዊ ዜናዎች።'
+                      : 'Official digital membership for passionate fans worldwide with digital card & club newsletter.'}
                   </p>
                   <ul className="mt-4 space-y-2 text-xs text-neutral-300">
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>Official Digital Fan Card</span>
+                      <span>{language === 'am' ? 'ይፋዊ የዲጂታል ደጋፊ ካርድ' : 'Official Digital Fan Card'}</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>Club email newsletter & alerts</span>
+                      <span>{language === 'am' ? 'የክለቡ የኢሜይል ዜናዎች እና ወቅታዊ ማሳወቂያዎች' : 'Club email newsletter & alerts'}</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>Global supporter registry listing</span>
+                      <span>{language === 'am' ? 'በዓለም አቀፍ የደጋፊዎች መዝገብ ላይ መካተት' : 'Global supporter registry listing'}</span>
                     </li>
                   </ul>
                 </div>
@@ -480,13 +490,15 @@ export const MembershipPage: React.FC = () => {
                       setSelectedTier('SUPPORTER');
                       setAmount(200);
                     }}
-                    className={`block w-full py-2.5 rounded-xl text-center text-xs font-bold uppercase tracking-wider font-sports transition-all ${
+                    className={`block w-full py-2.5 rounded-xl text-center text-xs font-bold uppercase tracking-wider font-sports transition-all cursor-pointer ${
                       selectedTier === 'SUPPORTER'
                         ? 'bg-red-600 text-white shadow-lg shadow-red-950'
                         : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                     }`}
                   >
-                    {selectedTier === 'SUPPORTER' ? 'Selected (200 ETB)' : 'Select Tier 1 (200 ETB)'}
+                    {selectedTier === 'SUPPORTER'
+                      ? (language === 'am' ? 'የተመረጠ (200 ብር)' : 'Selected (200 ETB)')
+                      : (language === 'am' ? 'ደረጃ 1 ይምረጡ (200 ብር)' : 'Select Tier 1 (200 ETB)')}
                   </button>
                 </div>
               </div>
@@ -509,31 +521,35 @@ export const MembershipPage: React.FC = () => {
                       {t.tierStandard}
                     </span>
                     <span className="text-xs uppercase font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">
-                      Tier 2 • Most Popular
+                      {language === 'am' ? 'ደረጃ 2 • ተወዳጅ ምርጫ' : 'Tier 2 • Most Popular'}
                     </span>
                   </div>
 
                   {/* Price display */}
                   <div className="mt-4 mb-2 flex items-baseline gap-1.5">
                     <span className="font-sports font-black text-3xl text-emerald-400 font-mono">500</span>
-                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">ETB / Season</span>
+                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                      {language === 'am' ? 'ብር / የውድድር ዘመን' : 'ETB / Season'}
+                    </span>
                   </div>
 
                   <p className="text-neutral-400 text-xs sm:text-sm mt-2 leading-relaxed">
-                    Official physical & digital member card, 10% merchandise discount, and priority ticket privileges.
+                    {language === 'am'
+                      ? 'ይፋዊ ቋሚና ዲጂታል ካርድ፣ 10% የክለብ እቃዎች ቅናሽ እና በስታዲየም የቅድሚያ ትኬት የማግኘት መብት።'
+                      : 'Official physical & digital member card, 10% merchandise discount, and priority ticket privileges.'}
                   </p>
                   <ul className="mt-4 space-y-2 text-xs text-neutral-300">
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>Physical & Digital Member Card</span>
+                      <span>{language === 'am' ? 'ቋሚና ዲጂታል የአባልነት ካርድ' : 'Physical & Digital Member Card'}</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>10% Discount on club scarves & jerseys</span>
+                      <span>{language === 'am' ? 'በክለቡ ሻርፖችና ማሊያዎች ላይ 10% ቅናሽ' : '10% Discount on club scarves & jerseys'}</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>Priority ticket queue at Halaba Stadium</span>
+                      <span>{language === 'am' ? 'በሀላባ ስታዲየም የቅድሚያ ትኬት ወረፋ መብት' : 'Priority ticket queue at Halaba Stadium'}</span>
                     </li>
                   </ul>
                 </div>
@@ -546,13 +562,15 @@ export const MembershipPage: React.FC = () => {
                       setSelectedTier('STANDARD');
                       setAmount(500);
                     }}
-                    className={`block w-full py-2.5 rounded-xl text-center text-xs font-bold uppercase tracking-wider font-sports transition-all ${
+                    className={`block w-full py-2.5 rounded-xl text-center text-xs font-bold uppercase tracking-wider font-sports transition-all cursor-pointer ${
                       selectedTier === 'STANDARD'
                         ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-950'
                         : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                     }`}
                   >
-                    {selectedTier === 'STANDARD' ? 'Selected (500 ETB)' : 'Select Tier 2 (500 ETB)'}
+                    {selectedTier === 'STANDARD'
+                      ? (language === 'am' ? 'የተመረጠ (500 ብር)' : 'Selected (500 ETB)')
+                      : (language === 'am' ? 'ደረጃ 2 ይምረጡ (500 ብር)' : 'Select Tier 2 (500 ETB)')}
                   </button>
                 </div>
               </div>
@@ -576,31 +594,35 @@ export const MembershipPage: React.FC = () => {
                       {t.tierPremium}
                     </span>
                     <span className="text-xs uppercase font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800">
-                      Tier 3 • VIP
+                      {language === 'am' ? 'ደረጃ 3 • ቪአይፒ' : 'Tier 3 • VIP'}
                     </span>
                   </div>
 
                   {/* Price display */}
                   <div className="mt-4 mb-2 flex items-baseline gap-1.5">
                     <span className="font-sports font-black text-3xl text-amber-400 font-mono">1,000</span>
-                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">ETB / Season</span>
+                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+                      {language === 'am' ? 'ብር / የውድድር ዘመን' : 'ETB / Season'}
+                    </span>
                   </div>
 
                   <p className="text-neutral-400 text-xs sm:text-sm mt-2 leading-relaxed">
-                    VIP stadium tribune access, complimentary official season jersey voucher, and assembly invitation.
+                    {language === 'am'
+                      ? 'የቪአይፒ ስታዲየም ትሪቡን መግቢያ፣ ነጻ የውድድር ዘመኑ ማሊያ ቫውቸር እና በጠቅላላ ጉባኤ የመሳተፍ ጥሪ።'
+                      : 'VIP stadium tribune access, complimentary official season jersey voucher, and assembly invitation.'}
                   </p>
                   <ul className="mt-4 space-y-2 text-xs text-neutral-300">
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>VIP Stadium tribune access & parking</span>
+                      <span>{language === 'am' ? 'የቪአይፒ ስታዲየም ትሪቡን መግቢያና የመኪና ማቆሚያ' : 'VIP Stadium tribune access & parking'}</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>Complimentary official season jersey voucher</span>
+                      <span>{language === 'am' ? 'ነጻ የክለቡ ይፋዊ ማሊያ ቫውቸር' : 'Complimentary official season jersey voucher'}</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>Invitation to Annual Club Assembly</span>
+                      <span>{language === 'am' ? 'በዓመታዊው የክለቡ ጠቅላላ ጉባኤ ላይ የመሳተፍ ጥሪ' : 'Invitation to Annual Club Assembly'}</span>
                     </li>
                   </ul>
                 </div>
@@ -613,13 +635,15 @@ export const MembershipPage: React.FC = () => {
                       setSelectedTier('PREMIUM');
                       setAmount(1000);
                     }}
-                    className={`block w-full py-2.5 rounded-xl text-center text-xs font-bold uppercase tracking-wider font-sports transition-all ${
+                    className={`block w-full py-2.5 rounded-xl text-center text-xs font-bold uppercase tracking-wider font-sports transition-all cursor-pointer ${
                       selectedTier === 'PREMIUM'
                         ? 'bg-amber-600 text-white shadow-lg shadow-amber-950'
                         : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                     }`}
                   >
-                    {selectedTier === 'PREMIUM' ? 'Selected (1,000 ETB)' : 'Select Tier 3 (1,000 ETB)'}
+                    {selectedTier === 'PREMIUM'
+                      ? (language === 'am' ? 'የተመረጠ (1,000 ብር)' : 'Selected (1,000 ETB)')
+                      : (language === 'am' ? 'ደረጃ 3 ይምረጡ (1,000 ብር)' : 'Select Tier 3 (1,000 ETB)')}
                   </button>
                 </div>
               </div>
@@ -629,11 +653,13 @@ export const MembershipPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Info className="w-4 h-4 text-amber-400 shrink-0" />
                 <span>
-                  Payments are processed through <strong>Chapa</strong>. Registration is only activated once payment is completed and verified.
+                  {language === 'am'
+                    ? <>ክፍያዎች በ<strong>ቻፓ (Chapa)</strong> በኩል ይከናወናሉ። ምዝገባው የሚጸድቀው ክፍያው ተረጋግጦ ሲጠናቀቅ ብቻ ነው።</>
+                    : <>Payments are processed through <strong>Chapa</strong>. Registration is only activated once payment is completed and verified.</>}
                 </span>
               </div>
               <span className="font-mono text-neutral-300 text-xs font-bold shrink-0">
-                Current selection: <span className="text-amber-400">{amount} ETB</span>
+                {language === 'am' ? 'የተመረጠው መጠን፡' : 'Current selection:'} <span className="text-amber-400">{amount} {t.etbCurrency}</span>
               </span>
             </div>
           </div>
@@ -645,7 +671,9 @@ export const MembershipPage: React.FC = () => {
                 {t.formTitle}
               </h2>
               <p className="text-neutral-400 text-xs sm:text-sm mt-1">
-                Please complete your personal details. On submit, you will be prompted to complete the {amount} ETB payment via Chapa.
+                {language === 'am'
+                  ? `እባክዎ የግል መረጃዎን ይሙሉ። ሲልኩ የ ${amount} ብር ክፍያ በቻፓ በኩል ይጠየቃሉ።`
+                  : `Please complete your personal details. On submit, you will be prompted to complete the ${amount} ETB payment via Chapa.`}
               </p>
             </div>
 
@@ -708,7 +736,7 @@ export const MembershipPage: React.FC = () => {
                     onChange={(e) => setGender(e.target.value)}
                     className="w-full px-4 py-3 bg-neutral-950 rounded-xl border border-neutral-800 text-sm text-white focus:outline-none focus:border-red-500"
                   >
-                    <option value="">Select Gender</option>
+                    <option value="">{language === 'am' ? 'ጾታ ይምረጡ' : 'Select Gender'}</option>
                     <option value="Male">{t.genderMale}</option>
                     <option value="Female">{t.genderFemale}</option>
                     <option value="Other">{t.genderOther}</option>
@@ -795,18 +823,22 @@ export const MembershipPage: React.FC = () => {
                 {/* Selected Plan & Fee Review */}
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
-                    Selected Tier & Chapa Fee
+                    {language === 'am' ? 'የተመረጠው ደረጃ እና የቻፓ ክፍያ' : 'Selected Tier & Chapa Fee'}
                   </label>
                   <div className="px-4 py-3 bg-neutral-950 rounded-xl border border-neutral-800 text-sm font-sports font-bold uppercase flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className={selectedTier === 'PREMIUM' ? 'text-amber-400' : selectedTier === 'STANDARD' ? 'text-emerald-400' : 'text-red-400'}>
-                        {selectedTier}
+                        {selectedTier === 'PREMIUM'
+                          ? (language === 'am' ? 'ፕሪሚየም' : 'PREMIUM')
+                          : selectedTier === 'STANDARD'
+                          ? (language === 'am' ? 'መደበኛ' : 'STANDARD')
+                          : (language === 'am' ? 'ደጋፊ' : 'SUPPORTER')}
                       </span>
                       <span className="text-neutral-500 font-mono">•</span>
-                      <span className="text-white font-mono text-base">{amount} ETB</span>
+                      <span className="text-white font-mono text-base">{amount} {t.etbCurrency}</span>
                     </div>
                     <span className="text-xxs font-normal text-neutral-400 font-sans">
-                      (Select tier card above to change)
+                      {language === 'am' ? '(ለመቀየር ከላይ ያለውን ካርድ ይምረጡ)' : '(Select tier card above to change)'}
                     </span>
                   </div>
                 </div>
@@ -815,12 +847,12 @@ export const MembershipPage: React.FC = () => {
               {/* Photo Upload (Optional) */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
-                  Member Photo for Digital ID (Optional)
+                  {language === 'am' ? 'የዲጂታል መታወቂያ ፎቶ (አስገዳጅ ያልሆነ)' : 'Member Photo for Digital ID (Optional)'}
                 </label>
                 <div className="flex items-center gap-4">
                   <label className="cursor-pointer px-4 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 hover:border-neutral-700 text-xs text-neutral-300 flex items-center gap-2 transition-colors">
                     <Camera className="w-4 h-4 text-amber-400" />
-                    <span>Upload ID Photo</span>
+                    <span>{language === 'am' ? 'የመታወቂያ ፎቶ ይጫኑ' : 'Upload ID Photo'}</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -831,7 +863,7 @@ export const MembershipPage: React.FC = () => {
                   {photoUrl && (
                     <div className="flex items-center gap-2 text-xs text-emerald-400">
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>Photo selected</span>
+                      <span>{language === 'am' ? 'ፎቶ ተመርጧል' : 'Photo selected'}</span>
                     </div>
                   )}
                 </div>
@@ -859,23 +891,35 @@ export const MembershipPage: React.FC = () => {
               <div className="pt-4 border-t border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-2 text-xxs text-neutral-400">
                   <Lock className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Secure 256-bit encrypted Ethiopian payment via Chapa gateway</span>
+                  <span>
+                    {language === 'am'
+                      ? 'በቻፓ መግቢያ የተጠበቀና አስተማማኝ የክፍያ ሥርዓት'
+                      : 'Secure 256-bit encrypted Ethiopian payment via Chapa gateway'}
+                  </span>
                 </div>
 
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-red-600 via-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-base uppercase tracking-wider font-sports shadow-xl shadow-red-950/60 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-red-600 via-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-base uppercase tracking-wider font-sports shadow-xl shadow-red-950/60 disabled:opacity-50 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {isSubmitting ? (
                     <>
                       <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Initializing Chapa ({amount} ETB)...</span>
+                      <span>
+                        {language === 'am'
+                          ? `ቻፓ በመዘጋጀት ላይ (${amount} ብር)...`
+                          : `Initializing Chapa (${amount} ETB)...`}
+                      </span>
                     </>
                   ) : (
                     <>
                       <CreditCard className="w-5 h-5" />
-                      <span>Pay {amount} ETB & Complete Registration</span>
+                      <span>
+                        {language === 'am'
+                          ? `${amount} ብር በቻፓ ይክፈሉና ምዝገባውን ያጠናቅቁ`
+                          : `Pay ${amount} ETB & Complete Registration`}
+                      </span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}

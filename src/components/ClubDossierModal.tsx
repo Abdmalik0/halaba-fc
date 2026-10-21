@@ -1,21 +1,21 @@
 import React from 'react';
 import { HalabaCrest } from './HalabaCrest';
+import { EthiopianClubLogo } from './EthiopianClubLogo';
 import { useClub } from '../context/ClubContext';
 import {
   Trophy,
-  History,
-  MapPin,
-  Calendar,
-  Flame,
   Shield,
   Award,
-  Users,
   CheckCircle2,
   X,
-  Radio,
-  ExternalLink,
-  ChevronRight
+  Calendar,
 } from 'lucide-react';
+import {
+  getLocalizedTeamName,
+  getLocalizedVenue,
+  getLocalizedRound,
+  getLocalizedCompetition,
+} from '../utils/localization';
 
 interface ClubDossierModalProps {
   isOpen: boolean;
@@ -23,7 +23,7 @@ interface ClubDossierModalProps {
 }
 
 export const ClubDossierModal: React.FC<ClubDossierModalProps> = ({ isOpen, onClose }) => {
-  const { clubInfo, matches, setCurrentPage } = useClub();
+  const { language, t, matches } = useClub();
 
   if (!isOpen) return null;
 
@@ -41,13 +41,13 @@ export const ClubDossierModal: React.FC<ClubDossierModalProps> = ({ isOpen, onCl
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-red-600/30 border border-red-500/50 text-red-300 text-xs font-bold uppercase tracking-wider mb-1">
                 <Trophy className="w-3.5 h-3.5 text-amber-300" />
-                <span>Ethiopian Premier League Official Dossier</span>
+                <span>{language === 'am' ? 'የኢትዮጵያ ፕሪሚየር ሊግ ይፋዊ የክለብ ሰነድ' : 'Ethiopian Premier League Official Dossier'}</span>
               </div>
               <h2 className="font-sports font-black text-2xl sm:text-4xl text-white uppercase tracking-wider">
-                HALABA City FC (ሀላባ ከተማ)
+                {language === 'am' ? 'ሀላባ ከተማ እግርኳስ ክለብ' : 'HALABA City FC (ሀላባ ከተማ)'}
               </h2>
               <p className="text-amber-400 font-sports font-bold text-base sm:text-lg">
-                Nickname: “Berberewochu” (በርበሬዎቹ) • Founded 1966 E.C.
+                {language === 'am' ? 'ቅጽል ስም፡ “በርበሬዎቹ” • የተመሰረተበት ዓመት፡ 1966 ዓ.ም' : 'Nickname: “Berberewochu” (በርበሬዎቹ) • Founded 1966 E.C.'}
               </p>
             </div>
           </div>
@@ -67,44 +67,80 @@ export const ClubDossierModal: React.FC<ClubDossierModalProps> = ({ isOpen, onCl
           <div>
             <h3 className="font-sports font-black text-xl text-white uppercase tracking-wider mb-4 flex items-center gap-2">
               <Shield className="w-5 h-5 text-red-500" />
-              <span>Exact Club Information & Identity</span>
+              <span>{language === 'am' ? 'ይፋዊ የክለቡ መረጃ እና ማንነት' : 'Exact Club Information & Identity'}</span>
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div className="bg-neutral-950/80 p-4 rounded-2xl border border-neutral-800">
-                <span className="text-xs uppercase font-bold text-neutral-400 block mb-1">Official Name</span>
-                <strong className="text-white text-base">HALABA City FC</strong>
-                <span className="text-xs text-neutral-400 block mt-0.5">Halaba Ketema (ሀላባ ከተማ እግር ኳስ ክለብ)</span>
+                <span className="text-xs uppercase font-bold text-neutral-400 block mb-1">
+                  {language === 'am' ? 'ይፋዊ ስም' : 'Official Name'}
+                </span>
+                <strong className="text-white text-base">
+                  {language === 'am' ? 'ሀላባ ከተማ እግር ኳስ ክለብ' : 'HALABA City FC'}
+                </strong>
+                <span className="text-xs text-neutral-400 block mt-0.5">
+                  {language === 'am' ? 'ሀላባ ቁሊቶ፣ ማዕከላዊ ኢትዮጵያ' : 'Halaba Ketema (ሀላባ ከተማ እግር ኳስ ክለብ)'}
+                </span>
               </div>
 
               <div className="bg-neutral-950/80 p-4 rounded-2xl border border-neutral-800">
-                <span className="text-xs uppercase font-bold text-neutral-400 block mb-1">Club Nickname</span>
-                <strong className="text-amber-400 text-base">Berberewochu (በርበሬዎቹ)</strong>
-                <span className="text-xs text-neutral-400 block mt-0.5">"The Chilies" — Halaba is the Pepper Capital</span>
+                <span className="text-xs uppercase font-bold text-neutral-400 block mb-1">
+                  {language === 'am' ? 'የክለቡ ቅጽል ስም' : 'Club Nickname'}
+                </span>
+                <strong className="text-amber-400 text-base">
+                  {language === 'am' ? 'በርበሬዎቹ' : 'Berberewochu (በርበሬዎቹ)'}
+                </strong>
+                <span className="text-xs text-neutral-400 block mt-0.5">
+                  {language === 'am' ? 'ሀላባ የደማቁ ቀይ በርበሬ መገኛ ከተማ ናት' : '"The Chilies" — Halaba is the Pepper Capital'}
+                </span>
               </div>
 
               <div className="bg-neutral-950/80 p-4 rounded-2xl border border-neutral-800">
-                <span className="text-xs uppercase font-bold text-neutral-400 block mb-1">Year Founded</span>
-                <strong className="text-white text-base">1966 E.C.</strong>
-                <span className="text-xs text-neutral-400 block mt-0.5">Embossed permanently on official crest</span>
+                <span className="text-xs uppercase font-bold text-neutral-400 block mb-1">
+                  {language === 'am' ? 'የተመሰረተበት ዓመት' : 'Year Founded'}
+                </span>
+                <strong className="text-white text-base">
+                  {language === 'am' ? '1966 ዓ.ም' : '1966 E.C.'}
+                </strong>
+                <span className="text-xs text-neutral-400 block mt-0.5">
+                  {language === 'am' ? 'በይፋዊው አርማ ላይ በቋሚነት የተቀረጸ' : 'Embossed permanently on official crest'}
+                </span>
               </div>
 
               <div className="bg-neutral-950/80 p-4 rounded-2xl border border-neutral-800">
-                <span className="text-xs uppercase font-bold text-neutral-400 block mb-1">Current League</span>
-                <strong className="text-emerald-400 text-base">Ethiopian Premier League</strong>
-                <span className="text-xs text-neutral-400 block mt-0.5">Achieved promotion to Ethiopia's top flight</span>
+                <span className="text-xs uppercase font-bold text-neutral-400 block mb-1">
+                  {language === 'am' ? 'የሚወዳደርበት ሊግ' : 'Current League'}
+                </span>
+                <strong className="text-emerald-400 text-base">
+                  {language === 'am' ? 'የኢትዮጵያ ፕሪሚየር ሊግ' : 'Ethiopian Premier League'}
+                </strong>
+                <span className="text-xs text-neutral-400 block mt-0.5">
+                  {language === 'am' ? 'ወደ ሀገሪቱ ከፍተኛ ዲቪዚዮን ማደግ የቻለ' : "Achieved promotion to Ethiopia's top flight"}
+                </span>
               </div>
 
               <div className="bg-neutral-950/80 p-4 rounded-2xl border border-neutral-800">
-                <span className="text-xs uppercase font-bold text-neutral-400 block mb-1">Home Stadium</span>
-                <strong className="text-white text-base">Halaba Stadium</strong>
-                <span className="text-xs text-neutral-400 block mt-0.5">Kulito Stadium (15,000 Seats) & Jimma/Hawassa</span>
+                <span className="text-xs uppercase font-bold text-neutral-400 block mb-1">
+                  {language === 'am' ? 'የሜዳ ስታዲየም' : 'Home Stadium'}
+                </span>
+                <strong className="text-white text-base">
+                  {language === 'am' ? 'ሀላባ ስታዲየም' : 'Halaba Stadium'}
+                </strong>
+                <span className="text-xs text-neutral-400 block mt-0.5">
+                  {language === 'am' ? 'ቁሊቶ ስታዲየም (15,000 ተመልካች)' : 'Kulito Stadium (15,000 Seats)'}
+                </span>
               </div>
 
               <div className="bg-neutral-950/80 p-4 rounded-2xl border border-neutral-800">
-                <span className="text-xs uppercase font-bold text-neutral-400 block mb-1">Club Colors</span>
-                <strong className="text-red-400 text-base">Scarlet Red, Emerald Green & Gold</strong>
-                <span className="text-xs text-neutral-400 block mt-0.5">Symbolizing ripe Halaba peppers & stems</span>
+                <span className="text-xs uppercase font-bold text-neutral-400 block mb-1">
+                  {language === 'am' ? 'የክለቡ ቀለማት' : 'Club Colors'}
+                </span>
+                <strong className="text-red-400 text-base">
+                  {language === 'am' ? 'ደማቅ ቀይ፣ አረንጓዴ እና ወርቃማ' : 'Scarlet Red, Emerald Green & Gold'}
+                </strong>
+                <span className="text-xs text-neutral-400 block mt-0.5">
+                  {language === 'am' ? 'የሀላባን የበሰለ በርበሬና አረንጓዴ ቅጠል ያመለክታል' : 'Symbolizing ripe Halaba peppers & stems'}
+                </span>
               </div>
             </div>
           </div>
@@ -113,25 +149,28 @@ export const ClubDossierModal: React.FC<ClubDossierModalProps> = ({ isOpen, onCl
           <div className="bg-gradient-to-br from-neutral-950 to-neutral-900 p-6 rounded-2xl border border-neutral-800 space-y-3">
             <div className="flex items-center gap-2 text-amber-400 font-sports font-bold text-lg uppercase tracking-wider">
               <Award className="w-5 h-5 text-amber-400" />
-              <span>Historic Promotion to the Ethiopian Premier League</span>
+              <span>{language === 'am' ? 'ወደ ኢትዮጵያ ፕሪሚየር ሊግ ታሪካዊ እድገት' : 'Historic Promotion to the Ethiopian Premier League'}</span>
             </div>
             <p className="text-sm sm:text-base text-neutral-300 leading-relaxed">
-              Following outstanding seasons in the <strong>Ethiopian Higher League (Group B)</strong>, Halaba City FC
-              earned historic promotion to the <strong>Ethiopian Premier League (EPL)</strong>. Known for one of the most
-              passionate fanbases in southern and central Ethiopia, the Berberewochu bring an electric home atmosphere
-              and intense attacking football to the nation's premier football competition.
+              {language === 'am'
+                ? 'በኢትዮጵያ ከፍተኛ ሊግ (ምድብ ለ) ባሳየው አስደናቂ አቋም፣ ሀላባ ከተማ እግር ኳስ ክለብ ታሪካዊውን ወደ ኢትዮጵያ ፕሪሚየር ሊግ የማደግ ውጤት አስመዝግቧል። በደቡብና በማዕከላዊ ኢትዮጵያ እጅግ ታማኝና ደማቅ ደጋፊዎች ያሉት በርበሬዎቹ፣ በሊጉ ላይ ጠንካራና ማራኪ የማጥቃት እግር ኳስ በማሳየት ላይ ይገኛል።'
+                : 'Following outstanding seasons in the Ethiopian Higher League (Group B), Halaba City FC earned historic promotion to the Ethiopian Premier League (EPL). Known for one of the most passionate fanbases in southern and central Ethiopia, the Berberewochu bring an electric home atmosphere and intense attacking football to the nation\'s premier football competition.'}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs text-neutral-300">
               <div className="flex items-start gap-2 bg-neutral-900/90 p-3 rounded-xl border border-neutral-800">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Premier League Debut:</strong> 1-1 draw vs Welwalo Adigrat University, earning their first-ever top flight point through an Amanuel Tesfaye goal.
+                  {language === 'am'
+                    ? 'የፕሪሚየር ሊግ የመጀመሪያ ጨዋታ፡ ከወልዋሎ ዓዲግራት ዩኒቨርሲቲ ጋር 1-1 አቻ በመለያየት የመጀመሪያውን የሊግ ነጥብ በአማኑኤል ተስፋዬ ግብ አስመዝግቧል።'
+                    : 'Premier League Debut: 1-1 draw vs Welwalo Adigrat University, earning their first-ever top flight point through an Amanuel Tesfaye goal.'}
                 </span>
               </div>
               <div className="flex items-start gap-2 bg-neutral-900/90 p-3 rounded-xl border border-neutral-800">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Southern Derby:</strong> Fixtures against regional rivals Wolaita Dicha, Hawassa Kenema, and Sidama Coffee create huge regional football festivals.
+                  {language === 'am'
+                    ? 'የደቡብ ደርቢ፡ ከወላይታ ድቻ፣ ሀዋሳ ከነማ እና ሲዳማ ቡና ጋር የሚደረጉ ጨዋታዎች በታላቅ የደጋፊዎች ድባብና ደስታ ይታወሳሉ።'
+                    : 'Southern Derby: Fixtures against regional rivals Wolaita Dicha, Hawassa Kenema, and Sidama Coffee create huge regional football festivals.'}
                 </span>
               </div>
             </div>
@@ -142,101 +181,58 @@ export const ClubDossierModal: React.FC<ClubDossierModalProps> = ({ isOpen, onCl
             <h3 className="font-sports font-black text-xl text-white uppercase tracking-wider mb-4 flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-emerald-400" />
-                <span>Official Ethiopian Premier League Fixtures</span>
+                <span>{language === 'am' ? 'ይፋዊ የኢትዮጵያ ፕሪሚየር ሊግ ጨዋታዎች' : 'Official Ethiopian Premier League Fixtures'}</span>
               </span>
               <span className="text-xs font-normal text-neutral-400 font-sans">
-                Automatic real-time sync enabled
+                {language === 'am' ? 'ቀጥታ አውቶማቲክ ማመሳሰል ነቅቷል' : 'Automatic real-time sync enabled'}
               </span>
             </h3>
 
             <div className="space-y-2.5">
-              {premierLeagueMatches.map((m) => (
-                <div
-                  key={m.id}
-                  className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800 hover:border-neutral-700 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`px-2.5 py-1 rounded text-xxs font-bold uppercase ${
-                        m.status === 'FINISHED'
-                          ? 'bg-neutral-800 text-neutral-300'
-                          : m.status === 'LIVE'
-                          ? 'bg-red-950 text-red-400 border border-red-700 animate-pulse'
-                          : 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                      }`}
-                    >
-                      {m.status === 'LIVE' ? `LIVE ${m.liveMinute}'` : m.status}
-                    </span>
+              {premierLeagueMatches.map((m) => {
+                const homeName = getLocalizedTeamName(m.homeTeam?.id, m.homeTeam?.name, language);
+                const awayName = getLocalizedTeamName(m.awayTeam?.id, m.awayTeam?.name, language);
+                const venue = getLocalizedVenue(m.venue, language);
+                const roundText = getLocalizedRound(m.round, language);
 
-                    <div>
-                      <div className="font-sports font-bold text-base text-white">
-                        {m.homeTeam.name} vs {m.awayTeam.name}
-                      </div>
-                      <div className="text-xs text-neutral-400 flex items-center gap-2 mt-0.5">
-                        <span>{m.date}</span>
-                        <span>•</span>
-                        <span>{m.kickoffTime} EAT</span>
-                        <span>•</span>
-                        <span className="truncate">{m.venue}</span>
+                return (
+                  <div
+                    key={m.id}
+                    className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800 hover:border-neutral-700 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`px-2.5 py-1 rounded text-xxs font-bold uppercase ${
+                          m.status === 'FINISHED'
+                            ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                            : 'bg-neutral-800 text-neutral-300'
+                        }`}
+                      >
+                        {m.status === 'FINISHED' ? t.fullTime : t.upcoming}
+                      </span>
+                      <div className="text-sm">
+                        <strong className="text-white">
+                          {homeName} {t.vs} {awayName}
+                        </strong>
+                        <span className="text-neutral-400 text-xs block">
+                          {roundText} • {m.date} • {venue}
+                        </span>
                       </div>
                     </div>
+
+                    {m.score ? (
+                      <div className="font-sports font-black text-lg text-emerald-400 bg-neutral-900 px-3 py-1 rounded-lg self-start sm:self-auto">
+                        {m.score.home} - {m.score.away}
+                      </div>
+                    ) : (
+                      <div className="text-xs font-mono text-amber-400 bg-neutral-900 px-2.5 py-1 rounded-lg self-start sm:self-auto">
+                        {m.kickoffTime} {t.eatTimezone}
+                      </div>
+                    )}
                   </div>
-
-                  {m.score ? (
-                    <div className="font-sports font-black text-xl text-amber-400 bg-neutral-900 px-3 py-1 rounded-xl border border-neutral-800 self-start sm:self-center">
-                      {m.score.home} - {m.score.away}
-                    </div>
-                  ) : (
-                    <div className="text-xs text-emerald-400 font-bold bg-neutral-900 px-3 py-1 rounded-xl border border-neutral-800 self-start sm:self-center">
-                      Upcoming EPL
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
-          </div>
-
-          {/* Why "Berberewochu"? (The Peppers Story) */}
-          <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-3">
-            <div className="flex items-center gap-2 text-red-400 font-sports font-bold text-lg uppercase tracking-wider">
-              <Flame className="w-5 h-5 text-red-500" />
-              <span>Why the Nickname “Berberewochu” (በርበሬዎቹ)?</span>
-            </div>
-            <p className="text-sm text-neutral-300 leading-relaxed">
-              Halaba is celebrated across Ethiopia and East Africa as the capital of chili peppers (Berbere). Red peppers are
-              the lifeblood, cultural heritage, and economy of the Halaba community. The football club adopted the nickname
-              <strong>“Berberewochu” (በርበሬዎቹ)</strong> to embody the fiery passion, spice, intensity, and unbeatable resilience
-              of both the local crop and the people on the pitch. This is why the official club crest prominently features
-              red chili peppers alongside the sunburst and football.
-            </p>
-          </div>
-        </div>
-
-        {/* Footer Actions */}
-        <div className="p-4 sm:p-6 bg-neutral-950 border-t border-neutral-800 flex flex-wrap items-center justify-between gap-3">
-          <span className="text-xs text-neutral-400">
-            Source: Ethiopian Football Federation (EFF) & Ethiopian Premier League Records
-          </span>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                onClose();
-                setCurrentPage('fixtures');
-              }}
-              className="px-4 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-sports font-bold text-xs uppercase tracking-wider transition-colors"
-            >
-              View Match Calendar
-            </button>
-            <button
-              onClick={() => {
-                onClose();
-                setCurrentPage('standings');
-              }}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-sports font-bold text-xs uppercase tracking-wider transition-colors"
-            >
-              Open League Standings
-            </button>
           </div>
         </div>
       </div>

@@ -13,11 +13,19 @@ import {
 } from 'lucide-react';
 
 export const Footer: React.FC = () => {
-  const { t, setCurrentPage, clubInfo } = useClub();
+  const { t, language, setCurrentPage, clubInfo } = useClub();
 
   const handleNav = (p: PageRoute) => {
     setCurrentPage(p);
   };
+
+  const address = language === 'am'
+    ? 'ሀላባ ስታዲየም የስፖርት ኮምፕሌክስ፣ ዋና ጎዳና፣ ሀላባ ቁሊቶ፣ ኢትዮጵያ'
+    : clubInfo.contact.address;
+
+  const officeHours = language === 'am'
+    ? 'ከሰኞ - አርብ፡ 2:30 ጥዋት - 11:30 ከሰዓት (በጨዋታ ቀናት፡ 1:00 ጥዋት - 1:00 ምሽት)'
+    : clubInfo.contact.hours;
 
   return (
     <footer className="bg-neutral-950 text-neutral-300 border-t border-neutral-800">
@@ -36,18 +44,19 @@ export const Footer: React.FC = () => {
               <HalabaCrest size={56} showGlow />
               <div>
                 <h3 className="font-sports font-black text-2xl tracking-wider text-white uppercase">
-                  HALABA CITY FC
+                  {language === 'am' ? 'ሀላባ ከተማ እግርኳስ ክለብ' : 'HALABA CITY FC'}
                 </h3>
                 <p className="text-xs font-semibold text-emerald-400">
                   {clubInfo.nickname.am} • Berberewochu
                 </p>
-                <p className="text-xs text-amber-400 font-mono">Founded 1966</p>
+                <p className="text-xs text-amber-400 font-mono">
+                  {language === 'am' ? 'በ1966 ዓ.ም ተመሰረተ' : 'Founded 1966'}
+                </p>
               </div>
             </div>
 
             <p className="text-sm text-neutral-400 leading-relaxed">
-              Official football club of Halaba Kulito, Central Ethiopia. Proudly nicknamed
-              Berberewochu (በርበሬዎቹ), carrying the cultural spirit and athletic passion of our people.
+              {t.footerAboutClub}
             </p>
 
             <div className="pt-2">
@@ -124,7 +133,7 @@ export const Footer: React.FC = () => {
                   className="hover:text-amber-400 transition-colors flex items-center gap-2 text-neutral-400 text-xs mt-3 pt-2 border-t border-neutral-900"
                 >
                   <span className="w-1.5 h-1.5 bg-amber-400 rounded-full" />
-                  {t.navAdmin} (Authorized Staff)
+                  {t.navAdmin} {t.authorizedStaff}
                 </button>
               </li>
             </ul>
@@ -133,12 +142,12 @@ export const Footer: React.FC = () => {
           {/* Col 3: Stadium & Contact */}
           <div className="space-y-3">
             <h4 className="font-sports font-bold text-lg text-white uppercase tracking-wider border-b border-neutral-800 pb-2">
-              Club Office & Stadium
+              {t.footerOfficeStadium}
             </h4>
             <div className="space-y-2.5 text-xs sm:text-sm text-neutral-400">
               <div className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>{clubInfo.contact.address}</span>
+                <span>{address}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -150,7 +159,7 @@ export const Footer: React.FC = () => {
               </div>
               <div className="flex items-start gap-2.5">
                 <Clock className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span className="text-xs">{clubInfo.contact.hours}</span>
+                <span className="text-xs">{officeHours}</span>
               </div>
             </div>
           </div>
@@ -161,7 +170,9 @@ export const Footer: React.FC = () => {
               {t.socialMedia}
             </h4>
             <p className="text-xs text-neutral-400">
-              Join the official digital channels of Halaba City FC for breaking news and videos.
+              {language === 'am'
+                ? 'አዳዲስ ዜናዎችንና ቪዲዮዎችን ለማግኘት ይፋዊ የሀላባ ከተማ የዲጂታል ገጾችን ይቀላቀሉ።'
+                : 'Join the official digital channels of Halaba City FC for breaking news and videos.'}
             </p>
             <div className="flex flex-col gap-2 pt-1">
               <a
@@ -172,7 +183,7 @@ export const Footer: React.FC = () => {
               >
                 <span className="flex items-center gap-2">
                   <Send className="w-3.5 h-3.5 text-sky-400" />
-                  Official Telegram Channel
+                  {t.officialTelegram}
                 </span>
                 <ExternalLink className="w-3 h-3 text-neutral-500" />
               </a>
@@ -185,7 +196,7 @@ export const Footer: React.FC = () => {
               >
                 <span className="flex items-center gap-2">
                   <span className="w-3.5 h-3.5 font-bold text-blue-500 flex items-center justify-center">f</span>
-                  Facebook Page
+                  {t.facebookPage}
                 </span>
                 <ExternalLink className="w-3 h-3 text-neutral-500" />
               </a>
@@ -198,7 +209,7 @@ export const Footer: React.FC = () => {
               >
                 <span className="flex items-center gap-2">
                   <span className="w-3.5 h-3.5 font-bold text-red-500 flex items-center justify-center">▶</span>
-                  YouTube Match Highlights
+                  {t.youtubeHighlights}
                 </span>
                 <ExternalLink className="w-3 h-3 text-neutral-500" />
               </a>
@@ -211,14 +222,14 @@ export const Footer: React.FC = () => {
           <div className="flex items-center gap-2.5">
             <Database className="w-4 h-4 text-amber-400 shrink-0" />
             <span>
-              <strong className="text-neutral-200">System Environment:</strong> Running with responsive client-side persistence and active simulated club database. Data modified in the Admin Dashboard is saved locally and immediately reflects across all pages.
+              <strong className="text-neutral-200">{t.systemEnv}</strong> {t.systemEnvDesc}
             </span>
           </div>
           <button
             onClick={() => handleNav('admin')}
             className="text-amber-400 hover:text-amber-300 font-semibold underline text-xs shrink-0"
           >
-            Open Admin & DB Settings →
+            {t.openAdminDb}
           </button>
         </div>
 
@@ -226,7 +237,7 @@ export const Footer: React.FC = () => {
         <div className="mt-6 pt-6 border-t border-neutral-900 flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-500 gap-3">
           <p>© {new Date().getFullYear()} HALABA City Football Club (ሀላባ ከተማ እግርኳስ ክለብ). {t.footerRights}</p>
           <p className="text-neutral-500">
-            Halaba Kulito, Central Ethiopia • Proudly "Berberewochu"
+            {t.halabaKulitoMotto}
           </p>
         </div>
       </div>

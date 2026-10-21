@@ -1,19 +1,16 @@
 import React, { useState } from 'react';
 import { useClub } from '../context/ClubContext';
 import { HalabaCrest } from '../components/HalabaCrest';
-import { ShopItem } from '../types';
 import {
   ShoppingBag,
   Heart,
   Truck,
   ShieldCheck,
-  Check,
   Sparkles,
   ArrowRight,
   PlusCircle,
-  Tag,
-  Filter
 } from 'lucide-react';
+import { getLocalizedShopCategory } from '../utils/localization';
 
 export const ShopPage: React.FC = () => {
   const {
@@ -44,7 +41,7 @@ export const ShopPage: React.FC = () => {
         <div className="max-w-7xl mx-auto text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/30 text-red-400 text-xs font-bold tracking-widest uppercase mb-4 backdrop-blur-md">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Official Halaba City FC Merchandise</span>
+            <span>{t.shopBadge}</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-sports font-black text-white uppercase tracking-wider">
@@ -59,15 +56,15 @@ export const ShopPage: React.FC = () => {
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
             <div className="flex items-center justify-center gap-2.5 p-3 rounded-2xl bg-neutral-900/80 border border-neutral-800 text-neutral-300 text-xs">
               <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>100% Authentic Club Licensing</span>
+              <span>{t.perkAuthentic}</span>
             </div>
             <div className="flex items-center justify-center gap-2.5 p-3 rounded-2xl bg-neutral-900/80 border border-neutral-800 text-neutral-300 text-xs">
               <Truck className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Doorstep Delivery Across Ethiopia</span>
+              <span>{t.perkDelivery}</span>
             </div>
             <div className="flex items-center justify-center gap-2.5 p-3 rounded-2xl bg-neutral-900/80 border border-neutral-800 text-neutral-300 text-xs">
               <span className="font-sports font-black text-red-400">CHAPA</span>
-              <span>Instant Telebirr & CBE Payment</span>
+              <span>{t.perkPayment}</span>
             </div>
           </div>
 
@@ -87,7 +84,7 @@ export const ShopPage: React.FC = () => {
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-amber-400 border border-neutral-700 font-sports font-bold uppercase tracking-wider text-xs transition-all"
               >
                 <PlusCircle className="w-4 h-4" />
-                <span>Manage Store in Admin</span>
+                <span>{t.manageStoreAdmin}</span>
               </button>
             )}
           </div>
@@ -107,7 +104,7 @@ export const ShopPage: React.FC = () => {
                   : 'bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800'
               }`}
             >
-              All Merchandise ({shopItems.length})
+              {getLocalizedShopCategory('ALL', language)} ({shopItems.length})
             </button>
             <button
               onClick={() => setSelectedCategory('JERSEY')}
@@ -117,7 +114,7 @@ export const ShopPage: React.FC = () => {
                   : 'bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800'
               }`}
             >
-              Match Jerseys
+              {getLocalizedShopCategory('JERSEY', language)}
             </button>
             <button
               onClick={() => setSelectedCategory('KIT')}
@@ -127,7 +124,7 @@ export const ShopPage: React.FC = () => {
                   : 'bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800'
               }`}
             >
-              Jackets & Training
+              {getLocalizedShopCategory('KIT', language)}
             </button>
             <button
               onClick={() => setSelectedCategory('ACCESSORY')}
@@ -137,17 +134,17 @@ export const ShopPage: React.FC = () => {
                   : 'bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800'
               }`}
             >
-              Fan Accessories & Scarves
+              {getLocalizedShopCategory('ACCESSORY', language)}
             </button>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 text-xs text-neutral-400">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-emerald-400 text-xxs font-bold uppercase tracking-wider">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Live Firestore Sync</span>
+              <span>{t.liveFirestoreSync}</span>
             </span>
             <span>
-              Showing <span className="font-bold text-white">{filteredItems.length}</span> items
+              {t.showing} <span className="font-bold text-white">{filteredItems.length}</span> {t.items}
             </span>
           </div>
         </div>
@@ -160,12 +157,12 @@ export const ShopPage: React.FC = () => {
             </div>
             <div>
               <h3 className="font-sports font-black text-xl text-white uppercase">
-                {isProductsLoading ? 'Loading Live Inventory...' : 'No Merchandise Found'}
+                {isProductsLoading ? t.loadingInventory : t.noMerchFound}
               </h3>
               <p className="text-xs text-neutral-400 max-w-md mx-auto mt-1">
                 {isProductsLoading
-                  ? 'Connecting to Firebase Firestore real-time database...'
-                  : 'No items match the selected category. Check back soon for newly listed official match kits!'}
+                  ? (language === 'am' ? 'ከቀጥታ የዳታቤዝ አገልጋይ ጋር በመገናኘት ላይ...' : 'Connecting to database...')
+                  : t.noMerchFoundDesc}
               </p>
             </div>
           </div>
@@ -203,7 +200,7 @@ export const ShopPage: React.FC = () => {
                   <div className="absolute top-7 left-7 flex flex-col gap-1.5">
                     {item.featured && (
                       <span className="px-2.5 py-1 rounded-lg bg-red-600 text-white text-xxs font-sports font-black uppercase tracking-wider shadow-md">
-                        2026/27 Official
+                        {t.officialTag}
                       </span>
                     )}
                     <span className="px-2.5 py-1 rounded-lg bg-neutral-950/80 backdrop-blur-md border border-neutral-800 text-emerald-400 text-xxs font-bold uppercase">
@@ -256,7 +253,7 @@ export const ShopPage: React.FC = () => {
                         {t.itemPrice}
                       </span>
                       <span className="font-sports font-black text-2xl text-emerald-400">
-                        {item.price.toLocaleString()} <span className="text-xs text-neutral-400">ETB</span>
+                        {item.price.toLocaleString()} <span className="text-xs text-neutral-400">{t.etbCurrency}</span>
                       </span>
                     </div>
 
@@ -281,13 +278,13 @@ export const ShopPage: React.FC = () => {
         <div className="rounded-3xl bg-gradient-to-r from-red-950 via-neutral-900 to-green-950 border border-neutral-800 p-8 sm:p-12 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-2 text-center md:text-left">
             <span className="text-xs font-sports font-bold tracking-widest text-emerald-400 uppercase">
-              Join The Berberewochu Family
+              {t.membershipCtaTitle}
             </span>
             <h2 className="text-2xl sm:text-3xl font-sports font-black text-white uppercase tracking-wide">
-              Support the Club & Get 15% Off Official Merchandise
+              {t.shopCtaTitle}
             </h2>
             <p className="text-xs sm:text-sm text-neutral-300 max-w-xl">
-              Official Halaba City FC registered supporters enjoy special discounts on matchday kits, priority ticket allocations, and digital fan cards.
+              {t.shopCtaDesc}
             </p>
           </div>
 
@@ -303,7 +300,7 @@ export const ShopPage: React.FC = () => {
               className="px-6 py-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-emerald-400 font-sports font-bold uppercase tracking-wider text-sm shadow-lg transition-all flex items-center gap-2"
             >
               <Heart className="w-4 h-4 fill-emerald-400" />
-              <span>Donate Now</span>
+              <span>{t.donateNow}</span>
             </button>
           </div>
         </div>

@@ -3,7 +3,6 @@ import { useClub } from '../context/ClubContext';
 import { HalabaCrest } from '../components/HalabaCrest';
 import { EthiopianClubLogo } from '../components/EthiopianClubLogo';
 import { ClubImages } from '../assets/images';
-import { initialMatches } from '../data/mockData';
 import {
   Calendar,
   Clock,
@@ -18,6 +17,12 @@ import {
   Smartphone
 } from 'lucide-react';
 import { AppStoreInstallCard } from '../components/pwa/AppStoreInstallCard';
+import {
+  getLocalizedTeamName,
+  getLocalizedVenue,
+  getLocalizedCategory,
+  getLocalizedPersonName,
+} from '../utils/localization';
 
 interface HomePageProps {
   onOpenMatchModal: (matchId: string) => void;
@@ -74,6 +79,13 @@ export const HomePage: React.FC<HomePageProps> = ({
   // Top 5 standings
   const topStandings = standings.slice(0, 5);
 
+  const homeNextTeam = nextMatch ? getLocalizedTeamName(nextMatch.homeTeam?.id, nextMatch.homeTeam?.name, language) : '';
+  const awayNextTeam = nextMatch ? getLocalizedTeamName(nextMatch.awayTeam?.id, nextMatch.awayTeam?.name, language) : '';
+  const nextVenue = nextMatch ? getLocalizedVenue(nextMatch.venue, language) : '';
+
+  const homeLatestTeam = latestResult ? getLocalizedTeamName(latestResult.homeTeam?.id, latestResult.homeTeam?.name, language) : '';
+  const awayLatestTeam = latestResult ? getLocalizedTeamName(latestResult.awayTeam?.id, latestResult.awayTeam?.name, language) : '';
+
   return (
     <div className="space-y-16 pb-16">
       {/* 1. Hero Section */}
@@ -106,12 +118,11 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           {/* Club Title */}
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-white tracking-wider uppercase font-sports drop-shadow-lg">
-            HALABA CITY FC
+            {language === 'am' ? 'ሀላባ ከተማ እግርኳስ ክለብ' : 'HALABA CITY FC'}
           </h1>
 
           {/* Nickname & Ethiopic Badge */}
           <div className="mt-2 text-xl sm:text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-emerald-400 to-amber-300 flex items-center justify-center gap-2">
-            <span>“Berberewochu”</span>
             <span className="text-white font-ethiopic font-bold">({clubInfo.nickname.am})</span>
           </div>
 
@@ -144,7 +155,6 @@ export const HomePage: React.FC<HomePageProps> = ({
               <ShoppingBag className="w-5 h-5 text-red-400" />
               <span>{t.navShop}</span>
             </button>
-
           </div>
 
           {/* Next Match Quick Banner */}
@@ -155,21 +165,20 @@ export const HomePage: React.FC<HomePageProps> = ({
             >
               <div className="flex items-center gap-1.5 text-red-400 font-sports font-bold text-xs uppercase tracking-wider">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Next Halaba Match:</span>
+                <span>{t.nextHalabaMatch}</span>
               </div>
               <span className="font-sports font-black text-sm text-white uppercase tracking-wide">
-                {nextMatch.homeTeam.name} vs {nextMatch.awayTeam.name}
+                {homeNextTeam} {t.vs} {awayNextTeam}
               </span>
               <span className="text-xxs text-amber-400 font-mono bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800 font-bold">
-                {nextMatch.date} • {nextMatch.kickoffTime} EAT
+                {nextMatch.date} • {nextMatch.kickoffTime} {t.eatTimezone}
               </span>
-              <span className="text-xxs text-neutral-400 hidden sm:inline">({nextMatch.venue})</span>
+              <span className="text-xxs text-neutral-400 hidden sm:inline">({nextVenue})</span>
               <ChevronRight className="w-3.5 h-3.5 text-neutral-400 group-hover:translate-x-0.5 transition-transform" />
             </div>
           )}
         </div>
       </section>
-
 
       {/* 3. Match Center Preview (Next Match & Latest Result) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -184,37 +193,37 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                     <h3 className="font-sports font-bold text-lg text-white uppercase tracking-wider flex items-center gap-2">
-                      <span>Next Game: Halaba City FC</span>
+                      <span>{t.nextHalabaGame}</span>
                     </h3>
                   </div>
                   <span className="text-xs font-bold text-amber-400 uppercase bg-amber-950/60 border border-amber-800/60 px-2.5 py-0.5 rounded font-sports">
-                    {nextMatch.competitionName.split('-')[0]}
+                    {language === 'am' ? 'የኢትዮጵያ ፕሪሚየር ሊግ' : nextMatch.competitionName.split('-')[0]}
                   </span>
                 </div>
 
                 {/* Teams Display */}
                 <div className="py-6 flex items-center justify-around">
                   <div className="flex flex-col items-center text-center w-2/5">
-                    <EthiopianClubLogo teamId={nextMatch.homeTeam.id} teamName={nextMatch.homeTeam.name} size={68} />
+                    <EthiopianClubLogo teamId={nextMatch.homeTeam.id} teamName={homeNextTeam} size={68} />
                     <span className="font-sports font-bold text-base text-white mt-2">
-                      {nextMatch.homeTeam.name}
+                      {homeNextTeam}
                     </span>
-                    <span className="text-xs text-neutral-400 font-semibold uppercase">Home</span>
+                    <span className="text-xs text-neutral-400 font-semibold uppercase">{t.home}</span>
                   </div>
 
                   <div className="flex flex-col items-center px-2">
-                    <span className="font-sports font-black text-2xl text-neutral-500">VS</span>
+                    <span className="font-sports font-black text-2xl text-neutral-500">{t.vs}</span>
                     <span className="text-xs font-mono font-bold text-amber-400 mt-1 bg-neutral-900 px-2 py-0.5 rounded border border-neutral-800">
-                      {nextMatch.kickoffTime} EAT
+                      {nextMatch.kickoffTime} {t.eatTimezone}
                     </span>
                   </div>
 
                   <div className="flex flex-col items-center text-center w-2/5">
-                    <EthiopianClubLogo teamId={nextMatch.awayTeam.id} teamName={nextMatch.awayTeam.name} size={68} />
+                    <EthiopianClubLogo teamId={nextMatch.awayTeam.id} teamName={awayNextTeam} size={68} />
                     <span className="font-sports font-bold text-base text-white mt-2">
-                      {nextMatch.awayTeam.name}
+                      {awayNextTeam}
                     </span>
-                    <span className="text-xs text-neutral-400 font-semibold uppercase">Away</span>
+                    <span className="text-xs text-neutral-400 font-semibold uppercase">{t.away}</span>
                   </div>
                 </div>
 
@@ -228,7 +237,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{nextMatch.venue}</span>
+                    <span>{nextVenue}</span>
                   </div>
                 </div>
               </div>
@@ -264,16 +273,16 @@ export const HomePage: React.FC<HomePageProps> = ({
                     </h3>
                   </div>
                   <span className="text-xs font-bold text-emerald-400 uppercase bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-0.5 rounded">
-                    FT Result
+                    {t.fullTime}
                   </span>
                 </div>
 
                 {/* Scoreline */}
                 <div className="py-6 flex items-center justify-between gap-2 sm:gap-4">
                   <div className="flex-1 min-w-0 flex flex-col items-center text-center">
-                    <EthiopianClubLogo teamId={latestResult.homeTeam.id} teamName={latestResult.homeTeam.name} size={68} />
+                    <EthiopianClubLogo teamId={latestResult.homeTeam.id} teamName={homeLatestTeam} size={68} />
                     <span className="font-sports font-bold text-base text-white mt-2 truncate max-w-full">
-                      {latestResult.homeTeam.name}
+                      {homeLatestTeam}
                     </span>
                   </div>
 
@@ -283,13 +292,13 @@ export const HomePage: React.FC<HomePageProps> = ({
                       <span className="text-neutral-500 font-normal text-2xl sm:text-3xl">-</span>
                       <span>{latestResult.score?.away ?? 0}</span>
                     </div>
-                    <span className="text-xs text-neutral-400 mt-1 font-medium whitespace-nowrap">Full Time</span>
+                    <span className="text-xs text-neutral-400 mt-1 font-medium whitespace-nowrap">{t.fullTime}</span>
                   </div>
 
                   <div className="flex-1 min-w-0 flex flex-col items-center text-center">
-                    <EthiopianClubLogo teamId={latestResult.awayTeam.id} teamName={latestResult.awayTeam.name} size={68} />
+                    <EthiopianClubLogo teamId={latestResult.awayTeam.id} teamName={awayLatestTeam} size={68} />
                     <span className="font-sports font-bold text-base text-white mt-2 truncate max-w-full">
-                      {latestResult.awayTeam.name}
+                      {awayLatestTeam}
                     </span>
                   </div>
                 </div>
@@ -298,13 +307,13 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {latestResult.scorers && latestResult.scorers.length > 0 && (
                   <div className="bg-neutral-950/60 p-3 rounded-xl border border-neutral-800/80 text-xs text-neutral-300">
                     <span className="text-neutral-500 font-bold block mb-1 uppercase text-xxs tracking-wider">
-                      Scorers:
+                      {language === 'am' ? 'ጎል ያስቆጠሩ፡' : 'Scorers:'}
                     </span>
                     <div className="flex flex-wrap gap-x-4 gap-y-1">
                       {latestResult.scorers.map((s, idx) => (
                         <span key={idx} className="flex items-center gap-1 font-medium">
                           <span>⚽</span>
-                          <span className="text-white">{s.player}</span>
+                          <span className="text-white">{getLocalizedPersonName(s.player, language)}</span>
                           <span className="text-neutral-400">({s.minute}')</span>
                         </span>
                       ))}
@@ -347,7 +356,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             onClick={() => setCurrentPage('news')}
             className="flex items-center gap-1 text-xs sm:text-sm font-bold text-red-400 hover:text-red-300 uppercase tracking-wider font-sports"
           >
-            <span>View All</span>
+            <span>{language === 'am' ? 'ሁሉንም ይመልከቱ' : 'View All'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -371,7 +380,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-black/70 text-emerald-400 backdrop-blur-md">
-                    {article.category.replace('_', ' ')}
+                    {getLocalizedCategory(article.category, language)}
                   </div>
                 </div>
 
@@ -408,7 +417,9 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {t.standingsPreviewTitle}
               </h2>
               <p className="text-xs text-neutral-400 mt-1">
-                Ethiopian Premier League (Top Tier) • 2026/27 Season (Halaba Ketema in 2nd Place • CAF Continental Spot)
+                {language === 'am'
+                  ? 'የኢትዮጵያ ፕሪሚየር ሊግ (ከፍተኛ ዲቪዚዮን) • የ2026/27 የውድድር ዘመን (ሀላባ ከተማ በ2ኛ ደረጃ • የካፍ ውድድር ቦታ)'
+                  : 'Ethiopian Premier League (Top Tier) • 2026/27 Season (Halaba Ketema in 2nd Place • CAF Continental Spot)'}
               </p>
             </div>
             <button
@@ -435,48 +446,51 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-800/60">
-                {topStandings.map((team) => (
-                  <tr
-                    key={team.teamId}
-                    className={`transition-colors ${
-                      team.isHalaba
-                        ? 'bg-red-950/40 border-l-4 border-l-red-500 font-semibold'
-                        : 'hover:bg-neutral-800/30'
-                    }`}
-                  >
-                    <td className="py-3 px-3 font-bold">
-                      <span
-                        className={`inline-block w-6 text-center text-xs py-0.5 rounded ${
-                          team.position <= 2
-                            ? 'bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold'
-                            : 'text-neutral-400'
-                        }`}
-                      >
-                        {team.position}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 flex items-center gap-2.5">
-                      <EthiopianClubLogo teamId={team.teamId} teamName={team.teamName} size={28} badgeUrl={team.badgeUrl} />
-                      <span
-                        className={`font-sports text-base tracking-wide ${
-                          team.isHalaba ? 'text-red-300 font-black' : 'text-neutral-200'
-                        }`}
-                      >
-                        {team.teamName}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 text-center text-neutral-400">{team.played}</td>
-                    <td className="py-3 px-2 text-center text-neutral-400">{team.won}</td>
-                    <td className="py-3 px-2 text-center text-neutral-400">{team.drawn}</td>
-                    <td className="py-3 px-2 text-center text-neutral-400">{team.lost}</td>
-                    <td className="py-3 px-2 text-center text-neutral-400 hidden sm:table-cell">
-                      {team.goalDifference > 0 ? `+${team.goalDifference}` : team.goalDifference}
-                    </td>
-                    <td className="py-3 px-3 text-right font-sports font-black text-lg text-white">
-                      {team.points}
-                    </td>
-                  </tr>
-                ))}
+                {topStandings.map((team) => {
+                  const localizedTeam = getLocalizedTeamName(team.teamId, team.teamName, language);
+                  return (
+                    <tr
+                      key={team.teamId}
+                      className={`transition-colors ${
+                        team.isHalaba
+                          ? 'bg-red-950/40 border-l-4 border-l-red-500 font-semibold'
+                          : 'hover:bg-neutral-800/30'
+                      }`}
+                    >
+                      <td className="py-3 px-3 font-bold">
+                        <span
+                          className={`inline-block w-6 text-center text-xs py-0.5 rounded ${
+                            team.position <= 2
+                              ? 'bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold'
+                              : 'text-neutral-400'
+                          }`}
+                        >
+                          {team.position}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 flex items-center gap-2.5">
+                        <EthiopianClubLogo teamId={team.teamId} teamName={localizedTeam} size={28} badgeUrl={team.badgeUrl} />
+                        <span
+                          className={`font-sports text-base tracking-wide ${
+                            team.isHalaba ? 'text-red-300 font-black' : 'text-neutral-200'
+                          }`}
+                        >
+                          {localizedTeam}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 text-center text-neutral-400">{team.played}</td>
+                      <td className="py-3 px-2 text-center text-neutral-400">{team.won}</td>
+                      <td className="py-3 px-2 text-center text-neutral-400">{team.drawn}</td>
+                      <td className="py-3 px-2 text-center text-neutral-400">{team.lost}</td>
+                      <td className="py-3 px-2 text-center text-neutral-400 hidden sm:table-cell">
+                        {team.goalDifference > 0 ? `+${team.goalDifference}` : team.goalDifference}
+                      </td>
+                      <td className="py-3 px-3 text-right font-sports font-black text-lg text-white">
+                        {team.points}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -489,13 +503,15 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600/20 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-wider mb-2">
               <ShoppingBag className="w-3.5 h-3.5" />
-              <span>Official 2026/27 Merchandise</span>
+              <span>{t.shopBadge}</span>
             </div>
             <h2 className="text-2xl sm:text-4xl font-sports font-black text-white uppercase tracking-wider">
-              Wear the Berberewochu Colors
+              {language === 'am' ? 'የበርበሬዎቹን ማሊያ ይልበሱ' : 'Wear the Berberewochu Colors'}
             </h2>
             <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-              Official Ethiopian Premier League kits manufactured with breathable athletic fabric. Direct Chapa checkout.
+              {language === 'am'
+                ? 'በኢትዮጵያ ፕሪሚየር ሊግ የሚለበሱ ይፋዊ ማሊያዎች። በቻፓ ፈጣን ክፍያ ይግዙ።'
+                : 'Official Ethiopian Premier League kits manufactured with breathable athletic fabric. Direct Chapa checkout.'}
             </p>
           </div>
 
@@ -503,7 +519,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             onClick={() => setCurrentPage('shop')}
             className="self-start sm:self-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white font-sports font-bold uppercase text-xs tracking-wider transition-all hover:border-red-600"
           >
-            <span>Visit Full Shop ({shopItems.length} Items)</span>
+            <span>{language === 'am' ? `ሙሉውን ሱቅ ይመልከቱ (${shopItems.length} እቃዎች)` : `Visit Full Shop (${shopItems.length} Items)`}</span>
             <ArrowRight className="w-4 h-4 text-red-400" />
           </button>
         </div>
@@ -531,7 +547,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   />
                   <div className="absolute top-6 left-6">
                     <span className="px-2.5 py-1 rounded-lg bg-red-600 text-white text-xxs font-sports font-black uppercase tracking-wider shadow-md">
-                      Official Kit
+                      {t.officialTag}
                     </span>
                   </div>
                 </div>
@@ -545,7 +561,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                       {desc}
                     </p>
                     <div className="mt-3 flex items-center gap-1.5">
-                      <span className="text-xxs uppercase font-bold text-neutral-400">Sizes:</span>
+                      <span className="text-xxs uppercase font-bold text-neutral-400">{t.sizeGuide}:</span>
                       <div className="flex gap-1">
                         {item.availableSizes.map((s) => (
                           <span
@@ -561,7 +577,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
                   <div className="pt-3 border-t border-neutral-800/80 flex items-center justify-between">
                     <span className="font-sports font-black text-xl text-emerald-400">
-                      {item.price.toLocaleString()} ETB
+                      {item.price.toLocaleString()} {t.etbCurrency}
                     </span>
                     <button
                       onClick={() => openCheckoutModal(item)}
@@ -587,19 +603,19 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div className="max-w-xl space-y-3">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 text-xs font-bold uppercase tracking-wider font-sports">
                 <Heart className="w-3.5 h-3.5 fill-emerald-400" />
-                <span>Empower the Club • Chapa Payment Integration</span>
+                <span>{language === 'am' ? 'ክለቡን ያጠናክሩ • በቻፓ ፈጣን ክፍያ' : 'Empower the Club • Chapa Payment Integration'}</span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-sports font-black text-white uppercase tracking-wider">
-                Support HALABA City FC
+                {t.donateTitle}
               </h2>
               <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed">
-                Every contribution directly powers our Ethiopian Premier League campaign, academy transport, training gear, and grassroots football in Halaba Kulito. Pay instantly via Telebirr, CBE Birr, or card through Chapa.
+                {t.donateSubtitle}
               </p>
               <div className="flex flex-wrap items-center gap-2 pt-1 text-xxs text-neutral-400">
-                <span className="px-2.5 py-1 rounded-lg bg-neutral-950 border border-neutral-800 text-emerald-400 font-bold">100 ETB</span>
-                <span className="px-2.5 py-1 rounded-lg bg-neutral-950 border border-neutral-800 text-emerald-400 font-bold">500 ETB</span>
-                <span className="px-2.5 py-1 rounded-lg bg-neutral-950 border border-neutral-800 text-emerald-400 font-bold">1,000 ETB</span>
-                <span className="px-2.5 py-1 rounded-lg bg-neutral-950 border border-neutral-800 text-amber-400 font-bold">Custom Amount</span>
+                <span className="px-2.5 py-1 rounded-lg bg-neutral-950 border border-neutral-800 text-emerald-400 font-bold">100 {t.etbCurrency}</span>
+                <span className="px-2.5 py-1 rounded-lg bg-neutral-950 border border-neutral-800 text-emerald-400 font-bold">500 {t.etbCurrency}</span>
+                <span className="px-2.5 py-1 rounded-lg bg-neutral-950 border border-neutral-800 text-emerald-400 font-bold">1,000 {t.etbCurrency}</span>
+                <span className="px-2.5 py-1 rounded-lg bg-neutral-950 border border-neutral-800 text-amber-400 font-bold">{t.customAmountLabel}</span>
               </div>
             </div>
 
@@ -609,10 +625,10 @@ export const HomePage: React.FC<HomePageProps> = ({
                 className="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-600 text-white font-sports font-black text-base uppercase tracking-wider shadow-xl shadow-emerald-950/60 flex items-center justify-center gap-2.5 transition-all transform active:scale-95 hover:scale-102"
               >
                 <Heart className="w-5 h-5 fill-white text-white" />
-                <span>Make a Donation Now</span>
+                <span>{t.donateBtn}</span>
               </button>
               <span className="text-xxs text-center text-neutral-400 font-medium">
-                Instant digital receipt & verified transaction reference
+                {language === 'am' ? 'ፈጣን ዲጂታል ደረሰኝ እና የተረጋገጠ የክፍያ መለያ' : 'Instant digital receipt & verified transaction reference'}
               </span>
             </div>
           </div>
@@ -626,14 +642,16 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-xs font-sports font-bold uppercase tracking-wider mb-2">
                 <Smartphone className="w-3.5 h-3.5" />
-                <span>Stealth Progressive Web App</span>
+                <span>{language === 'am' ? 'ቀጥታ የሞባይል መተግበሪያ' : 'Stealth Progressive Web App'}</span>
               </div>
               <h2 className="text-2xl sm:text-4xl font-sports font-black text-white uppercase tracking-wider">
-                Download Official Club App
+                {language === 'am' ? 'ይፋዊ የክለቡን መተግበሪያ ያውርዱ' : 'Download Official Club App'}
               </h2>
             </div>
             <p className="text-xs text-neutral-400 max-w-md">
-              Install directly onto iPhone, Android, or Tablet with zero browser address bars, rigid touch controls, and offline capabilities.
+              {language === 'am'
+                ? 'በአይፎን፣ አንድሮይድ እና ታብሌት ላይ ያለምንም ድረ-ገጽ አድራሻ አሞሌ፣ ሙሉ በሙሉ ከመስመር ውጭ የሚሰራውን ይፋዊ መተግበሪያ ይጫኑ።'
+                : 'Install directly onto iPhone, Android, or Tablet with zero browser address bars, rigid touch controls, and offline capabilities.'}
             </p>
           </div>
 
@@ -647,7 +665,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="relative z-10 max-w-2xl space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/30 border border-red-500/50 text-red-300 text-xs font-bold uppercase tracking-wider">
               <Flame className="w-3.5 h-3.5 text-amber-400" />
-              <span>Official Supporter Club</span>
+              <span>{language === 'am' ? 'ይፋዊ የደጋፊዎች ማህበር' : 'Official Supporter Club'}</span>
             </div>
 
             <h2 className="font-sports font-black text-3xl sm:text-5xl text-white uppercase tracking-wider leading-tight">
@@ -671,7 +689,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 onClick={() => setCurrentPage('about')}
                 className="px-6 py-3.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border border-neutral-700 font-bold text-sm sm:text-base uppercase tracking-wider font-sports transition-colors"
               >
-                <span>Learn Club History</span>
+                <span>{language === 'am' ? 'የክለቡን ታሪክ ይወቁ' : 'Learn Club History'}</span>
               </button>
             </div>
           </div>

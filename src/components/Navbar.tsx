@@ -18,7 +18,6 @@ import {
   Lock,
   ChevronDown,
   Smartphone,
-  Download
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -70,7 +69,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
           <span className="text-neutral-500">•</span>
           <span>{t.homeGroundValue}</span>
           <span className="text-neutral-500">•</span>
-          <span className="text-amber-400 font-medium">Est. 1966</span>
+          <span className="text-amber-400 font-medium">{t.est1966}</span>
         </div>
 
         <div className="flex items-center gap-3">
@@ -78,7 +77,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
           {isInstalled ? (
             <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-xxs font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span>Native App</span>
+              <span>{t.nativeApp}</span>
             </span>
           ) : onOpenInstallModal ? (
             <button
@@ -87,7 +86,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
               title="Install official Halaba City FC App"
             >
               <Smartphone className="w-3 h-3 text-amber-300" />
-              <span>Install App</span>
+              <span>{t.installApp}</span>
             </button>
           ) : null}
 
@@ -97,7 +96,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
             title="Exact Information about Halaba City FC in the Ethiopian Premier League"
           >
             <Trophy className="w-3 h-3 text-amber-300" />
-            <span>EPL Official Club Dossier</span>
+            <span>{t.clubDossierBtn}</span>
           </button>
 
           <button
@@ -111,7 +110,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
             <Lock className="w-3 h-3 text-amber-400" />
             <span>{t.navAdmin}</span>
             {isAdminLoggedIn && (
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" title="Logged In" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" title={t.active} />
             )}
           </button>
         </div>
@@ -133,7 +132,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
               <span className="text-xs font-semibold tracking-wide text-emerald-400 flex items-center gap-1">
                 <span>በርበሬዎቹ</span>
                 <span className="text-neutral-400 font-normal">|</span>
-                <span className="text-amber-400">Berberewochu</span>
+                <span className="text-amber-400">{language === 'am' ? 'ይፋዊ ድረ-ገጽ' : 'Berberewochu'}</span>
               </span>
             </div>
           </button>
@@ -178,7 +177,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
               {langDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-neutral-900 rounded-lg shadow-2xl border border-neutral-700 py-1 z-50 animate-in fade-in zoom-in-95">
                   <div className="px-3 py-1.5 text-xs text-neutral-400 uppercase font-bold tracking-wider border-b border-neutral-800">
-                    Language / ቋንቋ
+                    {t.selectLanguage}
                   </div>
                   {(['en', 'am', 'om'] as Language[]).map((lng) => (
                     <button
@@ -250,7 +249,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
         <div className="lg:hidden bg-neutral-950 border-b border-neutral-800 px-4 pt-2 pb-6 space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-neutral-800">
             <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
-              Select Language / ቋንቋ ምረጥ
+              {t.selectLanguage}
             </span>
             <div className="flex gap-1.5">
               {(['en', 'am', 'om'] as Language[]).map((lng) => (
@@ -299,7 +298,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
               <Lock className="w-4 h-4 text-amber-400" />
               <span>{t.navAdmin}</span>
               {isAdminLoggedIn && (
-                <span className="ml-auto text-xs text-emerald-400 font-normal">Active</span>
+                <span className="ml-auto text-xs text-emerald-400 font-normal">{t.active}</span>
               )}
             </button>
           </div>

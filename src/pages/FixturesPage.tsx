@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useClub } from '../context/ClubContext';
 import { HalabaCrest } from '../components/HalabaCrest';
-import { MatchStatus } from '../types';
+import { EthiopianClubLogo } from '../components/EthiopianClubLogo';
 import {
   Calendar,
   Clock,
@@ -13,6 +13,13 @@ import {
   Flame,
   Shield
 } from 'lucide-react';
+import {
+  getLocalizedTeamName,
+  getLocalizedVenue,
+  getLocalizedCompetition,
+  getLocalizedRound,
+  getLocalizedStatus,
+} from '../utils/localization';
 
 interface FixturesPageProps {
   onOpenMatchModal: (matchId: string) => void;
@@ -21,12 +28,12 @@ interface FixturesPageProps {
 export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) => {
   const {
     t,
+    language,
     matches,
     openDossier,
     simulateLiveMatchAction,
     syncNow,
     isSyncing,
-    isAutoSyncEnabled,
   } = useClub();
 
   const [activeTab, setActiveTab] = useState<'ALL' | 'UPCOMING' | 'RESULTS'>('ALL');
@@ -54,17 +61,17 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
           <div>
             <div className="flex items-center gap-2">
               <span className="font-sports font-bold text-xs uppercase px-2 py-0.5 rounded bg-red-600 text-white">
-                Official EPL Fixtures
+                {t.officialEplFixtures}
               </span>
               <span className="text-xs text-neutral-400">
-                Ethiopian Premier League Campaign 2026 / 2027
+                {t.eplCampaign}
               </span>
             </div>
             <h3 className="font-sports font-black text-xl text-white uppercase tracking-wider mt-1">
-              HALABA City FC Match Schedule & Live Updates
+              {t.matchScheduleHeadline}
             </h3>
             <p className="text-xs sm:text-sm text-neutral-300">
-              Live score progress, goal notifications, and match minute simulation run automatically every 30 seconds.
+              {t.liveAutoUpdateDesc}
             </p>
           </div>
         </div>
@@ -75,7 +82,7 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-amber-300 border border-amber-500/30 text-xs font-bold font-sports uppercase tracking-wider transition-all"
           >
             <Shield className="w-4 h-4 text-amber-300" />
-            <span>Club Dossier</span>
+            <span>{t.clubDossier}</span>
           </button>
 
           <button
@@ -84,7 +91,7 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
             title="Simulate live kickoff or goal action"
           >
             <Zap className="w-3.5 h-3.5 text-amber-200" />
-            <span>Simulate Live Action</span>
+            <span>{t.simulateLiveAction}</span>
           </button>
         </div>
       </div>
@@ -95,7 +102,7 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
           <div>
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-400 mb-1">
               <Calendar className="w-4 h-4" />
-              <span>Match Schedule 2026 / 2027</span>
+              <span>{language === 'am' ? 'የጨዋታ መርሃ-ግብር 2026 / 2027' : 'Match Schedule 2026 / 2027'}</span>
             </div>
             <h1 className="font-sports font-black text-3xl sm:text-5xl text-white uppercase tracking-wider">
               {t.fixturesTitle}
@@ -110,10 +117,10 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-xs font-semibold text-white transition-all disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
+              <span>{isSyncing ? t.syncingStatus : t.syncNowBtn}</span>
             </button>
             <span className="px-3 py-1.5 rounded-lg bg-neutral-800 border border-neutral-700 text-xs font-semibold text-neutral-300">
-              {filteredMatches.length} Matches Shown
+              {filteredMatches.length} {t.matchesShown}
             </span>
           </div>
         </div>
@@ -165,7 +172,7 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
               <option value="ALL">{t.allCompetitions}</option>
               {competitionList.map((comp) => (
                 <option key={comp} value={comp}>
-                  {comp.replace(/_/g, ' ')}
+                  {getLocalizedCompetition(comp, language)}
                 </option>
               ))}
             </select>
@@ -183,6 +190,11 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
           {filteredMatches.map((match) => {
             const isCompleted = match.status === 'FINISHED';
             const isLive = match.status === 'LIVE';
+            const homeName = getLocalizedTeamName(match.homeTeam?.id, match.homeTeam?.name, language);
+            const awayName = getLocalizedTeamName(match.awayTeam?.id, match.awayTeam?.name, language);
+            const venue = getLocalizedVenue(match.venue, language);
+            const roundText = getLocalizedRound(match.round, language);
+            const compName = getLocalizedCompetition(match.competitionName || match.competition, language);
 
             return (
               <div
@@ -194,26 +206,26 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-neutral-800/80 text-xs">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-amber-400 uppercase tracking-wider font-sports text-sm">
-                      {match.competitionName}
+                      {compName}
                     </span>
-                    {match.round && (
-                      <span className="text-neutral-500 hidden sm:inline">• {match.round}</span>
+                    {roundText && (
+                      <span className="text-neutral-500 hidden sm:inline">• {roundText}</span>
                     )}
                   </div>
 
                   <div className="flex items-center gap-2">
                     {isCompleted ? (
                       <span className="px-2.5 py-0.5 rounded text-xs font-bold uppercase bg-emerald-950 text-emerald-400 border border-emerald-800">
-                        Full Time
+                        {t.fullTime}
                       </span>
                     ) : isLive ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-bold uppercase bg-red-950 text-red-400 border border-red-800 animate-pulse">
                         <span className="w-2 h-2 rounded-full bg-red-500" />
-                        Live Now
+                        {t.liveNow}
                       </span>
                     ) : (
                       <span className="px-2.5 py-0.5 rounded text-xs font-bold uppercase bg-neutral-800 text-neutral-300 border border-neutral-700">
-                        Upcoming
+                        {t.upcoming}
                       </span>
                     )}
                   </div>
@@ -225,18 +237,16 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
                   <div className="flex-1 flex items-center justify-end gap-3 sm:gap-4 text-right">
                     <div className="flex flex-col items-end">
                       <span className="font-sports font-black text-base sm:text-xl md:text-2xl text-white group-hover:text-red-400 transition-colors uppercase">
-                        {match.homeTeam.name}
+                        {homeName}
                       </span>
                       <span className="text-xxs uppercase tracking-wider text-neutral-400 font-semibold">
-                        Home
+                        {t.home}
                       </span>
                     </div>
                     {match.homeTeam.isHalaba ? (
                       <HalabaCrest size={48} />
                     ) : (
-                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center font-sports font-black text-sm text-neutral-300 shrink-0">
-                        {match.homeTeam.name.substring(0, 3).toUpperCase()}
-                      </div>
+                      <EthiopianClubLogo teamId={match.homeTeam.id} teamName={homeName} size={48} />
                     )}
                   </div>
 
@@ -256,18 +266,18 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
                         {isLive ? (
                           <span className="text-xxs text-red-400 mt-1 font-mono font-bold flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-                            {match.liveMinute}' ({match.livePeriod || 'LIVE'})
+                            {match.liveMinute}' ({match.livePeriod || t.liveNow})
                           </span>
                         ) : match.halftimeScore ? (
                           <span className="text-xxs text-neutral-500 mt-1 font-mono">
-                            (HT {match.halftimeScore.home}-{match.halftimeScore.away})
+                            ({language === 'am' ? 'እረፍት' : 'HT'} {match.halftimeScore.home}-{match.halftimeScore.away})
                           </span>
                         ) : null}
                       </div>
                     ) : (
                       <div className="flex flex-col items-center">
                         <span className="font-sports font-black text-xl sm:text-2xl text-neutral-500">
-                          VS
+                          {t.vs}
                         </span>
                         <div className="flex items-center gap-1 text-xs text-amber-400 font-mono mt-0.5">
                           <Clock className="w-3 h-3" />
@@ -282,16 +292,14 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
                     {match.awayTeam.isHalaba ? (
                       <HalabaCrest size={48} />
                     ) : (
-                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center font-sports font-black text-sm text-neutral-300 shrink-0">
-                        {match.awayTeam.name.substring(0, 3).toUpperCase()}
-                      </div>
+                      <EthiopianClubLogo teamId={match.awayTeam.id} teamName={awayName} size={48} />
                     )}
                     <div className="flex flex-col items-start">
                       <span className="font-sports font-black text-base sm:text-xl md:text-2xl text-white group-hover:text-red-400 transition-colors uppercase">
-                        {match.awayTeam.name}
+                        {awayName}
                       </span>
                       <span className="text-xxs uppercase tracking-wider text-neutral-400 font-semibold">
-                        Away
+                        {t.away}
                       </span>
                     </div>
                   </div>
@@ -306,7 +314,7 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
                     </span>
                     <span className="flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>{match.venue}</span>
+                      <span>{venue}</span>
                     </span>
                   </div>
 

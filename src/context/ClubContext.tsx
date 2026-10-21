@@ -1002,20 +1002,22 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const liveProducts: ShopItem[] = snapshot.docs.map((docSnap) => {
         const data = docSnap.data();
+        const initialMatch = initialShopItems.find((i) => i.id === docSnap.id);
+
         return {
           id: docSnap.id,
           name: typeof data.name === 'object' && data.name !== null
             ? { en: data.name.en || '', am: data.name.am || data.name.en || '', om: data.name.om || data.name.en || '' }
-            : { en: String(data.name || ''), am: String(data.name || ''), om: String(data.name || '') },
+            : (initialMatch ? initialMatch.name : { en: String(data.name || ''), am: String(data.name || ''), om: String(data.name || '') }),
           description: typeof data.description === 'object' && data.description !== null
             ? { en: data.description.en || '', am: data.description.am || data.description.en || '', om: data.description.om || data.description.en || '' }
-            : { en: String(data.description || ''), am: String(data.description || ''), om: String(data.description || '') },
-          price: typeof data.price === 'number' ? data.price : parseFloat(data.price) || 0,
-          imageUrl: data.imageUrl || 'https://images.unsplash.com/photo-1577212017184-80cc0da11082?auto=format&fit=crop&w=800&q=80',
-          availableSizes: Array.isArray(data.availableSizes) && data.availableSizes.length > 0 ? data.availableSizes : ['S', 'M', 'L', 'XL'],
-          category: (data.category as 'JERSEY' | 'KIT' | 'ACCESSORY') || 'JERSEY',
+            : (initialMatch ? initialMatch.description : { en: String(data.description || ''), am: String(data.description || ''), om: String(data.description || '') }),
+          price: typeof data.price === 'number' ? data.price : (initialMatch ? initialMatch.price : (parseFloat(data.price) || 0)),
+          imageUrl: initialMatch ? initialMatch.imageUrl : (data.imageUrl || 'https://images.unsplash.com/photo-1577212017184-80cc0da11082?auto=format&fit=crop&w=800&q=80'),
+          availableSizes: Array.isArray(data.availableSizes) && data.availableSizes.length > 0 ? data.availableSizes : (initialMatch ? initialMatch.availableSizes : ['S', 'M', 'L', 'XL']),
+          category: (data.category as 'JERSEY' | 'KIT' | 'ACCESSORY') || (initialMatch ? initialMatch.category : 'JERSEY'),
           inStock: data.inStock !== undefined ? Boolean(data.inStock) : true,
-          featured: Boolean(data.featured),
+          featured: Boolean(data.featured) || (initialMatch ? initialMatch.featured : false),
         };
       });
 

@@ -13,9 +13,15 @@ import {
   Flame,
   Target
 } from 'lucide-react';
+import {
+  getLocalizedPersonName,
+  getLocalizedPosition,
+  getLocalizedRole,
+  getLocalizedDepartment
+} from '../utils/localization';
 
 export const AboutPage: React.FC = () => {
-  const { t, clubInfo, players, staff } = useClub();
+  const { t, language, clubInfo, players, staff } = useClub();
   const [squadFilter, setSquadFilter] = useState<string>('ALL');
 
   const filteredPlayers = players.filter((p) => {
@@ -31,7 +37,7 @@ export const AboutPage: React.FC = () => {
           <div className="lg:col-span-8 space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 text-red-400 text-xs font-bold uppercase tracking-wider">
               <History className="w-3.5 h-3.5" />
-              <span>Football Heritage Since 1966</span>
+              <span>{t.heritageBadge}</span>
             </div>
             <h1 className="font-sports font-black text-4xl sm:text-6xl text-white uppercase tracking-wider">
               {t.aboutTitle}
@@ -66,8 +72,8 @@ export const AboutPage: React.FC = () => {
           </div>
 
           <div className="pt-4 border-t border-neutral-800 flex items-center justify-between text-xs text-neutral-400">
-            <span>Founded: 1966 E.C. (Ethiopian Calendar)</span>
-            <span className="text-amber-400 font-bold font-mono">Central Ethiopia</span>
+            <span>{t.foundedEc}</span>
+            <span className="text-amber-400 font-bold font-mono">{t.centralEthiopia}</span>
           </div>
         </div>
 
@@ -86,14 +92,16 @@ export const AboutPage: React.FC = () => {
               {t.identityDesc}
             </p>
             <p className="text-neutral-400 text-xs sm:text-sm leading-relaxed bg-neutral-950/70 p-4 rounded-xl border border-neutral-800">
-              <strong className="text-neutral-200 block mb-1">Crest Symbolism:</strong>
+              <strong className="text-neutral-200 block mb-1">
+                {language === 'am' ? 'የአርማው ምልክት፡' : 'Crest Symbolism:'}
+              </strong>
               {t.crestSymbolism}
             </p>
           </div>
 
           <div className="pt-4 border-t border-neutral-800 flex items-center justify-between text-xs text-neutral-400">
-            <span>Official Colors: Scarlet Red, Emerald Green, Gold</span>
-            <span className="text-emerald-400 font-bold">Pride of Halaba</span>
+            <span>{t.officialColorsDesc}</span>
+            <span className="text-emerald-400 font-bold">{t.prideOfHalaba}</span>
           </div>
         </div>
       </div>
@@ -104,9 +112,9 @@ export const AboutPage: React.FC = () => {
           <div className="w-10 h-10 rounded-lg bg-amber-950/60 border border-amber-800/60 text-amber-400 flex items-center justify-center">
             <Target className="w-5 h-5" />
           </div>
-          <h3 className="font-sports font-bold text-xl text-white uppercase">Our Mission</h3>
+          <h3 className="font-sports font-bold text-xl text-white uppercase">{t.ourMission}</h3>
           <p className="text-neutral-400 text-xs sm:text-sm leading-relaxed">
-            To develop elite athletic talent in Halaba, champion fair play and sportsmanship, and compete at the highest level of the Ethiopian football pyramid while serving as an engine of youth empowerment.
+            {t.missionDesc}
           </p>
         </div>
 
@@ -114,9 +122,9 @@ export const AboutPage: React.FC = () => {
           <div className="w-10 h-10 rounded-lg bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 flex items-center justify-center">
             <Shield className="w-5 h-5" />
           </div>
-          <h3 className="font-sports font-bold text-xl text-white uppercase">Our Vision</h3>
+          <h3 className="font-sports font-bold text-xl text-white uppercase">{t.ourVision}</h3>
           <p className="text-neutral-400 text-xs sm:text-sm leading-relaxed">
-            To establish HALABA City FC as an elite, self-sustaining modern football institution with state-of-the-art training facilities and a continuous pathway from grassroots academy to national team representation.
+            {t.visionDesc}
           </p>
         </div>
 
@@ -124,23 +132,23 @@ export const AboutPage: React.FC = () => {
           <div className="w-10 h-10 rounded-lg bg-red-950/60 border border-red-800/60 text-red-400 flex items-center justify-center">
             <Trophy className="w-5 h-5" />
           </div>
-          <h3 className="font-sports font-bold text-xl text-white uppercase">Honors & Milestones</h3>
+          <h3 className="font-sports font-bold text-xl text-white uppercase">{t.honorsTitle}</h3>
           <ul className="space-y-1.5 text-xs text-neutral-300">
             <li className="flex items-center gap-1.5">
               <span className="text-amber-400">★</span>
-              <span>Regional Championship Winners</span>
+              <span>{t.honor1}</span>
             </li>
             <li className="flex items-center gap-1.5">
               <span className="text-amber-400">★</span>
-              <span>Ethiopian Higher League Contender</span>
+              <span>{t.honor2}</span>
             </li>
             <li className="flex items-center gap-1.5">
               <span className="text-amber-400">★</span>
-              <span>National Fair Play Award Finalist</span>
+              <span>{t.honor3}</span>
             </li>
             <li className="flex items-center gap-1.5">
               <span className="text-amber-400">★</span>
-              <span>Over 6 Decades of Continuous Football</span>
+              <span>{t.honor4}</span>
             </li>
           </ul>
         </div>
@@ -162,7 +170,7 @@ export const AboutPage: React.FC = () => {
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/80 text-emerald-400 text-xs font-bold uppercase tracking-wider border border-emerald-800">
                 <MapPin className="w-3.5 h-3.5" />
-                <span>Fortress of the Berberewochu</span>
+                <span>{t.stadiumFortress}</span>
               </div>
               <h2 className="font-sports font-black text-3xl sm:text-4xl text-white uppercase tracking-wider">
                 {t.stadiumTitle}
@@ -173,40 +181,36 @@ export const AboutPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3 text-xs pt-2">
                 <div className="p-3 rounded-xl bg-neutral-950 border border-neutral-800">
-                  <span className="text-neutral-500 block uppercase">Capacity</span>
+                  <span className="text-neutral-500 block uppercase">{t.capacityLabel}</span>
                   <span className="font-bold text-white text-base font-sports">
-                    {clubInfo.stadium.capacity}
+                    {language === 'am' ? '15,000 ተመልካች' : clubInfo.stadium.capacity}
                   </span>
                 </div>
                 <div className="p-3 rounded-xl bg-neutral-950 border border-neutral-800">
-                  <span className="text-neutral-500 block uppercase">Pitch Surface</span>
+                  <span className="text-neutral-500 block uppercase">{t.pitchSurfaceLabel}</span>
                   <span className="font-bold text-emerald-400 text-base font-sports">
-                    {clubInfo.stadium.surface}
+                    {t.naturalGrass}
                   </span>
                 </div>
                 <div className="p-3 rounded-xl bg-neutral-950 border border-neutral-800">
-                  <span className="text-neutral-500 block uppercase">Location</span>
+                  <span className="text-neutral-500 block uppercase">{t.locationLabel}</span>
                   <span className="font-bold text-white text-base font-sports">
-                    {clubInfo.stadium.city}
+                    {language === 'am' ? 'ሀላባ ቁሊቶ' : clubInfo.stadium.city}
                   </span>
                 </div>
                 <div className="p-3 rounded-xl bg-neutral-950 border border-neutral-800">
-                  <span className="text-neutral-500 block uppercase">Atmosphere</span>
+                  <span className="text-neutral-500 block uppercase">{t.atmosphereLabel}</span>
                   <span className="font-bold text-red-400 text-base font-sports">
-                    Electrifying
+                    {t.electrifying}
                   </span>
                 </div>
               </div>
-            </div>
-
-            <div className="pt-4 border-t border-neutral-800 text-xs text-neutral-400">
-              Matchday tickets are available through official club booths in Halaba Kulito.
             </div>
           </div>
         </div>
       </div>
 
-      {/* 5. First Team Squad Section */}
+      {/* 5. Squad Roster */}
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-800">
           <div>
@@ -214,96 +218,95 @@ export const AboutPage: React.FC = () => {
               {t.squadTitle}
             </h2>
             <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-              Official roster of players representing HALABA City FC for the 2025/2026 season.
+              {language === 'am'
+                ? 'የ2026/27 የኢትዮጵያ ፕሪሚየር ሊግ የሀላባ ከተማ ይፋዊ ተጫዋቾች ዝርዝር።'
+                : 'Official 2026/27 Ethiopian Premier League squad roster.'}
             </p>
           </div>
 
-          {/* Position Filter Tabs */}
-          <div className="flex flex-wrap gap-1.5 bg-neutral-950 p-1 rounded-xl border border-neutral-800 self-start sm:self-auto">
+          {/* Filter positions */}
+          <div className="flex flex-wrap gap-2">
             {['ALL', 'Goalkeeper', 'Defender', 'Midfielder', 'Forward'].map((pos) => (
               <button
                 key={pos}
                 onClick={() => setSquadFilter(pos)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider font-sports transition-all ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider font-sports transition-all ${
                   squadFilter === pos
                     ? 'bg-red-600 text-white shadow-md'
-                    : 'text-neutral-400 hover:text-white'
+                    : 'bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800'
                 }`}
               >
-                {pos === 'ALL' ? 'All Squad' : `${pos}s`}
+                {getLocalizedPosition(pos, language)}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Players Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredPlayers.map((player) => (
             <div
               key={player.id}
-              className="bg-neutral-900 border border-neutral-800 hover:border-red-600/50 rounded-2xl p-4 flex flex-col justify-between transition-all group hover:-translate-y-1 shadow-lg"
+              className="group bg-neutral-900 border border-neutral-800 hover:border-red-600/50 rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 hover:-translate-y-1 shadow-lg relative overflow-hidden"
             >
-              <div>
-                <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
-                  <span className="font-sports font-black text-3xl text-red-500 group-hover:text-red-400">
-                    #{player.number}
-                  </span>
-                  {player.isCaptain && (
-                    <span className="px-2 py-0.5 rounded text-xxs font-bold uppercase bg-amber-950 text-amber-400 border border-amber-800">
-                      Captain
-                    </span>
-                  )}
-                </div>
+              {player.isCaptain && (
+                <span className="absolute top-3 right-3 px-2 py-0.5 rounded text-xxs font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono">
+                  {t.captain}
+                </span>
+              )}
 
-                <div className="py-4 text-center">
-                  <div className="w-16 h-16 rounded-full bg-neutral-950 border-2 border-neutral-800 flex items-center justify-center mx-auto text-xl font-sports font-black text-neutral-300">
-                    {player.name.split(' ').map((n) => n[0]).join('')}
-                  </div>
-                  <h4 className="mt-3 font-sports font-bold text-lg text-white group-hover:text-red-400 transition-colors uppercase">
-                    {player.name}
-                  </h4>
-                  <span className="text-xs text-emerald-400 font-medium uppercase font-sports">
-                    {player.position}
-                  </span>
-                </div>
+              <div>
+                <span className="font-sports font-black text-3xl text-neutral-600 group-hover:text-red-500 transition-colors">
+                  #{player.number}
+                </span>
+                <h4 className="font-bold text-lg text-white group-hover:text-red-400 transition-colors mt-1">
+                  {getLocalizedPersonName(player.name, language)}
+                </h4>
+                <span className="inline-block mt-1 px-2.5 py-0.5 rounded text-xxs font-bold uppercase bg-neutral-950 text-emerald-400 border border-neutral-800">
+                  {getLocalizedPosition(player.position, language)}
+                </span>
               </div>
 
-              <div className="pt-3 border-t border-neutral-800/80 flex items-center justify-between text-xs text-neutral-400">
-                <span>Apps: <strong className="text-white">{player.appearances}</strong></span>
-                <span>Goals: <strong className="text-amber-400">{player.goals}</strong></span>
+              <div className="mt-4 pt-3 border-t border-neutral-800/80 flex items-center justify-between text-xs text-neutral-400 font-mono">
+                <span>{player.appearances} {t.appearances}</span>
+                <span>{player.goals} {t.goals}</span>
+                <span>{player.birthYear}</span>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* 6. Club Leadership & Coaching Staff */}
+      {/* 6. Management & Staff */}
       <div className="space-y-6">
         <div className="pb-4 border-b border-neutral-800">
           <h2 className="font-sports font-black text-3xl sm:text-4xl text-white uppercase tracking-wider">
             {t.managementTitle}
           </h2>
           <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-            Executive leadership, technical directors, and sports science staff.
+            {language === 'am'
+              ? 'ክለቡን በብቃት የሚመሩ አስተዳዳሪዎች እና የቴክኒክ አሰልጣኞች።'
+              : 'Dedicated leadership and technical experts guiding Halaba City FC.'}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {staff.map((member) => (
             <div
               key={member.id}
-              className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 flex items-center gap-4"
+              className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 flex items-start gap-4 shadow-lg"
             >
-              <div className="w-12 h-12 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-sm font-sports font-bold text-neutral-300 shrink-0">
-                {member.name.split(' ').map((n) => n[0]).join('')}
+              <div className="w-12 h-12 rounded-xl bg-neutral-950 border border-neutral-800 flex items-center justify-center text-red-400 font-sports font-black text-lg shrink-0">
+                {member.name.charAt(0)}
               </div>
-              <div>
-                <h4 className="font-sports font-bold text-lg text-white uppercase">
-                  {member.name}
+              <div className="min-w-0">
+                <h4 className="font-bold text-base text-white truncate">
+                  {getLocalizedPersonName(member.name, language)}
                 </h4>
-                <p className="text-xs text-amber-400 font-medium">{member.role}</p>
-                <span className="text-xxs uppercase tracking-wider text-neutral-500 font-mono">
-                  {member.department}
+                <p className="text-xs text-amber-400 font-medium mt-0.5">
+                  {getLocalizedRole(member.role, language)}
+                </p>
+                <span className="inline-block mt-2 px-2 py-0.5 rounded text-xxs font-semibold uppercase bg-neutral-950 text-neutral-400 border border-neutral-800">
+                  {getLocalizedDepartment(member.department, language)}
                 </span>
               </div>
             </div>

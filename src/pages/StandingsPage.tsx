@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { useClub } from '../context/ClubContext';
 import { HalabaCrest } from '../components/HalabaCrest';
 import { EthiopianClubLogo } from '../components/EthiopianClubLogo';
-import { Trophy, Filter, Info, ShieldCheck, Flame, TrendingUp, RefreshCw } from 'lucide-react';
+import { Trophy, Filter, ShieldCheck, RefreshCw } from 'lucide-react';
+import { getLocalizedTeamName, getFormBadgeLocalized } from '../utils/localization';
 
 export const StandingsPage: React.FC = () => {
-  const { t, standings, isSyncing, syncNow, resetStandings } = useClub();
+  const { t, language, standings, isSyncing, syncNow, resetStandings } = useClub();
   const [competition, setCompetition] = useState('ETHIOPIAN_PREMIER_LEAGUE');
 
   const halabaStanding = standings.find((s) => s.isHalaba) || standings[0];
+  const halabaName = halabaStanding ? getLocalizedTeamName(halabaStanding.teamId, halabaStanding.teamName, language) : '';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -18,7 +20,7 @@ export const StandingsPage: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-400 mb-1">
               <Trophy className="w-4 h-4" />
-              <span>Official Ethiopian Premier League • Season 2026 / 2027 (16 Clubs)</span>
+              <span>{t.standingsEplBadge}</span>
             </div>
             <h1 className="font-sports font-black text-3xl sm:text-5xl text-white uppercase tracking-wider">
               {t.standingsTitle}
@@ -35,7 +37,7 @@ export const StandingsPage: React.FC = () => {
               title="Sync directly with TheSportsDB official data"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>{isSyncing ? 'Syncing...' : 'Sync TheSportsDB'}</span>
+              <span>{isSyncing ? t.syncingStatus : t.syncTheSportsDb}</span>
             </button>
 
             {/* Hard Reset Button */}
@@ -48,7 +50,7 @@ export const StandingsPage: React.FC = () => {
               title="Clear all local caches and re-seed official 16-club Premier League table"
             >
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Reset Table</span>
+              <span>{t.resetTable}</span>
             </button>
 
             {/* Competition Selector */}
@@ -59,8 +61,12 @@ export const StandingsPage: React.FC = () => {
                 onChange={(e) => setCompetition(e.target.value)}
                 className="bg-transparent text-neutral-200 text-xs sm:text-sm font-semibold rounded-lg px-2 py-1.5 focus:outline-none"
               >
-                <option value="ETHIOPIAN_PREMIER_LEAGUE">Ethiopian Premier League (Top Tier) • Official</option>
-                <option value="ETHIOPIAN_CUP">Ethiopian Cup 2026/27</option>
+                <option value="ETHIOPIAN_PREMIER_LEAGUE">
+                  {language === 'am' ? 'የኢትዮጵያ ፕሪሚየር ሊግ (ከፍተኛ ዲቪዚዮን) • ይፋዊ' : 'Ethiopian Premier League (Top Tier) • Official'}
+                </option>
+                <option value="ETHIOPIAN_CUP">
+                  {language === 'am' ? 'የኢትዮጵያ ዋንጫ 2026/27' : 'Ethiopian Cup 2026/27'}
+                </option>
               </select>
             </div>
           </div>
@@ -74,34 +80,38 @@ export const StandingsPage: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/50 text-amber-300 font-sports font-bold text-xs uppercase tracking-wider">
-                    Official League Status: {halabaStanding.position === 1 ? '1st Place' : halabaStanding.position === 2 ? '2nd Place' : `${halabaStanding.position}rd Place`}
+                    {t.officialLeagueStatus} {halabaStanding.position === 1 ? t.firstPlace : halabaStanding.position === 2 ? t.secondPlace : `${halabaStanding.position}ኛ ደረጃ`}
                   </span>
                   <span className="text-emerald-400 text-xs font-bold uppercase tracking-wider hidden sm:inline">
-                    • Ethiopian Premier League (Top Tier)
+                    • {language === 'am' ? 'የኢትዮጵያ ፕሪሚየር ሊግ (ከፍተኛ ዲቪዚዮን)' : 'Ethiopian Premier League (Top Tier)'}
                   </span>
                 </div>
                 <h3 className="font-sports font-black text-white text-lg sm:text-xl mt-0.5">
-                  {halabaStanding.position === 1
-                    ? 'Halaba Ketema (በርበሬዎቹ) leads the Ethiopian Premier League'
-                    : `Halaba Ketema (በርበሬዎቹ) stands in position #${halabaStanding.position} (Continental Qualification Spot)`}
+                  {language === 'am'
+                    ? halabaStanding.position === 1
+                      ? 'ሀላባ ከተማ (በርበሬዎቹ) የኢትዮጵያ ፕሪሚየር ሊግን ይመራል'
+                      : `ሀላባ ከተማ (በርበሬዎቹ) በደረጃ #${halabaStanding.position} ላይ ይገኛል (የካፍ ማጣሪያ ቦታ)`
+                    : halabaStanding.position === 1
+                    ? 'Halaba Ketema (Berberewochu) leads the Ethiopian Premier League'
+                    : `Halaba Ketema (Berberewochu) stands in position #${halabaStanding.position} (Continental Qualification Spot)`}
                 </h3>
               </div>
             </div>
 
             <div className="flex items-center gap-3 sm:gap-6 self-start md:self-auto bg-neutral-950/80 px-4 py-2 rounded-lg border border-neutral-800 text-xs font-mono">
               <div>
-                <span className="text-neutral-400 block text-xxs uppercase">Points</span>
-                <span className="text-amber-400 font-black text-base">{halabaStanding.points} Pts</span>
+                <span className="text-neutral-400 block text-xxs uppercase">{t.points}</span>
+                <span className="text-amber-400 font-black text-base">{halabaStanding.points} {t.pts}</span>
               </div>
               <div className="h-6 w-px bg-neutral-800" />
               <div>
-                <span className="text-neutral-400 block text-xxs uppercase">Record</span>
-                <span className="text-white font-bold">{halabaStanding.played} M ({halabaStanding.won}W - {halabaStanding.drawn}D - {halabaStanding.lost}L)</span>
+                <span className="text-neutral-400 block text-xxs uppercase">{t.record}</span>
+                <span className="text-white font-bold">{halabaStanding.played} ({halabaStanding.won}{language === 'am' ? 'አ' : 'W'} - {halabaStanding.drawn}{language === 'am' ? 'አቻ' : 'D'} - {halabaStanding.lost}{language === 'am' ? 'ተ' : 'L'})</span>
               </div>
               <div className="h-6 w-px bg-neutral-800" />
               <div>
-                <span className="text-neutral-400 block text-xxs uppercase">Goals (GD)</span>
-                <span className="text-emerald-400 font-bold">{halabaStanding.goalsFor} GF / {halabaStanding.goalsAgainst} GA (+{halabaStanding.goalDifference})</span>
+                <span className="text-neutral-400 block text-xxs uppercase">{t.goalsGd}</span>
+                <span className="text-emerald-400 font-bold">{halabaStanding.goalsFor} {t.gf} / {halabaStanding.goalsAgainst} {t.ga} ({halabaStanding.goalDifference > 0 ? `+${halabaStanding.goalDifference}` : halabaStanding.goalDifference})</span>
               </div>
             </div>
           </div>
@@ -111,15 +121,15 @@ export const StandingsPage: React.FC = () => {
         <div className="mt-6 pt-6 border-t border-neutral-800 flex flex-wrap items-center gap-6 text-xs text-neutral-400">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded bg-amber-500 shadow-sm shadow-amber-500/50" />
-            <span className="text-neutral-300 font-medium">1st Place • CAF Champions League Qualification</span>
+            <span className="text-neutral-300 font-medium">{t.cafChampionsLeagueQual}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded bg-emerald-500" />
-            <span className="text-emerald-300 font-medium">2nd Place • CAF Confederation Cup Qualification (Halaba Ketema Spot)</span>
+            <span className="text-emerald-300 font-medium">{t.cafConfedCupQual}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded bg-red-600" />
-            <span>Relegation Zone (Positions 14–16)</span>
+            <span>{t.relegationZoneDesc}</span>
           </div>
         </div>
       </div>
@@ -148,6 +158,7 @@ export const StandingsPage: React.FC = () => {
                 const isLeader = team.position === 1;
                 const isConfed = team.position === 2;
                 const isRelegation = team.position >= 14;
+                const localizedName = getLocalizedTeamName(team.teamId, team.teamName, language);
 
                 return (
                   <tr
@@ -178,18 +189,18 @@ export const StandingsPage: React.FC = () => {
                     {/* Club */}
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
-                        <EthiopianClubLogo teamId={team.teamId} teamName={team.teamName} size={34} badgeUrl={team.badgeUrl} />
+                        <EthiopianClubLogo teamId={team.teamId} teamName={localizedName} size={34} badgeUrl={team.badgeUrl} />
                         <div>
                           <span
                             className={`font-sports text-base tracking-wide ${
                               team.isHalaba ? 'text-red-400 font-black text-lg' : 'text-neutral-200'
                             }`}
                           >
-                            {team.teamName}
+                            {localizedName}
                           </span>
                           {team.isHalaba && (
                             <span className="block text-xxs uppercase tracking-wider text-emerald-400 font-sans">
-                              Official Club
+                              {t.officialClub}
                             </span>
                           )}
                         </div>
@@ -198,43 +209,33 @@ export const StandingsPage: React.FC = () => {
 
                     {/* Stats */}
                     <td className="py-4 px-3 text-center text-neutral-300">{team.played}</td>
-                    <td className="py-4 px-3 text-center text-emerald-400 font-medium">
-                      {team.won}
-                    </td>
-                    <td className="py-4 px-3 text-center text-neutral-400">{team.drawn}</td>
+                    <td className="py-4 px-3 text-center text-emerald-400 font-semibold">{team.won}</td>
+                    <td className="py-4 px-3 text-center text-amber-300">{team.drawn}</td>
                     <td className="py-4 px-3 text-center text-red-400">{team.lost}</td>
-                    <td className="py-4 px-3 text-center text-neutral-400 hidden md:table-cell">
-                      {team.goalsFor}
-                    </td>
-                    <td className="py-4 px-3 text-center text-neutral-400 hidden md:table-cell">
-                      {team.goalsAgainst}
-                    </td>
-                    <td className="py-4 px-3 text-center font-mono text-neutral-300">
+                    <td className="py-4 px-3 text-center text-neutral-400 hidden md:table-cell">{team.goalsFor}</td>
+                    <td className="py-4 px-3 text-center text-neutral-400 hidden md:table-cell">{team.goalsAgainst}</td>
+                    <td className="py-4 px-3 text-center font-mono">
                       {team.goalDifference > 0 ? `+${team.goalDifference}` : team.goalDifference}
                     </td>
-
-                    {/* Points */}
-                    <td className="py-4 px-4 text-center">
-                      <span className="font-sports font-black text-xl text-white bg-neutral-950 px-3 py-1 rounded-lg border border-neutral-800">
-                        {team.points}
-                      </span>
+                    <td className="py-4 px-4 text-center font-sports font-black text-lg text-white">
+                      {team.points}
                     </td>
 
-                    {/* Form (Last 5) */}
+                    {/* Form Guide */}
                     <td className="py-4 px-4 text-center hidden sm:table-cell">
                       <div className="flex items-center justify-center gap-1">
                         {team.form.map((res, i) => (
                           <span
                             key={i}
-                            className={`w-5 h-5 rounded text-xxs font-bold flex items-center justify-center ${
+                            className={`w-5 h-5 rounded flex items-center justify-center text-xxs font-bold text-white uppercase ${
                               res === 'W'
-                                ? 'bg-emerald-600 text-white'
+                                ? 'bg-emerald-600'
                                 : res === 'D'
-                                ? 'bg-amber-600 text-white'
-                                : 'bg-neutral-700 text-neutral-300'
+                                ? 'bg-amber-600'
+                                : 'bg-red-600'
                             }`}
                           >
-                            {res}
+                            {getFormBadgeLocalized(res, language)}
                           </span>
                         ))}
                       </div>
@@ -244,14 +245,6 @@ export const StandingsPage: React.FC = () => {
               })}
             </tbody>
           </table>
-        </div>
-
-        {/* Footnote on rankings */}
-        <div className="p-4 bg-neutral-950/80 border-t border-neutral-800 text-xs text-neutral-400 flex items-center gap-2">
-          <Info className="w-4 h-4 text-amber-400 shrink-0" />
-          <span>
-            Rankings are updated following official match confirmation by the Ethiopian Football Federation (EFF).
-          </span>
         </div>
       </div>
     </div>

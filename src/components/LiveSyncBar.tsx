@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useClub } from '../context/ClubContext';
+import { getLocalizedTeamName } from '../utils/localization';
 import {
   RefreshCw,
   Radio,
@@ -9,20 +10,19 @@ import {
   Pause,
   ChevronDown,
   Trophy,
-  Flame,
   Check
 } from 'lucide-react';
 
 export const LiveSyncBar: React.FC = () => {
   const {
     t,
+    language,
     isAutoSyncEnabled,
     toggleAutoSync,
     autoSyncInterval,
     setAutoSyncInterval,
     secondsUntilNextSync,
     isSyncing,
-    lastSyncTime,
     syncNow,
     simulateLiveMatchAction,
     advanceLeagueMatchday,
@@ -36,9 +36,9 @@ export const LiveSyncBar: React.FC = () => {
   const liveMatch = matches.find((m) => m.status === 'LIVE');
 
   const intervals = [
-    { label: '15s (Fast)', value: 15 },
-    { label: '30s (Default)', value: 30 },
-    { label: '60s (1 min)', value: 60 },
+    { label: language === 'am' ? '15 ሰከንድ (ፈጣን)' : '15s (Fast)', value: 15 },
+    { label: language === 'am' ? '30 ሰከንድ (መደበኛ)' : '30s (Default)', value: 30 },
+    { label: language === 'am' ? '60 ሰከንድ (1 ደቂቃ)' : '60s (1 min)', value: 60 },
   ];
 
   return (
@@ -66,24 +66,26 @@ export const LiveSyncBar: React.FC = () => {
           {liveMatch ? (
             <button
               onClick={() => setSelectedMatchId(liveMatch.id)}
-              className="flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/90 border border-red-800/80 hover:bg-red-900/90 text-red-200 transition-colors animate-pulse"
-              title="Click to view live match center"
+              className="flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/90 border border-red-800/80 hover:bg-red-900/90 text-red-200 transition-colors animate-pulse cursor-pointer"
+              title={language === 'am' ? 'የቀጥታ ጨዋታውን ማዕከል ለማየት ይጫኑ' : 'Click to view live match center'}
             >
               <Radio className="w-3.5 h-3.5 text-red-400" />
               <span className="font-sports font-black text-amber-300">
                 {liveMatch.liveMinute}'
               </span>
               <span className="font-bold text-white">
-                {liveMatch.homeTeam.name}{' '}
+                {getLocalizedTeamName(liveMatch.homeTeam?.id, liveMatch.homeTeam?.name, language)}{' '}
                 <span className="text-amber-400 font-mono">
                   {liveMatch.score?.home ?? 0} - {liveMatch.score?.away ?? 0}
                 </span>{' '}
-                {liveMatch.awayTeam.name}
+                {getLocalizedTeamName(liveMatch.awayTeam?.id, liveMatch.awayTeam?.name, language)}
               </span>
             </button>
           ) : (
             <span className="text-neutral-400 hidden md:inline">
-              Automated match schedule and standings recalculation engine
+              {language === 'am'
+                ? 'አውቶማቲክ የጨዋታ መርሃ-ግብር እና የሰንጠረዥ ማዘመኛ ሞተር'
+                : 'Automated match schedule and standings recalculation engine'}
             </span>
           )}
         </div>
@@ -105,8 +107,8 @@ export const LiveSyncBar: React.FC = () => {
           <button
             onClick={syncNow}
             disabled={isSyncing}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white font-semibold transition-all disabled:opacity-60 active:scale-95"
-            title="Fetch and recalculate now"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white font-semibold transition-all disabled:opacity-60 active:scale-95 cursor-pointer"
+            title={language === 'am' ? 'አሁን አድስ' : 'Fetch and recalculate now'}
           >
             <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isSyncing ? 'animate-spin' : ''}`} />
             <span>{isSyncing ? t.syncingStatus : t.syncNowBtn}</span>
@@ -115,40 +117,42 @@ export const LiveSyncBar: React.FC = () => {
           {/* Quick Simulation Trigger (Live Goal / Event) */}
           <button
             onClick={simulateLiveMatchAction}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-sports font-bold uppercase tracking-wider transition-all shadow-md active:scale-95"
-            title="Simulate live match action, goals, and table shifts"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-sports font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
+            title={language === 'am' ? 'የቀጥታ ግብ አስመስል' : 'Simulate live match action, goals, and table shifts'}
           >
             <Zap className="w-3.5 h-3.5 text-amber-200" />
-            <span className="hidden sm:inline">Simulate Live Goal</span>
-            <span className="sm:hidden">Goal!</span>
+            <span className="hidden sm:inline">
+              {language === 'am' ? 'የቀጥታ ግብ አስመስል' : 'Simulate Live Goal'}
+            </span>
+            <span className="sm:hidden">{language === 'am' ? 'ግብ!' : 'Goal!'}</span>
           </button>
 
           {/* Official League Sync */}
           <button
             onClick={advanceLeagueMatchday}
             disabled={isSyncing}
-            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 font-sports font-bold uppercase tracking-wider transition-colors disabled:opacity-50"
-            title="Fetch latest verified standings from TheSportsDB"
+            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 font-sports font-bold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer"
+            title={language === 'am' ? 'ይፋዊ የሊግ መረጃዎችን አመሳስል' : 'Fetch latest verified standings from TheSportsDB'}
           >
             <Trophy className="w-3.5 h-3.5 text-amber-400" />
-            <span>Sync Official League</span>
+            <span>{language === 'am' ? 'ሊጉን አመሳስል' : 'Sync Official League'}</span>
           </button>
 
           {/* Interval & Pause Dropdown */}
           <div className="relative">
             <button
               onClick={() => setIntervalDropdownOpen(!intervalDropdownOpen)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-400 hover:text-white transition-colors"
-              title="Change update interval"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              title={language === 'am' ? 'የማዘመኛ ፍጥነት ቀይር' : 'Change update interval'}
             >
-              <span>{isAutoSyncEnabled ? `${autoSyncInterval}s` : 'Paused'}</span>
+              <span>{isAutoSyncEnabled ? `${autoSyncInterval}s` : (language === 'am' ? 'ቆሟል' : 'Paused')}</span>
               <ChevronDown className="w-3 h-3" />
             </button>
 
             {intervalDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-44 bg-neutral-900 rounded-xl shadow-2xl border border-neutral-700 py-1 z-50 animate-in fade-in zoom-in-95">
+              <div className="absolute right-0 mt-2 w-48 bg-neutral-900 rounded-xl shadow-2xl border border-neutral-700 py-1 z-50 animate-in fade-in zoom-in-95">
                 <div className="px-3 py-1 text-xxs font-bold text-neutral-500 uppercase tracking-wider border-b border-neutral-800">
-                  Update Frequency
+                  {language === 'am' ? 'የማዘመኛ ድግግሞሽ' : 'Update Frequency'}
                 </div>
 
                 {intervals.map((intv) => (
@@ -159,7 +163,7 @@ export const LiveSyncBar: React.FC = () => {
                       if (!isAutoSyncEnabled) toggleAutoSync();
                       setIntervalDropdownOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between transition-colors ${
+                    className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between transition-colors cursor-pointer ${
                       isAutoSyncEnabled && autoSyncInterval === intv.value
                         ? 'bg-red-600/20 text-red-400 font-bold'
                         : 'text-neutral-300 hover:bg-neutral-800'
@@ -177,9 +181,13 @@ export const LiveSyncBar: React.FC = () => {
                     toggleAutoSync();
                     setIntervalDropdownOpen(false);
                   }}
-                  className="w-full text-left px-3 py-1.5 text-xs flex items-center justify-between text-neutral-300 hover:bg-neutral-800 border-t border-neutral-800 mt-1"
+                  className="w-full text-left px-3 py-1.5 text-xs flex items-center justify-between text-neutral-300 hover:bg-neutral-800 border-t border-neutral-800 mt-1 cursor-pointer"
                 >
-                  <span>{isAutoSyncEnabled ? 'Pause Auto-Update' : 'Resume Auto-Update'}</span>
+                  <span>
+                    {isAutoSyncEnabled
+                      ? (language === 'am' ? 'አውቶማቲክ ማመሳሰልን አቁም' : 'Pause Auto-Update')
+                      : (language === 'am' ? 'አውቶማቲክ ማመሳሰልን ቀጥል' : 'Resume Auto-Update')}
+                  </span>
                   {isAutoSyncEnabled ? (
                     <Pause className="w-3.5 h-3.5 text-amber-400" />
                   ) : (
