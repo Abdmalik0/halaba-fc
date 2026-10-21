@@ -28,6 +28,7 @@ import {
   initialShopItems,
 } from '../data/mockData';
 import { translations } from '../translations';
+import { ClubImages } from '../assets/images';
 
 export type PageRoute = 'home' | 'fixtures' | 'standings' | 'news' | 'membership' | 'shop' | 'about' | 'contact' | 'admin';
 
@@ -317,8 +318,23 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } as Match;
       });
       if (liveMatches.length > 0) {
+        // Sort matches canonically so order is rock-solid and never jumps on load
+        const halabaPriority = ['m-epl-rd3', 'm-epl-rd4', 'm-epl-rd5', 'm-epl-rd2', 'm-epl-rd1'];
+        liveMatches.sort((a, b) => {
+          const aIdx = halabaPriority.indexOf(a.id);
+          const bIdx = halabaPriority.indexOf(b.id);
+          if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+          if (aIdx !== -1) return -1;
+          if (bIdx !== -1) return 1;
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        });
+
         setMatches(liveMatches);
-        localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(liveMatches));
+        try {
+          localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(liveMatches));
+        } catch (e) {
+          console.warn('LocalStorage error caching matches:', e);
+        }
         localStorage.setItem('hcfc_firestore_matches_seeded', 'true');
       }
     }, (error) => {
@@ -524,39 +540,77 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // News State & Real-Time Firebase Firestore Integration
   const [news, setNews] = useState<NewsArticle[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.NEWS);
-    if (!saved) return initialNews;
     try {
-      const parsed: NewsArticle[] = JSON.parse(saved);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : initialNews;
-    } catch {
-      return initialNews;
+      const saved = localStorage.getItem(STORAGE_KEYS.NEWS);
+      if (saved) {
+        const parsed: NewsArticle[] = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((item) => {
+            const initialMatch = initialNews.find((n) => n.id === item.id);
+            return {
+              ...item,
+              imageUrl: item.imageUrl || initialMatch?.imageUrl || ClubImages.newsCoachInterview,
+            };
+          });
+        }
+      }
+    } catch (e) {
+      // ignore
     }
+    return initialNews;
   });
-
 
   useEffect(() => {
     const q = query(collection(db, "news"), orderBy("createdAt", "desc"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (snapshot.empty) {
+        return;
+      }
+
       const liveArticles: NewsArticle[] = snapshot.docs.map((docSnap) => {
         const data = docSnap.data();
+        const initialMatch = initialNews.find((n) => n.id === docSnap.id);
+        const resolvedImage = initialMatch?.imageUrl || data.imageUrl || ClubImages.newsCoachInterview;
+
         return {
           id: docSnap.id,
-          title: typeof data.title === 'object' ? data.title : { en: data.title || '', am: data.title || '', om: data.title || '' },
-          summary: typeof data.summary === 'object' ? data.summary : { en: data.summary || '', am: data.summary || '', om: data.summary || '' },
-          content: typeof data.content === 'object' ? data.content : { en: data.content || '', am: data.content || '', om: data.content || '' },
-          category: data.category || 'CLUB_NEWS',
-          date: data.date || new Date().toISOString().slice(0, 10),
-          author: data.author || 'Club Administration',
-          imageUrl: data.imageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
-          readTime: data.readTime || '3 min read',
+          title: typeof data.title === 'object' && data.title !== null
+            ? { en: data.title.en || '', am: data.title.am || data.title.en || '', om: data.title.om || data.title.en || '' }
+            : (initialMatch ? initialMatch.title : { en: String(data.title || ''), am: String(data.title || ''), om: String(data.title || '') }),
+          summary: typeof data.summary === 'object' && data.summary !== null
+            ? { en: data.summary.en || '', am: data.summary.am || data.summary.en || '', om: data.summary.om || data.summary.en || '' }
+            : (initialMatch ? initialMatch.summary : { en: String(data.summary || ''), am: String(data.summary || ''), om: String(data.summary || '') }),
+          content: typeof data.content === 'object' && data.content !== null
+            ? { en: data.content.en || '', am: data.content.am || data.content.en || '', om: data.content.om || data.content.en || '' }
+            : (initialMatch ? initialMatch.content : { en: String(data.content || ''), am: String(data.content || ''), om: String(data.content || '') }),
+          category: data.category || initialMatch?.category || 'CLUB_NEWS',
+          date: data.date || initialMatch?.date || new Date().toISOString().slice(0, 10),
+          author: data.author || initialMatch?.author || 'Club Administration',
+          imageUrl: resolvedImage,
+          readTime: data.readTime || initialMatch?.readTime || '3 min read',
+          isFeatured: docSnap.id === 'sxRTmExguBl4NTz4RYjR' || Boolean(data.isFeatured || initialMatch?.isFeatured),
         } as NewsArticle;
+      });
+
+      // Keep supplementary membership and academy stories present
+      initialNews.forEach((initArt) => {
+        if (!liveArticles.some((a) => a.id === initArt.id)) {
+          liveArticles.push({ ...initArt });
+        }
       });
 
       if (liveArticles.length > 0) {
         setNews(liveArticles);
-        localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(liveArticles));
+        try {
+          const cacheSafeArticles = liveArticles.map((a) => ({
+            ...a,
+            imageUrl: a.imageUrl?.startsWith('data:') ? '' : a.imageUrl,
+          }));
+          localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(cacheSafeArticles));
+        } catch (e) {
+          console.warn('Could not cache news in localStorage:', e);
+        }
       }
     }, (error) => {
       console.error("Firebase real-time news error:", error);
@@ -566,20 +620,37 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
-  const addNewsArticle = (art: Omit<NewsArticle, 'id'>) => {
+  const addNewsArticle = async (art: Omit<NewsArticle, 'id'>) => {
+    const newId = `news-${Date.now()}`;
     const newArticle: NewsArticle = {
       ...art,
-      id: `news-${Date.now()}`,
+      id: newId,
     };
     const updated = [newArticle, ...news];
     setNews(updated);
-    localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated));
+    try {
+      localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated.map((a) => ({ ...a, imageUrl: a.imageUrl?.startsWith('data:') ? '' : a.imageUrl }))));
+      await setDoc(doc(db, "news", newId), {
+        ...art,
+        createdAt: serverTimestamp(),
+      });
+    } catch (e) {
+      console.warn('Could not sync added article to Firestore:', e);
+    }
   };
 
-  const updateNewsArticle = (id: string, updates: Partial<NewsArticle>) => {
+  const updateNewsArticle = async (id: string, updates: Partial<NewsArticle>) => {
     const updated = news.map((n) => (n.id === id ? { ...n, ...updates } : n));
     setNews(updated);
-    localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated));
+    try {
+      localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated.map((a) => ({ ...a, imageUrl: a.imageUrl?.startsWith('data:') ? '' : a.imageUrl }))));
+      await setDoc(doc(db, "news", id), {
+        ...updates,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    } catch (e) {
+      console.warn('Could not sync updated article to Firestore:', e);
+    }
   };
 
   const deleteNewsArticle = async (id: string) => {
@@ -958,10 +1029,26 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Shop Items State & Real-Time Firebase Firestore Integration
   const [shopItems, setShopItems] = useState<ShopItem[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.SHOP_ITEMS);
-    return saved ? JSON.parse(saved) : initialShopItems;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.SHOP_ITEMS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((item) => {
+            const initialMatch = initialShopItems.find((i) => i.id === item.id);
+            return {
+              ...item,
+              imageUrl: item.imageUrl || initialMatch?.imageUrl || ClubImages.jerseyHomeReal,
+            };
+          });
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    return initialShopItems;
   });
-  const [isProductsLoading, setIsProductsLoading] = useState<boolean>(true);
+  const [isProductsLoading, setIsProductsLoading] = useState<boolean>(false);
   const [productsSyncError, setProductsSyncError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -994,8 +1081,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.warn('Could not auto-seed default products to Firestore:', seedErr);
           }
         } else {
-          setShopItems([]);
-          localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify([]));
+          setShopItems(initialShopItems);
+          localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(initialShopItems));
         }
         return;
       }
@@ -1003,6 +1090,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const liveProducts: ShopItem[] = snapshot.docs.map((docSnap) => {
         const data = docSnap.data();
         const initialMatch = initialShopItems.find((i) => i.id === docSnap.id);
+        const resolvedImage = initialMatch?.imageUrl || data.imageUrl || ClubImages.jerseyHomeReal;
 
         return {
           id: docSnap.id,
@@ -1013,7 +1101,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ? { en: data.description.en || '', am: data.description.am || data.description.en || '', om: data.description.om || data.description.en || '' }
             : (initialMatch ? initialMatch.description : { en: String(data.description || ''), am: String(data.description || ''), om: String(data.description || '') }),
           price: typeof data.price === 'number' ? data.price : (initialMatch ? initialMatch.price : (parseFloat(data.price) || 0)),
-          imageUrl: initialMatch ? initialMatch.imageUrl : (data.imageUrl || 'https://images.unsplash.com/photo-1577212017184-80cc0da11082?auto=format&fit=crop&w=800&q=80'),
+          imageUrl: resolvedImage,
           availableSizes: Array.isArray(data.availableSizes) && data.availableSizes.length > 0 ? data.availableSizes : (initialMatch ? initialMatch.availableSizes : ['S', 'M', 'L', 'XL']),
           category: (data.category as 'JERSEY' | 'KIT' | 'ACCESSORY') || (initialMatch ? initialMatch.category : 'JERSEY'),
           inStock: data.inStock !== undefined ? Boolean(data.inStock) : true,
@@ -1021,10 +1109,25 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
       });
 
+      // Retain full 5 products catalog if any standard item is absent from cloud collection
+      initialShopItems.forEach((initItem) => {
+        if (!liveProducts.some((p) => p.id === initItem.id)) {
+          liveProducts.push({ ...initItem });
+        }
+      });
+
       liveProducts.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
 
       setShopItems(liveProducts);
-      localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(liveProducts));
+      try {
+        const cacheSafeProds = liveProducts.map((p) => ({
+          ...p,
+          imageUrl: p.imageUrl?.startsWith('data:') ? '' : p.imageUrl,
+        }));
+        localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(cacheSafeProds));
+      } catch (e) {
+        console.warn('Could not cache shop items in localStorage:', e);
+      }
       localStorage.setItem('hcfc_firestore_products_seeded', 'true');
     }, (error) => {
       console.error('Firebase real-time products sync error:', error);

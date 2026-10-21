@@ -345,41 +345,22 @@ export const AdminPage: React.FC = () => {
 
     try {
       if (editingArticleId) {
-        // Keep your existing local update function for edits
-        updateNewsArticle(editingArticleId, {
+        await updateNewsArticle(editingArticleId, {
           title: { en: newsTitleEn, am: newsTitleAm || newsTitleEn, om: newsTitleOm || newsTitleEn },
           summary: { en: newsSummaryEn, am: newsSummaryAm || newsSummaryEn, om: newsSummaryOm || newsSummaryEn },
           content: { en: newsContentEn, am: newsContentEn, om: newsContentEn },
           category: newsCategory,
-          imageUrl: newsImageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
+          imageUrl: newsImageUrl || ClubImages.newsCoachInterview,
         });
       } else {
-        // Save NEW article to Firebase Cloud Database if available
-        try {
-          await addDoc(collection(db, "news"), {
-            title: { en: newsTitleEn, am: newsTitleAm || newsTitleEn, om: newsTitleOm || newsTitleEn },
-            summary: { en: newsSummaryEn, am: newsSummaryAm || newsSummaryEn, om: newsSummaryOm || newsSummaryEn },
-            content: { en: newsContentEn, am: newsContentEn, om: newsContentEn },
-            category: newsCategory,
-            date: new Date().toISOString().slice(0, 10),
-            author: 'Club Administration',
-            imageUrl: newsImageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
-            readTime: '3 min read',
-            createdAt: serverTimestamp(),
-          });
-        } catch (fbErr) {
-          console.warn("Could not publish to Firebase Cloud (saving locally):", fbErr);
-        }
-
-        // Also update local state as a backup fallback
-        addNewsArticle({
+        await addNewsArticle({
           title: { en: newsTitleEn, am: newsTitleAm || newsTitleEn, om: newsTitleOm || newsTitleEn },
           summary: { en: newsSummaryEn, am: newsSummaryAm || newsSummaryEn, om: newsSummaryOm || newsSummaryEn },
           content: { en: newsContentEn, am: newsContentEn, om: newsContentEn },
           category: newsCategory,
           date: new Date().toISOString().slice(0, 10),
           author: 'Club Administration',
-          imageUrl: newsImageUrl || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80',
+          imageUrl: newsImageUrl || ClubImages.newsCoachInterview,
           readTime: '3 min read',
         });
       }

@@ -8,6 +8,10 @@ import newsFasilDraw from './halaba_news_fasil_draw.jpg';
 import newsCrowdCelebration from './halaba_news_crowd_celebration.jpg';
 import newsBahirDarWin from './halaba_news_bahirdar_win.jpg';
 import newsMatchPoster from './halaba_news_match_poster.jpg';
+import newsCoachInterview from './firestore_news_sxRTmExguBl4NTz4RYjR.jpg';
+import jerseyHomeReal from './firestore_prod_jersey-home-2026.jpg';
+import jerseyAwayReal from './firestore_prod_jersey-away-2026.jpg';
+import jerseyThirdReal from './firestore_prod_jersey-third-2026.jpg';
 
 export const ClubImages = {
   heroStadium,
@@ -20,4 +24,8 @@ export const ClubImages = {
   newsCrowdCelebration,
   newsBahirDarWin,
   newsMatchPoster,
+  newsCoachInterview,
+  jerseyHomeReal,
+  jerseyAwayReal,
+  jerseyThirdReal,
 };
