@@ -648,7 +648,7 @@ export const AdminPage: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4 text-left">
+          <form onSubmit={handleLogin} noValidate className="space-y-4 text-left">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
                 {language === 'am' ? 'የአስተዳዳሪ ኢሜይል *' : 'Admin Email *'}
@@ -657,7 +657,7 @@ export const AdminPage: React.FC = () => {
                 <input
                   type="email"
                   value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
+                  onChange={(e) => setEmailInput(e.target.value.trim())}
                   placeholder="admin@halabafc.et"
                   required
                   autoComplete="email"

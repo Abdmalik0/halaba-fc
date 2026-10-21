@@ -77,3 +77,138 @@ select,
 ::-webkit-scrollbar-thumb:hover {
   background: #dc2626;
 }
+
+/* ==========================================================================
+   LEGACY MOBILE & SAMSUNG INTERNET COLOR & LAYOUT COMPATIBILITY LAYER
+   (Fixes black-and-white display and flex/grid layout collapses on older engines)
+   ========================================================================== */
+
+/* Standard Hex/RGB color fallbacks for older browser engines */
+:root {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #171717;
+  --bg-tertiary: #262626;
+  --text-primary: #f5f5f5;
+  --text-muted: #a3a3a3;
+  --brand-red: #c80815;
+  --brand-red-hover: #ef4444;
+  --brand-green: #056b2b;
+  --brand-emerald: #10b981;
+  --brand-gold: #f5b800;
+  --border-dark: #262626;
+  --border-red: rgba(200, 8, 21, 0.4);
+}
+
+/* Ensure body & root always maintain true dark theme colors */
+html,
+body,
+#root {
+  background-color: #0a0a0a;
+  color: #f5f5f5;
+}
+
+/* Fallback colors for key utility classes on older browsers */
+.bg-neutral-950 { background-color: #0a0a0a !important; }
+.bg-neutral-900 { background-color: #171717 !important; }
+.bg-neutral-800 { background-color: #262626 !important; }
+.bg-neutral-700 { background-color: #404040 !important; }
+.border-neutral-800 { border-color: #262626 !important; }
+.border-neutral-700 { border-color: #404040 !important; }
+.text-white { color: #ffffff !important; }
+.text-neutral-100 { color: #f5f5f5 !important; }
+.text-neutral-200 { color: #e5e5e5 !important; }
+.text-neutral-300 { color: #d4d4d4 !important; }
+.text-neutral-400 { color: #a3a3a3 !important; }
+.text-neutral-500 { color: #737373 !important; }
+
+.bg-red-600 { background-color: #dc2626 !important; }
+.bg-red-700 { background-color: #b91c1c !important; }
+.bg-red-950 { background-color: #450a0a !important; }
+.text-red-400 { color: #f87171 !important; }
+.text-red-500 { color: #ef4444 !important; }
+.border-red-600 { border-color: #dc2626 !important; }
+.border-red-800 { border-color: #991b1b !important; }
+
+.bg-emerald-600 { background-color: #059669 !important; }
+.bg-emerald-950 { background-color: #022c22 !important; }
+.text-emerald-400 { color: #34d399 !important; }
+.border-emerald-500 { border-color: #10b981 !important; }
+
+.text-amber-300 { color: #fcd34d !important; }
+.text-amber-400 { color: #fbbf24 !important; }
+
+/* -webkit- vendor prefixes for flexbox and grid layouts */
+.flex {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+.inline-flex {
+  display: -webkit-inline-box;
+  display: -webkit-inline-flex;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+}
+
+.flex-col {
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
+  -ms-flex-direction: column;
+  flex-direction: column;
+}
+
+.flex-row {
+  -webkit-box-orient: horizontal;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: row;
+  -ms-flex-direction: row;
+  flex-direction: row;
+}
+
+.flex-wrap {
+  -webkit-flex-wrap: wrap;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+}
+
+.items-center {
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.items-start {
+  -webkit-box-align: start;
+  -webkit-align-items: flex-start;
+  -ms-flex-align: start;
+  align-items: flex-start;
+}
+
+.justify-center {
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+}
+
+.justify-between {
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+}
+
+.justify-around {
+  -webkit-justify-content: space-around;
+  -ms-flex-pack: distribute;
+  justify-content: space-around;
+}
+
+.grid {
+  display: -ms-grid;
+  display: grid;
+}

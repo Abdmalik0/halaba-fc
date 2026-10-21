@@ -12,12 +12,13 @@ export default defineConfig(({ command }) => {
     base,
     build: {
       target: 'es2015',
+      cssTarget: 'chrome61',
     },
     plugins: [
       react(),
       tailwindcss(),
       legacy({
-        targets: ['defaults', 'not IE 11', 'Android >= 5', 'iOS >= 10'],
+        targets: ['chrome >= 49', 'safari >= 10', 'android >= 4.4', 'samsung >= 6'],
       }),
       VitePWA({
         registerType: 'autoUpdate',
