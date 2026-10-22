@@ -90,7 +90,7 @@ define(['./workbox-b1bafff1'], (function (workbox) { 'use strict';
     "revision": "0e43b7c85a772bc5f74b9beb37e41ef0"
   }, {
     "url": "index.html",
-    "revision": "0d3a4351598d44acc0eb933e2f25e0dd"
+    "revision": "9783767784736a14cef446839d991baf"
   }, {
     "url": "icon.svg",
     "revision": "587043511e5ab4fa07c8e598cdc9e295"
@@ -98,13 +98,70 @@ define(['./workbox-b1bafff1'], (function (workbox) { 'use strict';
     "url": "favicon.png",
     "revision": "8dbc84e3aa98f96348e5d96a433e2233"
   }, {
-    "url": "assets/workbox-window.prod.es5-BqEJf4Xk.js",
+    "url": "assets/workbox-window.prod.es5-legacy-BjoASsvm.js",
     "revision": null
   }, {
-    "url": "assets/index-IxgBi5ro.js",
+    "url": "assets/workbox-window.prod.es5-RNCgxoJe.js",
     "revision": null
   }, {
-    "url": "assets/index-CKRZz1E_.css",
+    "url": "assets/polyfills-legacy-DR_8rib9.js",
+    "revision": null
+  }, {
+    "url": "assets/index-legacy-dgpZsXdl.js",
+    "revision": null
+  }, {
+    "url": "assets/index-ftZmlg2j.js",
+    "revision": null
+  }, {
+    "url": "assets/index-DpKuO6cD.css",
+    "revision": null
+  }, {
+    "url": "assets/halaba_stadium_hero_mobile-CNMbA7gS.webp",
+    "revision": null
+  }, {
+    "url": "assets/halaba_stadium_hero-DlRnnI6Q.webp",
+    "revision": null
+  }, {
+    "url": "assets/halaba_stadium_hero-D7B7GHYf.jpg",
+    "revision": null
+  }, {
+    "url": "assets/halaba_squad_lineup_1792272200487-IwYXnxcU.webp",
+    "revision": null
+  }, {
+    "url": "assets/halaba_news_match_poster-Bqlk84tk.webp",
+    "revision": null
+  }, {
+    "url": "assets/halaba_news_fasil_draw-D0_u1s76.jpg",
+    "revision": null
+  }, {
+    "url": "assets/halaba_news_crowd_celebration-v-2uq95_.jpg",
+    "revision": null
+  }, {
+    "url": "assets/halaba_news_bahirdar_win-Dck88CQr.jpg",
+    "revision": null
+  }, {
+    "url": "assets/halaba_match_action_1792217992379-BmsC7Yfv.webp",
+    "revision": null
+  }, {
+    "url": "assets/halaba_home_jersey_1792356797619-DTn3NB0B.webp",
+    "revision": null
+  }, {
+    "url": "assets/halaba_away_jersey_1792356797886-CuAyXANL.webp",
+    "revision": null
+  }, {
+    "url": "assets/halaba_academy_training_1792218005519-CP1FyldZ.webp",
+    "revision": null
+  }, {
+    "url": "assets/firestore_prod_jersey-third-2026-DhrS3_as.jpg",
+    "revision": null
+  }, {
+    "url": "assets/firestore_prod_jersey-home-2026-BFuGm9Jf.jpg",
+    "revision": null
+  }, {
+    "url": "assets/firestore_prod_jersey-away-2026-CNqFQz0l.jpg",
+    "revision": null
+  }, {
+    "url": "assets/firestore_news_sxRTmExguBl4NTz4RYjR-DeahbIo_.jpg",
     "revision": null
   }, {
     "url": "favicon.png",
@@ -143,6 +200,24 @@ define(['./workbox-b1bafff1'], (function (workbox) { 'use strict';
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 10,
       maxAgeSeconds: 31536000
+    }), new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
+    })]
+  }), 'GET');
+  workbox.registerRoute(/^https:\/\/(?:r2|www)\.thesportsdb\.com\/images\/.*/i, new workbox.CacheFirst({
+    "cacheName": "sportsdb-badges-cache",
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 120,
+      maxAgeSeconds: 5184000
+    }), new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
+    })]
+  }), 'GET');
+  workbox.registerRoute(/^https:\/\/www\.thesportsdb\.com\/api\/.*/i, new workbox.StaleWhileRevalidate({
+    "cacheName": "sportsdb-api-cache",
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 50,
+      maxAgeSeconds: 604800
     }), new workbox.CacheableResponsePlugin({
       statuses: [0, 200]
     })]
