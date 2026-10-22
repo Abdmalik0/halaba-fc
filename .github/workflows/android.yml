@@ -23,7 +23,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '22'
           cache: 'npm'
 
       - name: Set up Java
@@ -36,7 +36,7 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build web assets
         run: npm run build

@@ -106,7 +106,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               src={ClubImages.heroStadiumJpg || ClubImages.heroStadium}
               alt="Halaba Stadium Supporters"
               loading="eager"
-              fetchPriority="high"
+              {...({ fetchpriority: 'high' } as any)}
               decoding="async"
               className="w-full h-full object-cover object-center filter brightness-[0.45] contrast-110 scale-105 transition-opacity duration-300"
             />
