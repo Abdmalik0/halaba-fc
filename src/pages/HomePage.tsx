@@ -23,6 +23,7 @@ import {
   getLocalizedCategory,
   getLocalizedPersonName,
 } from '../utils/localization';
+import { formatTeamName } from '../utils/formatTeamName';
 
 interface HomePageProps {
   onOpenMatchModal: (matchId: string) => void;
@@ -81,10 +82,14 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   const homeNextTeam = nextMatch ? getLocalizedTeamName(nextMatch.homeTeam?.id, nextMatch.homeTeam?.name, language) : '';
   const awayNextTeam = nextMatch ? getLocalizedTeamName(nextMatch.awayTeam?.id, nextMatch.awayTeam?.name, language) : '';
+  const homeNextShort = nextMatch ? formatTeamName(nextMatch.homeTeam?.id, homeNextTeam, language) : '';
+  const awayNextShort = nextMatch ? formatTeamName(nextMatch.awayTeam?.id, awayNextTeam, language) : '';
   const nextVenue = nextMatch ? getLocalizedVenue(nextMatch.venue, language) : '';
 
   const homeLatestTeam = latestResult ? getLocalizedTeamName(latestResult.homeTeam?.id, latestResult.homeTeam?.name, language) : '';
   const awayLatestTeam = latestResult ? getLocalizedTeamName(latestResult.awayTeam?.id, latestResult.awayTeam?.name, language) : '';
+  const homeLatestShort = latestResult ? formatTeamName(latestResult.homeTeam?.id, homeLatestTeam, language) : '';
+  const awayLatestShort = latestResult ? formatTeamName(latestResult.awayTeam?.id, awayLatestTeam, language) : '';
 
   return (
     <div className="space-y-16 pb-16">
@@ -180,18 +185,18 @@ export const HomePage: React.FC<HomePageProps> = ({
               onClick={() => onOpenMatchModal(nextMatch.id)}
               className="mt-6 cursor-pointer inline-flex flex-wrap items-center justify-center gap-2.5 px-4 py-2 rounded-2xl bg-neutral-900/85 hover:bg-neutral-800 border border-neutral-700/80 backdrop-blur-md transition-all hover:scale-[1.02] shadow-xl group text-center"
             >
-              <div className="flex items-center gap-1.5 text-red-400 font-sports font-bold text-xs uppercase tracking-wider">
+              <div className="flex items-center gap-1.5 text-red-400 font-sports font-bold text-xs uppercase tracking-wider shrink-0">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span>{t.nextHalabaMatch}</span>
               </div>
-              <span className="font-sports font-black text-sm text-white uppercase tracking-wide">
-                {homeNextTeam} {t.vs} {awayNextTeam}
+              <span className="font-sports font-black text-sm text-white uppercase tracking-wide truncate max-w-full" title={`${homeNextTeam} ${t.vs} ${awayNextTeam}`}>
+                {homeNextShort} {t.vs} {awayNextShort}
               </span>
-              <span className="text-xxs text-amber-400 font-mono bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800 font-bold">
+              <span className="text-xxs text-amber-400 font-mono bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800 font-bold whitespace-nowrap shrink-0">
                 {nextMatch.date} • {nextMatch.kickoffTime} {t.eatTimezone}
               </span>
-              <span className="text-xxs text-neutral-400 hidden sm:inline">({nextVenue})</span>
-              <ChevronRight className="w-3.5 h-3.5 text-neutral-400 group-hover:translate-x-0.5 transition-transform" />
+              <span className="text-xxs text-neutral-400 hidden sm:inline truncate max-w-[150px]">({nextVenue})</span>
+              <ChevronRight className="w-3.5 h-3.5 text-neutral-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
             </div>
           )}
         </div>
@@ -223,29 +228,29 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </span>
                 </div>
 
-                {/* Teams Display */}
-                <div className="py-6 flex items-center justify-around">
-                  <div className="flex flex-col items-center text-center w-2/5">
-                    <EthiopianClubLogo teamId={nextMatch.homeTeam.id} teamName={homeNextTeam} size={68} priority />
-                    <span className="font-sports font-bold text-base text-white mt-2">
-                      {homeNextTeam}
+                {/* Teams Display (Flexible 3-column layout) */}
+                <div className="py-5 sm:py-6 flex items-center justify-between gap-2 w-full min-w-0">
+                  <div className="flex-1 min-w-0 flex flex-col items-center text-center">
+                    <EthiopianClubLogo teamId={nextMatch.homeTeam.id} teamName={homeNextTeam} size={56} priority className="shrink-0 flex-shrink-0" />
+                    <span className="font-sports font-bold text-sm sm:text-base text-white mt-2 truncate max-w-full block" title={homeNextTeam}>
+                      {homeNextShort}
                     </span>
-                    <span className="text-xs text-neutral-400 font-semibold uppercase">{t.home}</span>
+                    <span className="text-xxs text-neutral-400 font-semibold uppercase">{t.home}</span>
                   </div>
 
-                  <div className="flex flex-col items-center px-2">
-                    <span className="font-sports font-black text-2xl text-neutral-500">{t.vs}</span>
-                    <span className="text-xs font-mono font-bold text-amber-400 mt-1 bg-neutral-900 px-2 py-0.5 rounded border border-neutral-800">
+                  <div className="shrink-0 flex-shrink-0 flex flex-col items-center px-1.5 sm:px-3">
+                    <span className="font-sports font-black text-xl sm:text-2xl text-neutral-500">{t.vs}</span>
+                    <span className="text-xxs font-mono font-bold text-amber-400 mt-1 bg-neutral-900 px-2 py-0.5 rounded border border-neutral-800 whitespace-nowrap">
                       {nextMatch.kickoffTime} {t.eatTimezone}
                     </span>
                   </div>
 
-                  <div className="flex flex-col items-center text-center w-2/5">
-                    <EthiopianClubLogo teamId={nextMatch.awayTeam.id} teamName={awayNextTeam} size={68} priority />
-                    <span className="font-sports font-bold text-base text-white mt-2">
-                      {awayNextTeam}
+                  <div className="flex-1 min-w-0 flex flex-col items-center text-center">
+                    <EthiopianClubLogo teamId={nextMatch.awayTeam.id} teamName={awayNextTeam} size={56} priority className="shrink-0 flex-shrink-0" />
+                    <span className="font-sports font-bold text-sm sm:text-base text-white mt-2 truncate max-w-full block" title={awayNextTeam}>
+                      {awayNextShort}
                     </span>
-                    <span className="text-xs text-neutral-400 font-semibold uppercase">{t.away}</span>
+                    <span className="text-xxs text-neutral-400 font-semibold uppercase">{t.away}</span>
                   </div>
                 </div>
 
@@ -299,28 +304,28 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </span>
                 </div>
 
-                {/* Scoreline */}
-                <div className="py-6 flex items-center justify-between gap-2 sm:gap-4">
+                {/* Scoreline (Flexible 3-column layout) */}
+                <div className="py-5 sm:py-6 flex items-center justify-between gap-2 w-full min-w-0">
                   <div className="flex-1 min-w-0 flex flex-col items-center text-center">
-                    <EthiopianClubLogo teamId={latestResult.homeTeam.id} teamName={homeLatestTeam} size={68} priority />
-                    <span className="font-sports font-bold text-base text-white mt-2 truncate max-w-full">
-                      {homeLatestTeam}
+                    <EthiopianClubLogo teamId={latestResult.homeTeam.id} teamName={homeLatestTeam} size={56} priority className="shrink-0 flex-shrink-0" />
+                    <span className="font-sports font-bold text-sm sm:text-base text-white mt-2 truncate max-w-full block" title={homeLatestTeam}>
+                      {homeLatestShort}
                     </span>
                   </div>
 
-                  <div className="flex flex-col items-center justify-center shrink-0 px-2 sm:px-4">
-                    <div className="font-sports font-black text-3xl sm:text-4xl text-emerald-400 whitespace-nowrap bg-neutral-950 px-5 py-1.5 rounded-xl border border-neutral-800 tracking-wider flex items-center justify-center gap-2 select-none shadow-md">
+                  <div className="shrink-0 flex-shrink-0 flex flex-col items-center justify-center px-1.5 sm:px-3">
+                    <div className="font-sports font-black text-2xl sm:text-3xl md:text-4xl text-emerald-400 whitespace-nowrap bg-neutral-950 px-3.5 sm:px-5 py-1 sm:py-1.5 rounded-xl border border-neutral-800 tracking-wider flex items-center justify-center gap-2 select-none shadow-md">
                       <span>{latestResult.score?.home ?? 0}</span>
-                      <span className="text-neutral-500 font-normal text-2xl sm:text-3xl">-</span>
+                      <span className="text-neutral-500 font-normal text-xl sm:text-2xl">-</span>
                       <span>{latestResult.score?.away ?? 0}</span>
                     </div>
-                    <span className="text-xs text-neutral-400 mt-1 font-medium whitespace-nowrap">{t.fullTime}</span>
+                    <span className="text-xxs text-neutral-400 mt-1 font-medium whitespace-nowrap">{t.fullTime}</span>
                   </div>
 
                   <div className="flex-1 min-w-0 flex flex-col items-center text-center">
-                    <EthiopianClubLogo teamId={latestResult.awayTeam.id} teamName={awayLatestTeam} size={68} priority />
-                    <span className="font-sports font-bold text-base text-white mt-2 truncate max-w-full">
-                      {awayLatestTeam}
+                    <EthiopianClubLogo teamId={latestResult.awayTeam.id} teamName={awayLatestTeam} size={56} priority className="shrink-0 flex-shrink-0" />
+                    <span className="font-sports font-bold text-sm sm:text-base text-white mt-2 truncate max-w-full block" title={awayLatestTeam}>
+                      {awayLatestShort}
                     </span>
                   </div>
                 </div>
@@ -453,23 +458,24 @@ export const HomePage: React.FC<HomePageProps> = ({
             </button>
           </div>
 
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-left text-sm">
+          <div className="mt-4 overflow-x-auto max-w-full rounded-xl">
+            <table className="w-full text-left text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b border-neutral-800 text-xs font-bold uppercase text-neutral-400">
-                  <th className="py-3 px-3">{t.pos}</th>
-                  <th className="py-3 px-3">{t.club}</th>
-                  <th className="py-3 px-2 text-center">{t.played}</th>
-                  <th className="py-3 px-2 text-center">{t.won}</th>
-                  <th className="py-3 px-2 text-center">{t.drawn}</th>
-                  <th className="py-3 px-2 text-center">{t.lost}</th>
-                  <th className="py-3 px-2 text-center hidden sm:table-cell">{t.gd}</th>
-                  <th className="py-3 px-3 text-right font-black">{t.pts}</th>
+                  <th className="py-3 px-3 text-center w-10">{t.pos}</th>
+                  <th className="py-3 px-3 min-w-[140px]">{t.club}</th>
+                  <th className="py-3 px-2 text-center w-10">{t.played}</th>
+                  <th className="py-3 px-2 text-center w-10">{t.won}</th>
+                  <th className="py-3 px-2 text-center w-10">{t.drawn}</th>
+                  <th className="py-3 px-2 text-center w-10">{t.lost}</th>
+                  <th className="py-3 px-2 text-center w-12 hidden sm:table-cell">{t.gd}</th>
+                  <th className="py-3 px-3 text-right font-black w-12">{t.pts}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-800/60">
                 {topStandings.map((team) => {
                   const localizedTeam = getLocalizedTeamName(team.teamId, team.teamName, language);
+                  const shortName = formatTeamName(team.teamId, localizedTeam, language);
                   return (
                     <tr
                       key={team.teamId}
@@ -479,7 +485,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                           : 'hover:bg-neutral-800/30'
                       }`}
                     >
-                      <td className="py-3 px-3 font-bold">
+                      <td className="py-3 px-3 text-center font-bold">
                         <span
                           className={`inline-block w-6 text-center text-xs py-0.5 rounded ${
                             team.position <= 2
@@ -490,15 +496,18 @@ export const HomePage: React.FC<HomePageProps> = ({
                           {team.position}
                         </span>
                       </td>
-                      <td className="py-3 px-3 flex items-center gap-2.5">
-                        <EthiopianClubLogo teamId={team.teamId} teamName={localizedTeam} size={28} badgeUrl={team.badgeUrl} />
-                        <span
-                          className={`font-sports text-base tracking-wide ${
-                            team.isHalaba ? 'text-red-300 font-black' : 'text-neutral-200'
-                          }`}
-                        >
-                          {localizedTeam}
-                        </span>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <EthiopianClubLogo teamId={team.teamId} teamName={localizedTeam} size={28} badgeUrl={team.badgeUrl} className="shrink-0 flex-shrink-0" />
+                          <span
+                            className={`font-sports text-sm sm:text-base tracking-wide truncate max-w-[130px] sm:max-w-none block ${
+                              team.isHalaba ? 'text-red-300 font-black' : 'text-neutral-200'
+                            }`}
+                            title={localizedTeam}
+                          >
+                            {shortName}
+                          </span>
+                        </div>
                       </td>
                       <td className="py-3 px-2 text-center text-neutral-400">{team.played}</td>
                       <td className="py-3 px-2 text-center text-neutral-400">{team.won}</td>

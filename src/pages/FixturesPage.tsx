@@ -20,6 +20,7 @@ import {
   getLocalizedRound,
   getLocalizedStatus,
 } from '../utils/localization';
+import { formatTeamName } from '../utils/formatTeamName';
 
 interface FixturesPageProps {
   onOpenMatchModal: (matchId: string) => void;
@@ -192,6 +193,8 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
             const isLive = match.status === 'LIVE';
             const homeName = getLocalizedTeamName(match.homeTeam?.id, match.homeTeam?.name, language);
             const awayName = getLocalizedTeamName(match.awayTeam?.id, match.awayTeam?.name, language);
+            const homeShort = formatTeamName(match.homeTeam?.id, homeName, language);
+            const awayShort = formatTeamName(match.awayTeam?.id, awayName, language);
             const venue = getLocalizedVenue(match.venue, language);
             const roundText = getLocalizedRound(match.round, language);
             const compName = getLocalizedCompetition(match.competitionName || match.competition, language);
@@ -200,20 +203,20 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
               <div
                 key={match.id}
                 onClick={() => onOpenMatchModal(match.id)}
-                className="group cursor-pointer rounded-2xl bg-neutral-900 border border-neutral-800 hover:border-red-600/50 p-5 sm:p-6 transition-all duration-200 hover:shadow-xl hover:shadow-black/60 flex flex-col justify-between"
+                className="group cursor-pointer rounded-2xl bg-neutral-900 border border-neutral-800 hover:border-red-600/50 p-4 sm:p-6 transition-all duration-200 hover:shadow-xl hover:shadow-black/60 flex flex-col justify-between overflow-hidden"
               >
                 {/* Top card metadata */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-neutral-800/80 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-amber-400 uppercase tracking-wider font-sports text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 sm:pb-4 border-b border-neutral-800/80 text-xs">
+                  <div className="flex items-center gap-2 min-w-0 truncate">
+                    <span className="font-bold text-amber-400 uppercase tracking-wider font-sports text-sm truncate">
                       {compName}
                     </span>
                     {roundText && (
-                      <span className="text-neutral-500 hidden sm:inline">• {roundText}</span>
+                      <span className="text-neutral-500 hidden sm:inline truncate">• {roundText}</span>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0 flex-shrink-0">
                     {isCompleted ? (
                       <span className="px-2.5 py-0.5 rounded text-xs font-bold uppercase bg-emerald-950 text-emerald-400 border border-emerald-800">
                         {t.fullTime}
@@ -231,74 +234,84 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
                   </div>
                 </div>
 
-                {/* Match Scoreboard Row */}
-                <div className="py-6 flex items-center justify-between gap-2 sm:gap-6">
-                  {/* Home Team */}
-                  <div className="flex-1 flex items-center justify-end gap-3 sm:gap-4 text-right">
-                    <div className="flex flex-col items-end">
-                      <span className="font-sports font-black text-base sm:text-xl md:text-2xl text-white group-hover:text-red-400 transition-colors uppercase">
-                        {homeName}
+                {/* Match Scoreboard Row (Flexible 3-Column Mobile-Safe Layout) */}
+                <div className="py-5 sm:py-6 flex items-center justify-between gap-2 sm:gap-4 w-full min-w-0">
+                  {/* Home Team (Column 1: flex-1 min-w-0) */}
+                  <div className="flex-1 min-w-0 flex items-center justify-end gap-2 sm:gap-3 text-right">
+                    <div className="flex flex-col items-end min-w-0 truncate">
+                      <span
+                        className="font-sports font-black text-sm sm:text-lg md:text-xl text-white group-hover:text-red-400 transition-colors uppercase truncate min-w-0 max-w-full block"
+                        title={homeName}
+                      >
+                        {homeShort}
                       </span>
-                      <span className="text-xxs uppercase tracking-wider text-neutral-400 font-semibold">
+                      <span className="text-xxs uppercase tracking-wider text-neutral-400 font-semibold truncate">
                         {t.home}
                       </span>
                     </div>
-                    {match.homeTeam.isHalaba ? (
-                      <HalabaCrest size={48} />
-                    ) : (
-                      <EthiopianClubLogo teamId={match.homeTeam.id} teamName={homeName} size={48} />
-                    )}
+                    <div className="shrink-0 flex-shrink-0">
+                      {match.homeTeam.isHalaba ? (
+                        <HalabaCrest size={38} className="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0" />
+                      ) : (
+                        <EthiopianClubLogo teamId={match.homeTeam.id} teamName={homeName} size={38} className="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0" />
+                      )}
+                    </div>
                   </div>
 
-                  {/* Center Score / VS */}
-                  <div className="px-3 sm:px-6 text-center shrink-0">
+                  {/* Center Score / VS (Column 2: shrink-0 flex-shrink-0) */}
+                  <div className="px-1.5 sm:px-4 text-center shrink-0 flex-shrink-0 flex flex-col items-center justify-center">
                     {(isCompleted || isLive) && match.score ? (
                       <div className="flex flex-col items-center">
                         <div
-                          className={`font-sports font-black text-2xl sm:text-3xl bg-neutral-950 px-3.5 py-1 rounded-xl border tracking-wider ${
+                          className={`font-sports font-black text-xl sm:text-2xl md:text-3xl bg-neutral-950 px-2.5 sm:px-3.5 py-1 rounded-xl border tracking-wider whitespace-nowrap shadow-md ${
                             isLive
-                              ? 'text-amber-400 border-red-700 shadow-md shadow-red-950/60'
+                              ? 'text-amber-400 border-red-700 shadow-red-950/60'
                               : 'text-emerald-400 border-neutral-800'
                           }`}
                         >
                           {match.score.home} - {match.score.away}
                         </div>
                         {isLive ? (
-                          <span className="text-xxs text-red-400 mt-1 font-mono font-bold flex items-center gap-1">
+                          <span className="text-xxs text-red-400 mt-1 font-mono font-bold flex items-center gap-1 whitespace-nowrap">
                             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
                             {match.liveMinute}' ({match.livePeriod || t.liveNow})
                           </span>
                         ) : match.halftimeScore ? (
-                          <span className="text-xxs text-neutral-500 mt-1 font-mono">
+                          <span className="text-xxs text-neutral-500 mt-0.5 font-mono whitespace-nowrap">
                             ({language === 'am' ? 'እረፍት' : 'HT'} {match.halftimeScore.home}-{match.halftimeScore.away})
                           </span>
                         ) : null}
                       </div>
                     ) : (
                       <div className="flex flex-col items-center">
-                        <span className="font-sports font-black text-xl sm:text-2xl text-neutral-500">
+                        <span className="font-sports font-black text-lg sm:text-2xl text-neutral-500">
                           {t.vs}
                         </span>
-                        <div className="flex items-center gap-1 text-xs text-amber-400 font-mono mt-0.5">
-                          <Clock className="w-3 h-3" />
+                        <div className="flex items-center gap-1 text-xs text-amber-400 font-mono mt-0.5 whitespace-nowrap">
+                          <Clock className="w-3 h-3 shrink-0" />
                           <span>{match.kickoffTime}</span>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Away Team */}
-                  <div className="flex-1 flex items-center justify-start gap-3 sm:gap-4 text-left">
-                    {match.awayTeam.isHalaba ? (
-                      <HalabaCrest size={48} />
-                    ) : (
-                      <EthiopianClubLogo teamId={match.awayTeam.id} teamName={awayName} size={48} />
-                    )}
-                    <div className="flex flex-col items-start">
-                      <span className="font-sports font-black text-base sm:text-xl md:text-2xl text-white group-hover:text-red-400 transition-colors uppercase">
-                        {awayName}
+                  {/* Away Team (Column 3: flex-1 min-w-0) */}
+                  <div className="flex-1 min-w-0 flex items-center justify-start gap-2 sm:gap-3 text-left">
+                    <div className="shrink-0 flex-shrink-0">
+                      {match.awayTeam.isHalaba ? (
+                        <HalabaCrest size={38} className="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0" />
+                      ) : (
+                        <EthiopianClubLogo teamId={match.awayTeam.id} teamName={awayName} size={38} className="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0" />
+                      )}
+                    </div>
+                    <div className="flex flex-col items-start min-w-0 truncate">
+                      <span
+                        className="font-sports font-black text-sm sm:text-lg md:text-xl text-white group-hover:text-red-400 transition-colors uppercase truncate min-w-0 max-w-full block"
+                        title={awayName}
+                      >
+                        {awayShort}
                       </span>
-                      <span className="text-xxs uppercase tracking-wider text-neutral-400 font-semibold">
+                      <span className="text-xxs uppercase tracking-wider text-neutral-400 font-semibold truncate">
                         {t.away}
                       </span>
                     </div>

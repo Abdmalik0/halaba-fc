@@ -34,7 +34,7 @@ const MainApp: React.FC = () => {
   const activeArticle = selectedArticleId ? news.find((n) => n.id === selectedArticleId) || null : null;
 
   return (
-    <div className="min-h-screen flex flex-col bg-neutral-950 text-neutral-100 selection:bg-red-600 selection:text-white font-sans overscroll-y-none">
+    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden flex flex-col bg-neutral-950 text-neutral-100 selection:bg-red-600 selection:text-white font-sans overscroll-y-none">
       {/* Top Navigation */}
       <Navbar onOpenInstallModal={openInstallModal} isInstalled={isInstalled} />
 
@@ -45,7 +45,7 @@ const MainApp: React.FC = () => {
       <OfflineInterruptedOverlay />
 
       {/* Main Page Body */}
-      <main className="flex-1 pb-28 sm:pb-0">
+      <main className="flex-1 w-full max-w-[100vw] overflow-x-hidden pb-28 sm:pb-0">
         {currentPage === 'home' && (
           <HomePage
             onOpenMatchModal={(id) => setSelectedMatchId(id)}

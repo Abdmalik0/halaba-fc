@@ -4,6 +4,7 @@ import { HalabaCrest } from '../components/HalabaCrest';
 import { EthiopianClubLogo } from '../components/EthiopianClubLogo';
 import { Trophy, Filter, ShieldCheck, RefreshCw } from 'lucide-react';
 import { getLocalizedTeamName, getFormBadgeLocalized } from '../utils/localization';
+import { formatTeamName } from '../utils/formatTeamName';
 
 export const StandingsPage: React.FC = () => {
   const { t, language, standings, isSyncing, syncNow, resetStandings } = useClub();
@@ -135,22 +136,22 @@ export const StandingsPage: React.FC = () => {
       </div>
 
       {/* Standings Table Card */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl overflow-hidden max-w-full">
+        <div className="overflow-x-auto max-w-full rounded-xl">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead>
               <tr className="bg-neutral-950 border-b border-neutral-800 text-xs uppercase font-sports font-bold tracking-wider text-neutral-400">
-                <th className="py-4 px-4 text-center w-12">{t.pos}</th>
-                <th className="py-4 px-4">{t.club}</th>
-                <th className="py-4 px-3 text-center">{t.played}</th>
-                <th className="py-4 px-3 text-center">{t.won}</th>
-                <th className="py-4 px-3 text-center">{t.drawn}</th>
-                <th className="py-4 px-3 text-center">{t.lost}</th>
-                <th className="py-4 px-3 text-center hidden md:table-cell">{t.gf}</th>
-                <th className="py-4 px-3 text-center hidden md:table-cell">{t.ga}</th>
-                <th className="py-4 px-3 text-center">{t.gd}</th>
-                <th className="py-4 px-4 text-center font-black">{t.pts}</th>
-                <th className="py-4 px-4 text-center hidden sm:table-cell">{t.form}</th>
+                <th className="py-3.5 px-3 sm:px-4 text-center w-10 sm:w-12">{t.pos}</th>
+                <th className="py-3.5 px-3 sm:px-4 min-w-[150px]">{t.club}</th>
+                <th className="py-3.5 px-2.5 sm:px-3 text-center w-10">{t.played}</th>
+                <th className="py-3.5 px-2.5 sm:px-3 text-center w-10">{t.won}</th>
+                <th className="py-3.5 px-2.5 sm:px-3 text-center w-10">{t.drawn}</th>
+                <th className="py-3.5 px-2.5 sm:px-3 text-center w-10">{t.lost}</th>
+                <th className="py-3.5 px-2.5 sm:px-3 text-center w-10 hidden md:table-cell">{t.gf}</th>
+                <th className="py-3.5 px-2.5 sm:px-3 text-center w-10 hidden md:table-cell">{t.ga}</th>
+                <th className="py-3.5 px-2.5 sm:px-3 text-center w-12">{t.gd}</th>
+                <th className="py-3.5 px-3 sm:px-4 text-center font-black w-12">{t.pts}</th>
+                <th className="py-3.5 px-3 sm:px-4 text-center hidden sm:table-cell w-24">{t.form}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-800/80">
@@ -159,6 +160,7 @@ export const StandingsPage: React.FC = () => {
                 const isConfed = team.position === 2;
                 const isRelegation = team.position >= 14;
                 const localizedName = getLocalizedTeamName(team.teamId, team.teamName, language);
+                const shortName = formatTeamName(team.teamId, localizedName, language);
 
                 return (
                   <tr
@@ -170,7 +172,7 @@ export const StandingsPage: React.FC = () => {
                     }`}
                   >
                     {/* Position */}
-                    <td className="py-4 px-4 text-center">
+                    <td className="py-3.5 px-3 sm:px-4 text-center">
                       <span
                         className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-bold ${
                           isLeader
@@ -187,19 +189,20 @@ export const StandingsPage: React.FC = () => {
                     </td>
 
                     {/* Club */}
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-3">
-                        <EthiopianClubLogo teamId={team.teamId} teamName={localizedName} size={34} badgeUrl={team.badgeUrl} />
-                        <div>
+                    <td className="py-3.5 px-3 sm:px-4">
+                      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        <EthiopianClubLogo teamId={team.teamId} teamName={localizedName} size={32} badgeUrl={team.badgeUrl} className="shrink-0 flex-shrink-0" />
+                        <div className="min-w-0 truncate">
                           <span
-                            className={`font-sports text-base tracking-wide ${
-                              team.isHalaba ? 'text-red-400 font-black text-lg' : 'text-neutral-200'
+                            className={`font-sports text-sm sm:text-base tracking-wide truncate max-w-[140px] sm:max-w-none block ${
+                              team.isHalaba ? 'text-red-400 font-black text-base sm:text-lg' : 'text-neutral-200'
                             }`}
+                            title={localizedName}
                           >
-                            {localizedName}
+                            {shortName}
                           </span>
                           {team.isHalaba && (
-                            <span className="block text-xxs uppercase tracking-wider text-emerald-400 font-sans">
+                            <span className="block text-xxs uppercase tracking-wider text-emerald-400 font-sans truncate">
                               {t.officialClub}
                             </span>
                           )}

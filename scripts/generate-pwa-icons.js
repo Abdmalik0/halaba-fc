@@ -3,25 +3,31 @@ import fs from 'fs';
 import path from 'path';
 
 const publicDir = path.resolve('public');
-if (!fs.existsSync(publicDir)) {
-  fs.mkdirSync(publicDir, { recursive: true });
-}
+const assetsDir = path.resolve('assets');
+const androidResDir = path.resolve('android/app/src/main/res');
 
-// Full fidelity Halaba City FC SVG Icon
+[publicDir, assetsDir].forEach((dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
+
+// Full fidelity Halaba City FC SVG Icon (Shield & Emblem)
 const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
     <radialGradient id="bgGlow" cx="50%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#1e0204" />
+      <stop offset="0%" stop-color="#2a0306" />
+      <stop offset="60%" stop-color="#140102" />
       <stop offset="100%" stop-color="#0a0a0a" />
     </radialGradient>
     <linearGradient id="shieldRed" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#e51821" />
+      <stop offset="0%" stop-color="#f02029" />
       <stop offset="45%" stop-color="#c80815" />
       <stop offset="100%" stop-color="#880007" />
     </linearGradient>
     <linearGradient id="shieldRim" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ff4d4d" />
-      <stop offset="50%" stop-color="#b3000b" />
+      <stop offset="0%" stop-color="#ff6b6b" />
+      <stop offset="50%" stop-color="#c80815" />
       <stop offset="100%" stop-color="#550005" />
     </linearGradient>
     <linearGradient id="goldTrim" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -41,7 +47,7 @@ const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" w
       <stop offset="100%" stop-color="#7a0000" />
     </radialGradient>
     <linearGradient id="gloss" x1="0%" y1="0%" x2="100%" y2="80%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35" />
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.4" />
       <stop offset="40%" stop-color="#ffffff" stop-opacity="0.08" />
       <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
     </linearGradient>
@@ -55,8 +61,8 @@ const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" w
     <path
       d="M 140 40 Q 250 65 360 40 C 430 70 470 190 420 350 C 380 435 290 495 250 515 C 210 495 120 435 80 350 C 30 190 70 70 140 40 Z"
       fill="#000000"
-      opacity="0.5"
-      transform="translate(0, 8)"
+      opacity="0.6"
+      transform="translate(0, 10)"
     />
 
     <!-- Main Scarlet Red Shield -->
@@ -152,56 +158,92 @@ const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" w
   </g>
 </svg>`;
 
-// Maskable icon with 15% safe padding
-const svgMaskable = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" fill="#0a0a0a" />
-  <circle cx="256" cy="256" r="220" fill="#180305" opacity="0.8" />
+// Circular Maskable Icon
+const svgCircular = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bgGlowRound" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#2a0306" />
+      <stop offset="60%" stop-color="#140102" />
+      <stop offset="100%" stop-color="#0a0a0a" />
+    </radialGradient>
+  </defs>
+  <circle cx="256" cy="256" r="256" fill="url(#bgGlowRound)" />
+  <g transform="translate(56, 56) scale(0.78)">
+    ${svgIcon.replace(/<\/?svg[^>]*>/g, '').replace(/<rect width="512"[^>]*\/>/, '')}
+  </g>
+</svg>`;
+
+// Transparent Foreground for Android Adaptive Icons
+const svgForeground = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <g transform="translate(68, 68) scale(0.73)">
-    ${svgIcon.replace(/<\/?svg[^>]*>/g, '')}
+    ${svgIcon.replace(/<\/?svg[^>]*>/g, '').replace(/<rect width="512"[^>]*\/>/, '')}
+  </g>
+</svg>`;
+
+// High-Res Splash Screen (2732x2732)
+const svgSplash = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2732 2732" width="2732" height="2732">
+  <defs>
+    <radialGradient id="splashGlow" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#2d0508" />
+      <stop offset="50%" stop-color="#120103" />
+      <stop offset="100%" stop-color="#050505" />
+    </radialGradient>
+  </defs>
+  <rect width="2732" height="2732" fill="url(#splashGlow)" />
+  <g transform="translate(866, 750) scale(1.95)">
+    ${svgIcon.replace(/<\/?svg[^>]*>/g, '').replace(/<rect width="512"[^>]*\/>/, '')}
   </g>
 </svg>`;
 
 fs.writeFileSync(path.join(publicDir, 'icon.svg'), svgIcon);
 
-async function generateIcons() {
-  console.log('Generating PWA Icons...');
-  const svgBuffer = Buffer.from(svgIcon);
-  const maskableBuffer = Buffer.from(svgMaskable);
+async function generateAllIcons() {
+  console.log('Generating high-resolution PWA, Capacitor, and Android launcher icons...');
+  const iconBuffer = Buffer.from(svgIcon);
+  const circularBuffer = Buffer.from(svgCircular);
+  const foregroundBuffer = Buffer.from(svgForeground);
+  const splashBuffer = Buffer.from(svgSplash);
 
-  // 1. Standard 192x192
-  await sharp(svgBuffer)
-    .resize(192, 192)
-    .png()
-    .toFile(path.join(publicDir, 'pwa-192x192.png'));
+  // 1. Root /assets/ (for Capacitor Assets CLI: npx @capacitor/assets generate --android)
+  await sharp(iconBuffer).resize(1024, 1024).png().toFile(path.join(assetsDir, 'icon.png'));
+  await sharp(iconBuffer).resize(1024, 1024).png().toFile(path.join(assetsDir, 'icon-only.png'));
+  await sharp(foregroundBuffer).resize(1024, 1024).png().toFile(path.join(assetsDir, 'icon-foreground.png'));
+  await sharp({
+    create: { width: 1024, height: 1024, channels: 4, background: '#0a0a0a' },
+  }).png().toFile(path.join(assetsDir, 'icon-background.png'));
+  await sharp(iconBuffer).resize(1024, 1024).png().toFile(path.join(assetsDir, 'logo.png'));
+  await sharp(splashBuffer).resize(2732, 2732).png().toFile(path.join(assetsDir, 'splash.png'));
 
-  // 2. Standard 512x512
-  await sharp(svgBuffer)
-    .resize(512, 512)
-    .png()
-    .toFile(path.join(publicDir, 'pwa-512x512.png'));
+  // 2. Public PWA Icons
+  await sharp(iconBuffer).resize(192, 192).png().toFile(path.join(publicDir, 'pwa-192x192.png'));
+  await sharp(iconBuffer).resize(512, 512).png().toFile(path.join(publicDir, 'pwa-512x512.png'));
+  await sharp(circularBuffer).resize(512, 512).png().toFile(path.join(publicDir, 'pwa-maskable-512x512.png'));
+  await sharp(iconBuffer).resize(180, 180).png().toFile(path.join(publicDir, 'apple-touch-icon.png'));
+  await sharp(iconBuffer).resize(48, 48).png().toFile(path.join(publicDir, 'favicon.png'));
 
-  // 3. Apple Touch Icon (180x180)
-  await sharp(svgBuffer)
-    .resize(180, 180)
-    .png()
-    .toFile(path.join(publicDir, 'apple-touch-icon.png'));
+  // 3. Android Mipmap Icons directly in android/app/src/main/res/
+  const densities = [
+    { name: 'mdpi', size: 48, fgSize: 108 },
+    { name: 'hdpi', size: 72, fgSize: 162 },
+    { name: 'xhdpi', size: 96, fgSize: 216 },
+    { name: 'xxhdpi', size: 144, fgSize: 324 },
+    { name: 'xxxhdpi', size: 192, fgSize: 432 },
+  ];
 
-  // 4. Maskable 512x512
-  await sharp(maskableBuffer)
-    .resize(512, 512)
-    .png()
-    .toFile(path.join(publicDir, 'pwa-maskable-512x512.png'));
+  for (const { name, size, fgSize } of densities) {
+    const targetDir = path.join(androidResDir, `mipmap-${name}`);
+    if (fs.existsSync(targetDir)) {
+      await sharp(iconBuffer).resize(size, size).png().toFile(path.join(targetDir, 'ic_launcher.png'));
+      await sharp(circularBuffer).resize(size, size).png().toFile(path.join(targetDir, 'ic_launcher_round.png'));
+      await sharp(foregroundBuffer).resize(fgSize, fgSize).png().toFile(path.join(targetDir, 'ic_launcher_foreground.png'));
+      console.log(`Updated Android mipmap-${name} launcher icons (${size}x${size}, fg: ${fgSize}x${fgSize})`);
+    }
+  }
 
-  // 5. Favicon 48x48 PNG / ICO
-  await sharp(svgBuffer)
-    .resize(48, 48)
-    .png()
-    .toFile(path.join(publicDir, 'favicon.png'));
-
-  console.log('All PWA Icons generated successfully in /public!');
+  console.log('Official Halaba City FC icons generated across public/, assets/, and android/res/!');
 }
 
-generateIcons().catch((err) => {
+generateAllIcons().catch((err) => {
   console.error('Error generating icons:', err);
   process.exit(1);
 });
