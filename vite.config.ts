@@ -65,7 +65,7 @@ export default defineConfig(({ command }) => {
           ],
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,webp,jpg,jpeg}'],
           navigateFallbackDenylist: [/^\/api/],
           runtimeCaching: [
             {
@@ -90,6 +90,34 @@ export default defineConfig(({ command }) => {
                 expiration: {
                   maxEntries: 10,
                   maxAgeSeconds: 60 * 60 * 24 * 365,
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            {
+              urlPattern: /^https:\/\/(?:r2|www)\.thesportsdb\.com\/images\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'sportsdb-badges-cache',
+                expiration: {
+                  maxEntries: 120,
+                  maxAgeSeconds: 60 * 60 * 24 * 60, // 60 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
+              },
+            },
+            {
+              urlPattern: /^https:\/\/www\.thesportsdb\.com\/api\/.*/i,
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'sportsdb-api-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
                 },
                 cacheableResponse: {
                   statuses: [0, 200],

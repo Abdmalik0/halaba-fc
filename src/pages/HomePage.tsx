@@ -91,12 +91,26 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 1. Hero Section */}
       <section className="relative min-h-[580px] sm:min-h-[660px] flex items-center justify-center overflow-hidden border-b border-red-950/40">
         {/* Background Image with Dark & Club Color Gradients */}
-        <div className="absolute inset-0 z-0">
-          <img
-            src={ClubImages.heroStadium}
-            alt="Halaba Stadium Supporters"
-            className="w-full h-full object-cover object-center filter brightness-[0.45] contrast-110 scale-105"
-          />
+        <div className="absolute inset-0 z-0 bg-neutral-950 overflow-hidden">
+          <picture>
+            <source
+              media="(max-width: 640px)"
+              srcSet={ClubImages.heroStadiumMobile}
+              type="image/webp"
+            />
+            <source
+              srcSet={ClubImages.heroStadiumWebp || ClubImages.heroStadium}
+              type="image/webp"
+            />
+            <img
+              src={ClubImages.heroStadiumJpg || ClubImages.heroStadium}
+              alt="Halaba Stadium Supporters"
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              className="w-full h-full object-cover object-center filter brightness-[0.45] contrast-110 scale-105 transition-opacity duration-300"
+            />
+          </picture>
           <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/60 to-red-950/40" />
           <div className="absolute inset-0 bg-radial-at-c from-transparent via-neutral-950/40 to-neutral-950" />
         </div>
@@ -212,7 +226,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {/* Teams Display */}
                 <div className="py-6 flex items-center justify-around">
                   <div className="flex flex-col items-center text-center w-2/5">
-                    <EthiopianClubLogo teamId={nextMatch.homeTeam.id} teamName={homeNextTeam} size={68} />
+                    <EthiopianClubLogo teamId={nextMatch.homeTeam.id} teamName={homeNextTeam} size={68} priority />
                     <span className="font-sports font-bold text-base text-white mt-2">
                       {homeNextTeam}
                     </span>
@@ -227,7 +241,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </div>
 
                   <div className="flex flex-col items-center text-center w-2/5">
-                    <EthiopianClubLogo teamId={nextMatch.awayTeam.id} teamName={awayNextTeam} size={68} />
+                    <EthiopianClubLogo teamId={nextMatch.awayTeam.id} teamName={awayNextTeam} size={68} priority />
                     <span className="font-sports font-bold text-base text-white mt-2">
                       {awayNextTeam}
                     </span>
@@ -288,7 +302,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {/* Scoreline */}
                 <div className="py-6 flex items-center justify-between gap-2 sm:gap-4">
                   <div className="flex-1 min-w-0 flex flex-col items-center text-center">
-                    <EthiopianClubLogo teamId={latestResult.homeTeam.id} teamName={homeLatestTeam} size={68} />
+                    <EthiopianClubLogo teamId={latestResult.homeTeam.id} teamName={homeLatestTeam} size={68} priority />
                     <span className="font-sports font-bold text-base text-white mt-2 truncate max-w-full">
                       {homeLatestTeam}
                     </span>
@@ -304,7 +318,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </div>
 
                   <div className="flex-1 min-w-0 flex flex-col items-center text-center">
-                    <EthiopianClubLogo teamId={latestResult.awayTeam.id} teamName={awayLatestTeam} size={68} />
+                    <EthiopianClubLogo teamId={latestResult.awayTeam.id} teamName={awayLatestTeam} size={68} priority />
                     <span className="font-sports font-bold text-base text-white mt-2 truncate max-w-full">
                       {awayLatestTeam}
                     </span>

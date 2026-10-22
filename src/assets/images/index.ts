@@ -1,13 +1,16 @@
-import heroStadium from './halaba_stadium_hero_1792217978790.jpg';
-import matchAction from './halaba_match_action_1792217992379.jpg';
-import academyTraining from './halaba_academy_training_1792218005519.jpg';
-import squadLineup from './halaba_squad_lineup_1792272200487.jpg';
-import homeJersey from './halaba_home_jersey_1792356797619.jpg';
-import awayJersey from './halaba_away_jersey_1792356797886.jpg';
+import heroStadium from './halaba_stadium_hero.webp';
+import heroStadiumWebp from './halaba_stadium_hero.webp';
+import heroStadiumMobile from './halaba_stadium_hero_mobile.webp';
+import heroStadiumJpg from './halaba_stadium_hero.jpg';
+import matchAction from './halaba_match_action_1792217992379.webp';
+import academyTraining from './halaba_academy_training_1792218005519.webp';
+import squadLineup from './halaba_squad_lineup_1792272200487.webp';
+import homeJersey from './halaba_home_jersey_1792356797619.webp';
+import awayJersey from './halaba_away_jersey_1792356797886.webp';
 import newsFasilDraw from './halaba_news_fasil_draw.jpg';
 import newsCrowdCelebration from './halaba_news_crowd_celebration.jpg';
 import newsBahirDarWin from './halaba_news_bahirdar_win.jpg';
-import newsMatchPoster from './halaba_news_match_poster.jpg';
+import newsMatchPoster from './halaba_news_match_poster.webp';
 import newsCoachInterview from './firestore_news_sxRTmExguBl4NTz4RYjR.jpg';
 import jerseyHomeReal from './firestore_prod_jersey-home-2026.jpg';
 import jerseyAwayReal from './firestore_prod_jersey-away-2026.jpg';
@@ -15,6 +18,9 @@ import jerseyThirdReal from './firestore_prod_jersey-third-2026.jpg';
 
 export const ClubImages = {
   heroStadium,
+  heroStadiumWebp,
+  heroStadiumMobile,
+  heroStadiumJpg,
   matchAction,
   academyTraining,
   squadLineup,
