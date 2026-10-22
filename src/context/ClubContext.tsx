@@ -29,6 +29,7 @@ import {
 } from '../data/mockData';
 import { translations } from '../translations';
 import { ClubImages } from '../assets/images';
+import { calculateStandingsFromMatches } from '../utils/standingsCalculator';
 
 export type PageRoute = 'home' | 'fixtures' | 'standings' | 'news' | 'membership' | 'shop' | 'about' | 'contact' | 'admin';
 
@@ -81,6 +82,7 @@ interface ClubContextType {
   standings: StandingTeam[];
   updateStanding: (teamId: string, updates: Partial<StandingTeam>) => Promise<void>;
   resetStandings: () => Promise<void>;
+  recalculateStandingsFromMatches: () => Promise<void>;
 
   // News
   news: NewsArticle[];
@@ -169,6 +171,7 @@ const ClubContext = createContext<ClubContextType | undefined>(undefined);
 
 try {
   if (typeof window !== 'undefined') {
+    localStorage.removeItem('halaba_official_epl_standings_v7_canonical');
     localStorage.removeItem('halaba_official_epl_standings_v3');
     localStorage.removeItem('halaba_official_epl_standings_v2');
     localStorage.removeItem('halaba_official_epl_standings');
@@ -207,7 +210,7 @@ const STORAGE_KEYS = {
   LANG: 'halaba_lang',
   CLUB: 'halaba_club_info_epl_26_27',
   MATCHES: 'halaba_matches_epl_2026_27',
-  STANDINGS: 'halaba_official_epl_standings_v7_canonical',
+  STANDINGS: 'halaba_official_epl_standings_v9_rd3_synced',
   NEWS: 'halaba_news_epl_2026_27',
   PLAYERS: 'halaba_players',
   STAFF: 'halaba_staff',
@@ -349,6 +352,13 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
           liveEvents: data.liveEvents,
         } as Match;
       });
+      // Guarantee all official league fixtures (including all Round 3 matches) are present
+      initialMatches.forEach((initM) => {
+        if (!liveMatches.some((m) => m.id === initM.id)) {
+          liveMatches.push({ ...initM });
+        }
+      });
+
       if (liveMatches.length > 0) {
         // Sort matches canonically so order is rock-solid and never jumps on load
         const halabaPriority = ['m-epl-rd3', 'm-epl-rd4', 'm-epl-rd5', 'm-epl-rd2', 'm-epl-rd1'];
@@ -368,6 +378,17 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.warn('LocalStorage error caching matches:', e);
         }
         localStorage.setItem('hcfc_firestore_matches_seeded', 'true');
+
+        // Automatically sync standings from matches if any teams are lagging behind Round 3
+        const autoComputed = calculateStandingsFromMatches(liveMatches, initialStandings);
+        setStandings((prev) => {
+          const hasLaggingTeam = prev.some((t) => t.played < 3);
+          if (hasLaggingTeam) {
+            localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(autoComputed));
+            return autoComputed;
+          }
+          return prev;
+        });
       }
     }, (error) => {
       console.error('Firebase real-time matches error:', error);
@@ -385,12 +406,21 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = [newMatch, ...matches];
     setMatches(updated);
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(updated));
+
+    // Automatically recalculate standings from the updated matches
+    const updatedStandings = calculateStandingsFromMatches(updated, standings);
+    setStandings(updatedStandings);
+    localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(updatedStandings));
+
     try {
       await setDoc(doc(db, 'matches', matchId), {
         ...newMatch,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      for (const st of updatedStandings) {
+        await setDoc(doc(db, 'standings', st.teamId), { ...st, updatedAt: serverTimestamp() }, { merge: true });
+      }
     } catch (error) {
       console.error('Firestore add match error:', error);
       handleFirestoreError(error, OperationType.CREATE, `matches/${matchId}`);
@@ -401,6 +431,12 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = matches.map((m) => (m.id === id ? { ...m, ...updates } : m));
     setMatches(updated);
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(updated));
+
+    // Automatically recalculate standings whenever a match result or score updates
+    const updatedStandings = calculateStandingsFromMatches(updated, standings);
+    setStandings(updatedStandings);
+    localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(updatedStandings));
+
     try {
       const cleanUpdates: Record<string, any> = {};
       for (const [key, value] of Object.entries(updates)) {
@@ -412,6 +448,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...cleanUpdates,
         updatedAt: serverTimestamp(),
       }, { merge: true });
+
+      for (const st of updatedStandings) {
+        await setDoc(doc(db, 'standings', st.teamId), { ...st, updatedAt: serverTimestamp() }, { merge: true });
+      }
     } catch (error) {
       console.error('Firestore update match error:', error);
       handleFirestoreError(error, OperationType.UPDATE, `matches/${id}`);
@@ -422,6 +462,11 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = matches.filter((m) => m.id !== id);
     setMatches(updated);
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(updated));
+
+    const updatedStandings = calculateStandingsFromMatches(updated, standings);
+    setStandings(updatedStandings);
+    localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(updatedStandings));
+
     try {
       await deleteDoc(doc(db, 'matches', id));
     } catch (error) {
@@ -557,6 +602,22 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('Firestore reset standings error:', error);
+    }
+  };
+
+  const recalculateStandingsFromMatches = async () => {
+    const computed = calculateStandingsFromMatches(matches, standings);
+    setStandings(computed);
+    localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(computed));
+    try {
+      for (const item of computed) {
+        await setDoc(doc(db, 'standings', item.teamId), {
+          ...item,
+          updatedAt: serverTimestamp(),
+        }, { merge: true });
+      }
+    } catch (error) {
+      console.warn('Firestore recalculate standings warning:', error);
     }
   };
 
@@ -1722,6 +1783,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         standings,
         updateStanding,
         resetStandings,
+        recalculateStandingsFromMatches,
         news,
         addNewsArticle,
         updateNewsArticle,

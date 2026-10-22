@@ -17,6 +17,7 @@ import {
   Smartphone
 } from 'lucide-react';
 import { AppStoreInstallCard } from '../components/pwa/AppStoreInstallCard';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 import {
   getLocalizedTeamName,
   getLocalizedVenue,
@@ -46,6 +47,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     shopItems,
     openCheckoutModal,
   } = useClub();
+  const { isInstalled } = usePWAInstall();
 
   // Helper to identify Halaba City FC matches
   const isHalabaMatch = (m: any) =>
@@ -666,29 +668,31 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 7. Official Mobile App Marketplace Card */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-neutral-800 pb-4">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-xs font-sports font-bold uppercase tracking-wider mb-2">
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>{language === 'am' ? 'ቀጥታ የሞባይል መተግበሪያ' : 'Stealth Progressive Web App'}</span>
+      {/* 7. Official Mobile App Download Section (Only shown when not running inside installed mobile app) */}
+      {!isInstalled && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-neutral-800 pb-4">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-xs font-sports font-bold uppercase tracking-wider mb-2">
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>{language === 'am' ? 'ይፋዊ የሞባይል መተግበሪያ' : 'Official Mobile App'}</span>
+                </div>
+                <h2 className="text-2xl sm:text-4xl font-sports font-black text-white uppercase tracking-wider">
+                  {language === 'am' ? 'የክለቡን መተግበሪያ ያውርዱ' : 'Download Club App'}
+                </h2>
               </div>
-              <h2 className="text-2xl sm:text-4xl font-sports font-black text-white uppercase tracking-wider">
-                {language === 'am' ? 'ይፋዊ የክለቡን መተግበሪያ ያውርዱ' : 'Download Official Club App'}
-              </h2>
+              <p className="text-xs text-neutral-400 max-w-md">
+                {language === 'am'
+                  ? 'ለአንድሮይድ በቀጥታ APK ያውርዱ፤ ለአይፎን ደግሞ በሳፋሪ በቀላሉ ወደ ዋና ገጽ (Home Screen) ይጨምሩ።'
+                  : 'Download the official Android APK file directly or add to iOS home screen for instant access.'}
+              </p>
             </div>
-            <p className="text-xs text-neutral-400 max-w-md">
-              {language === 'am'
-                ? 'በአይፎን፣ አንድሮይድ እና ታብሌት ላይ ያለምንም ድረ-ገጽ አድራሻ አሞሌ፣ ሙሉ በሙሉ ከመስመር ውጭ የሚሰራውን ይፋዊ መተግበሪያ ይጫኑ።'
-                : 'Install directly onto iPhone, Android, or Tablet with zero browser address bars, rigid touch controls, and offline capabilities.'}
-            </p>
-          </div>
 
-          <AppStoreInstallCard mode="embedded" />
-        </div>
-      </section>
+            <AppStoreInstallCard mode="embedded" />
+          </div>
+        </section>
+      )}
 
       {/* 8. Membership CTA Card */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

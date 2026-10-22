@@ -48,7 +48,8 @@ import {
   Sparkles,
   Loader2,
   ShieldCheck,
-  Mail
+  Mail,
+  Calculator
 } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
@@ -76,6 +77,7 @@ export const AdminPage: React.FC = () => {
     standings,
     updateStanding,
     resetStandings,
+    recalculateStandingsFromMatches,
     players,
     staff,
     addPlayer,
@@ -1610,13 +1612,24 @@ export const AdminPage: React.FC = () => {
               </p>
             </div>
 
-            <button
-              onClick={resetStandings}
-              className="px-3.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-bold uppercase tracking-wider font-sports flex items-center gap-1.5"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Reset Standings</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={recalculateStandingsFromMatches}
+                className="px-3.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold uppercase tracking-wider font-sports flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Automatically calculate points, goals, and positions from all finished match fixtures"
+              >
+                <Calculator className="w-3.5 h-3.5" />
+                <span>Auto-Calculate from Fixtures</span>
+              </button>
+
+              <button
+                onClick={resetStandings}
+                className="px-3.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-bold uppercase tracking-wider font-sports flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Reset Standings</span>
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">

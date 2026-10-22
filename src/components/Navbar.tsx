@@ -73,22 +73,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
         </div>
 
         <div className="flex items-center gap-3">
-          {/* PWA App Store Install Trigger */}
-          {isInstalled ? (
-            <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-xxs font-bold">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span>{t.nativeApp}</span>
-            </span>
-          ) : onOpenInstallModal ? (
+          {/* Mobile App Download Trigger (Completely removed when app is already installed on mobile) */}
+          {!isInstalled && onOpenInstallModal && (
             <button
               onClick={onOpenInstallModal}
               className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-red-600/40 to-emerald-600/40 hover:from-red-600/60 hover:to-emerald-600/60 border border-red-500/50 text-white text-xs font-bold transition-all shadow-sm active:scale-95"
-              title="Install official Halaba City FC App"
+              title="Download official Halaba City FC App (Android APK / iOS)"
             >
               <Smartphone className="w-3 h-3 text-amber-300" />
-              <span>{t.installApp}</span>
+              <span>{language === 'am' ? 'መተግበሪያ አውርድ' : 'Get App'}</span>
             </button>
-          ) : null}
+          )}
 
           <button
             onClick={openDossier}
@@ -286,6 +281,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
                 </button>
               );
             })}
+
+            {!isInstalled && onOpenInstallModal && (
+              <button
+                onClick={() => {
+                  onOpenInstallModal();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-left transition-colors text-emerald-400 hover:bg-neutral-900 border border-emerald-900/40 bg-emerald-950/20"
+              >
+                <Smartphone className="w-4 h-4 text-emerald-400" />
+                <span>{language === 'am' ? 'የክለቡን መተግበሪያ አውርድ (APK / iOS)' : 'Download Club App (APK / iOS)'}</span>
+              </button>
+            )}
 
             <button
               onClick={() => handleNavClick('admin')}

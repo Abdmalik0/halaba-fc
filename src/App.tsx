@@ -73,7 +73,7 @@ const MainApp: React.FC = () => {
       <Footer />
 
       {/* App Store Style Download Modal */}
-      {isInstallModalOpen && (
+      {isInstallModalOpen && !isInstalled && (
         <AppStoreInstallCard mode="modal" onClose={closeInstallModal} />
       )}
 

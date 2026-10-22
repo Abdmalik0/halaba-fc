@@ -1,14 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useClub } from '../context/ClubContext';
 import { HalabaCrest } from '../components/HalabaCrest';
 import { EthiopianClubLogo } from '../components/EthiopianClubLogo';
-import { Trophy, Filter, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Trophy, Filter, ShieldCheck, RefreshCw, Calculator, CheckCircle2 } from 'lucide-react';
 import { getLocalizedTeamName, getFormBadgeLocalized } from '../utils/localization';
 import { formatTeamName } from '../utils/formatTeamName';
 
 export const StandingsPage: React.FC = () => {
-  const { t, language, standings, isSyncing, syncNow, resetStandings } = useClub();
+  const { t, language, standings, isSyncing, syncNow, resetStandings, recalculateStandingsFromMatches } = useClub();
   const [competition, setCompetition] = useState('ETHIOPIAN_PREMIER_LEAGUE');
+  const [recalculating, setRecalculating] = useState(false);
+  const [recalcSuccess, setRecalcSuccess] = useState(false);
+
+  // Automatically refresh if any club is lagging behind Round 3
+  useEffect(() => {
+    if (standings.some((team) => team.played < 3)) {
+      recalculateStandingsFromMatches();
+    }
+  }, [standings, recalculateStandingsFromMatches]);
 
   const halabaStanding = standings.find((s) => s.isHalaba) || standings[0];
   const halabaName = halabaStanding ? getLocalizedTeamName(halabaStanding.teamId, halabaStanding.teamName, language) : '';
@@ -30,6 +39,31 @@ export const StandingsPage: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+            {/* Auto Recalculate Table from Match Results Button */}
+            <button
+              onClick={async () => {
+                setRecalculating(true);
+                await recalculateStandingsFromMatches();
+                setRecalculating(false);
+                setRecalcSuccess(true);
+                setTimeout(() => setRecalcSuccess(false), 3000);
+              }}
+              disabled={recalculating}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-sports font-bold text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-60"
+              title="Recalculate all 16 club points and goal differences from finished match fixtures"
+            >
+              {recalcSuccess ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+              ) : (
+                <Calculator className={`w-3.5 h-3.5 ${recalculating ? 'animate-spin' : ''}`} />
+              )}
+              <span>
+                {recalcSuccess
+                  ? (language === 'am' ? 'ተዘምኗል!' : 'Updated!')
+                  : (language === 'am' ? 'ከውጤቶች አድስ' : 'Update from Match Results')}
+              </span>
+            </button>
+
             {/* Live Sync Button */}
             <button
               onClick={syncNow}

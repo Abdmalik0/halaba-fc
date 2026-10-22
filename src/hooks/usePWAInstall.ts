@@ -29,11 +29,22 @@ export function usePWAInstall() {
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
 
   useEffect(() => {
-    // Detect if running as standalone native app (installed)
+    // Detect if running as standalone native app (installed on mobile)
     const checkStandalone = () => {
+      if (typeof window === 'undefined') return false;
       const isMediaStandalone = window.matchMedia('(display-mode: standalone)').matches;
       const isNavStandalone = (window.navigator as unknown as { standalone?: boolean }).standalone === true;
-      return isMediaStandalone || isNavStandalone;
+      const isCapacitorNative = Boolean(
+        (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.()
+      );
+      const isQueryApp =
+        window.location.search.includes('source=pwa') ||
+        window.location.search.includes('source=apk') ||
+        window.location.search.includes('mode=app') ||
+        window.location.search.includes('installed=true');
+      const isReferrerApp = typeof document !== 'undefined' && document.referrer?.includes('android-app://');
+
+      return isMediaStandalone || isNavStandalone || isCapacitorNative || isQueryApp || isReferrerApp;
     };
 
     setIsInstalled(checkStandalone());
