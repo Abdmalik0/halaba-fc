@@ -81,6 +81,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   const recentNews = news.slice(0, 3);
   // Top 5 standings
   const topStandings = standings.slice(0, 5);
+  const halabaStanding = standings.find((t) => t.isHalaba);
 
   const homeNextTeam = nextMatch ? getLocalizedTeamName(nextMatch.homeTeam?.id, nextMatch.homeTeam?.name, language) : '';
   const awayNextTeam = nextMatch ? getLocalizedTeamName(nextMatch.awayTeam?.id, nextMatch.awayTeam?.name, language) : '';
@@ -447,8 +448,8 @@ export const HomePage: React.FC<HomePageProps> = ({
               </h2>
               <p className="text-xs text-neutral-400 mt-1">
                 {language === 'am'
-                  ? 'የኢትዮጵያ ፕሪሚየር ሊግ (ከፍተኛ ዲቪዚዮን) • የ2026/27 የውድድር ዘመን (ሀላባ ከተማ በ2ኛ ደረጃ • የካፍ ውድድር ቦታ)'
-                  : 'Ethiopian Premier League (Top Tier) • 2026/27 Season (Halaba Ketema in 2nd Place • CAF Continental Spot)'}
+                  ? `የኢትዮጵያ ፕሪሚየር ሊግ (ከፍተኛ ዲቪዚዮን) • የ2026/27 የውድድር ዘመን (ሀላባ ከተማ በ${halabaStanding?.position || 4}ኛ ደረጃ • ${halabaStanding?.points || 5} ነጥብ)`
+                  : `Ethiopian Premier League (Top Tier) • 2026/27 Season (Halaba Ketema in #${halabaStanding?.position || 4} • ${halabaStanding?.points || 5} Pts)`}
               </p>
             </div>
             <button

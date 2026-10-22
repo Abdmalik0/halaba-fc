@@ -24,6 +24,9 @@ export const OFFICIAL_SPORTSDB_BADGES: Record<string, string> = {
   diredawa: 'https://r2.thesportsdb.com/images/media/team/badge/70017i1615830053.png',
   gamochencha: 'https://r2.thesportsdb.com/images/media/team/badge/o3yz391790265452.png',
   sidama: 'https://r2.thesportsdb.com/images/media/team/badge/45f96b1790265577.png',
+  hawassa: 'https://r2.thesportsdb.com/images/media/team/badge/hawassa_city_sc.png',
+  shaggar: 'https://r2.thesportsdb.com/images/media/team/badge/shaggar_city_epl.png',
+  negelle: 'https://r2.thesportsdb.com/images/media/team/badge/negele_arsi_fc.png',
 };
 
 // Canonical English search names for TheSportsDB API
@@ -49,6 +52,9 @@ const CANONICAL_SEARCH_NAMES: Record<string, string> = {
   diredawa: 'Dire Dawa Kenema',
   gamochencha: 'Gamo Chencha',
   sidama: 'Sidama Bunna',
+  hawassa: 'Hawassa Kenema',
+  shaggar: 'Shaggar City',
+  negelle: 'Negelle Arsi',
 };
 
 // Persistent badge storage helper

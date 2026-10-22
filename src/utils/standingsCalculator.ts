@@ -10,16 +10,6 @@ export const defaultClubTemplates: Record<string, { teamName: string; isHalaba: 
     isHalaba: false,
     badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/fn7am21727368578.png',
   },
-  halaba: {
-    teamName: 'Halaba Ketema (በርበሬዎቹ)',
-    isHalaba: true,
-    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/ol9g9y1790265506.png',
-  },
-  insurance: {
-    teamName: 'Ethiopian Medhin (Insurance)',
-    isHalaba: false,
-    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/oboroa1776295149.png',
-  },
   defence: {
     teamName: 'Mechal (Defence Force)',
     isHalaba: false,
@@ -30,40 +20,65 @@ export const defaultClubTemplates: Record<string, { teamName: string; isHalaba: 
     isHalaba: false,
     badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/o25wvi1790265058.png',
   },
+  halaba: {
+    teamName: 'Halaba Ketema (በርበሬዎቹ)',
+    isHalaba: true,
+    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/ol9g9y1790265506.png',
+  },
   fasil: {
     teamName: 'Fasil Kenema',
     isHalaba: false,
     badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/xivgrb1790265423.png',
   },
-  wolaitta: {
-    teamName: 'Wolaitta Dicha',
+  insurance: {
+    teamName: 'Ethiopian Medhin (Insurance)',
     isHalaba: false,
-    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/25m67g1790265481.png',
+    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/oboroa1776295149.png',
   },
   adama: {
     teamName: 'Adama Kenema SC',
     isHalaba: false,
     badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/4yijrk1615830040.png',
   },
-  diredawa: {
-    teamName: 'Dire Dawa Kenema',
+  shaggar: {
+    teamName: 'Shaggar City FC',
     isHalaba: false,
-    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/70017i1615830053.png',
+    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/shaggar_city_epl.png',
+  },
+  electric: {
+    teamName: 'Ethio Electric',
+    isHalaba: false,
+    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/nywmq91790265280.png',
   },
   bunna: {
     teamName: 'Ethiopian Coffee SC (Bunna)',
     isHalaba: false,
     badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/welkj51790265316.png',
   },
-  saintgeorge: {
-    teamName: 'Saint George SC',
-    isHalaba: false,
-    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/9d201v1615830018.png',
-  },
   welwalo: {
     teamName: 'Welwalo Adigrat Univ.',
     isHalaba: false,
     badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/w2p6k41790265538.png',
+  },
+  wolaitta: {
+    teamName: 'Wolaitta Dicha',
+    isHalaba: false,
+    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/25m67g1790265481.png',
+  },
+  negelle: {
+    teamName: 'Negele Arsi FC',
+    isHalaba: false,
+    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/negele_arsi_fc.png',
+  },
+  saintgeorge: {
+    teamName: 'Saint George SC (Kidus Giorgis)',
+    isHalaba: false,
+    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/9d201v1615830018.png',
+  },
+  hawassa: {
+    teamName: 'Hawassa Kenema SC',
+    isHalaba: false,
+    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/hawassa_city_sc.png',
   },
   hosaena: {
     teamName: 'Hadiya Hossana',
@@ -74,11 +89,6 @@ export const defaultClubTemplates: Record<string, { teamName: string; isHalaba: 
     teamName: 'Sidama Coffee SC',
     isHalaba: false,
     badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/t0057h1615830065.png',
-  },
-  electric: {
-    teamName: 'Ethio Electric',
-    isHalaba: false,
-    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/nywmq91790265280.png',
   },
   gamochencha: {
     teamName: 'Gamo Chencha',

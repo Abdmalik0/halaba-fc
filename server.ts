@@ -568,47 +568,52 @@ async function startServer() {
       const normalizeEplId = (strTeam: string, idTeam?: string): string => {
         const s = (strTeam || '').toLowerCase();
         const id = String(idTeam || '');
-        if (s.includes('halaba')) return 'halaba';
+        if (s.includes('halaba') || id === '157333') return 'halaba';
         if (s.includes('cbe') || s.includes('nigd') || id === '149377') return 'cbe_sa';
         if (s.includes('medhin') || s.includes('insurance') || id === '146921') return 'insurance';
         if (s.includes('adama') || id === '141024') return 'adama';
         if (s.includes('electric') || id === '146920') return 'electric';
+        if (s.includes('bahir') || (id === '141026' && s.includes('bahir')) || id === '141025') return 'bahirdar';
         if (s.includes('fasil') || id === '141026') return 'fasil';
-        if (s.includes('bahir') || id === '141025') return 'bahirdar';
         if (s.includes('bunna') || (s.includes('coffee') && !s.includes('sidama'))) return 'bunna';
         if (s.includes('george') || s.includes('giorgis')) return 'saintgeorge';
-        if (s.includes('defence') || s.includes('mekelakeya')) return 'defence';
+        if (s.includes('defence') || s.includes('mekelakeya') || s.includes('mechal') || id === '143767') return 'defence';
         if (s.includes('welwalo')) return 'welwalo';
         if (s.includes('dicha') || s.includes('wolaitta')) return 'wolaitta';
         if (s.includes('hosaena') || s.includes('hossana')) return 'hosaena';
         if (s.includes('diredawa') || s.includes('dire dawa')) return 'diredawa';
         if (s.includes('chencha') || s.includes('gamo')) return 'gamochencha';
         if (s.includes('sidama')) return 'sidama';
+        if (s.includes('hawassa')) return 'hawassa';
+        if (s.includes('shaggar') || s.includes('sheger')) return 'shaggar';
+        if (s.includes('negelle') || s.includes('negele') || id === '153585') return 'negelle';
         return id || s.replace(/[^a-z0-9]/g, '');
       };
 
       const baseFallbackTeams = [
-        { teamId: 'cbe_sa', teamName: 'Ethiopia Nigd Bank (CBE SA)', played: 3, won: 3, drawn: 0, lost: 0, goalsFor: 4, goalsAgainst: 1, goalDifference: 3, points: 9, form: ['W', 'W', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/fn7am21727368578.png' },
-        { teamId: 'insurance', teamName: 'Ethiopian Medhin (Insurance)', played: 3, won: 2, drawn: 1, lost: 0, goalsFor: 4, goalsAgainst: 1, goalDifference: 3, points: 7, form: ['W', 'D', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/oboroa1776295149.png' },
+        { teamId: 'cbe_sa', teamName: 'Ethiopia Nigd Bank (CBE SA)', played: 2, won: 2, drawn: 0, lost: 0, goalsFor: 2, goalsAgainst: 0, goalDifference: 2, points: 6, form: ['W', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/fn7am21727368578.png' },
         { teamId: 'defence', teamName: 'Mechal (Defence Force)', played: 3, won: 2, drawn: 0, lost: 1, goalsFor: 3, goalsAgainst: 2, goalDifference: 1, points: 6, form: ['W', 'L', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/5760g91790265354.png' },
-        { teamId: 'bahirdar', teamName: 'Bahir Dar Kenema', played: 3, won: 2, drawn: 0, lost: 1, goalsFor: 4, goalsAgainst: 2, goalDifference: 2, points: 6, form: ['W', 'L', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/o25wvi1790265058.png' },
+        { teamId: 'bahirdar', teamName: 'Bahir Dar Kenema', played: 3, won: 2, drawn: 0, lost: 1, goalsFor: 3, goalsAgainst: 2, goalDifference: 1, points: 6, form: ['W', 'L', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/o25wvi1790265058.png' },
         { teamId: 'halaba', teamName: 'Halaba Ketema (በርበሬዎቹ)', played: 3, won: 1, drawn: 2, lost: 0, goalsFor: 3, goalsAgainst: 2, goalDifference: 1, points: 5, form: ['D', 'W', 'D'], isHalaba: true, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/ol9g9y1790265506.png' },
         { teamId: 'fasil', teamName: 'Fasil Kenema', played: 3, won: 1, drawn: 2, lost: 0, goalsFor: 3, goalsAgainst: 2, goalDifference: 1, points: 5, form: ['D', 'W', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/xivgrb1790265423.png' },
-        { teamId: 'wolaitta', teamName: 'Wolaitta Dicha', played: 3, won: 1, drawn: 2, lost: 0, goalsFor: 2, goalsAgainst: 1, goalDifference: 1, points: 5, form: ['D', 'D', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/25m67g1790265481.png' },
-        { teamId: 'adama', teamName: 'Adama Kenema SC', played: 3, won: 1, drawn: 1, lost: 1, goalsFor: 2, goalsAgainst: 2, goalDifference: 0, points: 4, form: ['W', 'D', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/4yijrk1615830040.png' },
-        { teamId: 'diredawa', teamName: 'Dire Dawa Kenema', played: 3, won: 1, drawn: 1, lost: 1, goalsFor: 2, goalsAgainst: 2, goalDifference: 0, points: 4, form: ['L', 'D', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/70017i1615830053.png' },
-        { teamId: 'bunna', teamName: 'Ethiopian Coffee SC (Bunna)', played: 3, won: 1, drawn: 0, lost: 2, goalsFor: 3, goalsAgainst: 3, goalDifference: 0, points: 3, form: ['L', 'W', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/welkj51790265316.png' },
-        { teamId: 'welwalo', teamName: 'Welwalo Adigrat Univ.', played: 3, won: 0, drawn: 2, lost: 1, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 2, form: ['D', 'D', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/w2p6k41790265538.png' },
-        { teamId: 'hosaena', teamName: 'Hadiya Hossana', played: 3, won: 0, drawn: 2, lost: 1, goalsFor: 2, goalsAgainst: 3, goalDifference: -1, points: 2, form: ['L', 'D', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/9f0ozj1790265391.png' },
-        { teamId: 'sidama', teamName: 'Sidama Coffee SC', played: 3, won: 0, drawn: 2, lost: 1, goalsFor: 1, goalsAgainst: 3, goalDifference: -2, points: 2, form: ['L', 'D', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/t0057h1615830065.png' },
-        { teamId: 'saintgeorge', teamName: 'Saint George SC', played: 3, won: 0, drawn: 1, lost: 2, goalsFor: 3, goalsAgainst: 5, goalDifference: -2, points: 1, form: ['D', 'L', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/9d201v1615830018.png' },
-        { teamId: 'electric', teamName: 'Ethio Electric', played: 3, won: 0, drawn: 1, lost: 2, goalsFor: 0, goalsAgainst: 2, goalDifference: -2, points: 1, form: ['L', 'D', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/nywmq91790265280.png' },
-        { teamId: 'gamochencha', teamName: 'Gamo Chencha', played: 3, won: 0, drawn: 1, lost: 2, goalsFor: 0, goalsAgainst: 3, goalDifference: -3, points: 1, form: ['L', 'D', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/o3yz391790265452.png' },
+        { teamId: 'insurance', teamName: 'Ethiopian Medhin (Insurance)', played: 2, won: 1, drawn: 1, lost: 0, goalsFor: 3, goalsAgainst: 1, goalDifference: 2, points: 4, form: ['W', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/oboroa1776295149.png' },
+        { teamId: 'adama', teamName: 'Adama Kenema SC', played: 2, won: 1, drawn: 1, lost: 0, goalsFor: 1, goalsAgainst: 0, goalDifference: 1, points: 4, form: ['W', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/4yijrk1615830040.png' },
+        { teamId: 'shaggar', teamName: 'Shaggar City FC', played: 2, won: 1, drawn: 1, lost: 0, goalsFor: 1, goalsAgainst: 0, goalDifference: 1, points: 4, form: ['W', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/shaggar_city_epl.png' },
+        { teamId: 'bunna', teamName: 'Ethiopian Coffee SC (Bunna)', played: 2, won: 1, drawn: 0, lost: 1, goalsFor: 2, goalsAgainst: 2, goalDifference: 0, points: 3, form: ['L', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/welkj51790265316.png' },
+        { teamId: 'negelle', teamName: 'Negele Arsi FC', played: 2, won: 0, drawn: 2, lost: 0, goalsFor: 1, goalsAgainst: 1, goalDifference: 0, points: 2, form: ['D', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/negele_arsi_fc.png' },
+        { teamId: 'wolaitta', teamName: 'Wolaitta Dicha', played: 2, won: 0, drawn: 2, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 2, form: ['D', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/25m67g1790265481.png' },
+        { teamId: 'welwalo', teamName: 'Welwalo Adigrat Univ.', played: 3, won: 0, drawn: 2, lost: 1, goalsFor: 2, goalsAgainst: 3, goalDifference: -1, points: 2, form: ['D', 'D', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/w2p6k41790265538.png' },
+        { teamId: 'saintgeorge', teamName: 'Saint George SC (Kidus Giorgis)', played: 2, won: 0, drawn: 1, lost: 1, goalsFor: 2, goalsAgainst: 3, goalDifference: -1, points: 1, form: ['D', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/9d201v1615830018.png' },
+        { teamId: 'hawassa', teamName: 'Hawassa Kenema SC', played: 2, won: 0, drawn: 1, lost: 1, goalsFor: 1, goalsAgainst: 2, goalDifference: -1, points: 1, form: ['L', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/hawassa_city_sc.png' },
+        { teamId: 'hosaena', teamName: 'Hadiya Hossana', played: 2, won: 0, drawn: 1, lost: 1, goalsFor: 1, goalsAgainst: 2, goalDifference: -1, points: 1, form: ['L', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/9f0ozj1790265391.png' },
+        { teamId: 'sidama', teamName: 'Sidama Coffee SC', played: 2, won: 0, drawn: 1, lost: 1, goalsFor: 0, goalsAgainst: 1, goalDifference: -1, points: 1, form: ['L', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/t0057h1615830065.png' },
+        { teamId: 'electric', teamName: 'Ethio Electric', played: 3, won: 0, drawn: 1, lost: 2, goalsFor: 1, goalsAgainst: 3, goalDifference: -2, points: 1, form: ['L', 'D', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/nywmq91790265280.png' },
+        { teamId: 'gamochencha', teamName: 'Gamo Chencha', played: 2, won: 0, drawn: 0, lost: 2, goalsFor: 0, goalsAgainst: 3, goalDifference: -3, points: 0, form: ['L', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/o3yz391790265452.png' },
       ];
 
       const standingsMap = new Map<string, any>();
 
-      // First populate with baseline 16 Ethiopian Premier League clubs
+      // First populate with baseline 18 Ethiopian Premier League clubs
       baseFallbackTeams.forEach((fb) => {
         standingsMap.set(fb.teamId, { ...fb });
       });

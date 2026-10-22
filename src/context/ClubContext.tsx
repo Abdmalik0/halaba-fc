@@ -196,21 +196,24 @@ export const normalizeEplTeamId = (rawId?: string, rawName?: string): string => 
   if (str.includes('bahir') || rawId === '141025') return 'bahirdar';
   if (str.includes('bunna') || (str.includes('coffee') && !str.includes('sidama'))) return 'bunna';
   if (str.includes('george') || str.includes('giorgis')) return 'saintgeorge';
-  if (str.includes('defence') || str.includes('mekelakeya')) return 'defence';
+  if (str.includes('defence') || str.includes('mekelakeya') || str.includes('mechal') || rawId === '143767') return 'defence';
   if (str.includes('welwalo')) return 'welwalo';
   if (str.includes('dicha') || str.includes('wolaitta')) return 'wolaitta';
   if (str.includes('hosaena') || str.includes('hossana')) return 'hosaena';
   if (str.includes('diredawa') || str.includes('dire dawa')) return 'diredawa';
   if (str.includes('chencha') || str.includes('gamo')) return 'gamochencha';
   if (str.includes('sidama')) return 'sidama';
+  if (str.includes('hawassa')) return 'hawassa';
+  if (str.includes('shaggar') || str.includes('sheger')) return 'shaggar';
+  if (str.includes('negelle') || str.includes('negele')) return 'negelle';
   return (rawId || '').replace(/[^a-z0-9]/g, '') || 'unknown';
 };
 
 const STORAGE_KEYS = {
   LANG: 'halaba_lang',
   CLUB: 'halaba_club_info_epl_26_27',
-  MATCHES: 'halaba_matches_epl_2026_27',
-  STANDINGS: 'halaba_official_epl_standings_v9_rd3_synced',
+  MATCHES: 'halaba_matches_epl_2026_27_v18',
+  STANDINGS: 'halaba_official_epl_standings_v10_18teams',
   NEWS: 'halaba_news_epl_2026_27',
   PLAYERS: 'halaba_players',
   STAFF: 'halaba_staff',
@@ -481,7 +484,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const saved = localStorage.getItem(STORAGE_KEYS.STANDINGS);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length === 16) {
+        if (Array.isArray(parsed) && parsed.length >= 18) {
           const hasHalaba = parsed.some((t) => t.isHalaba || t.teamId === 'halaba');
           const hasCbe = parsed.some((t) => t.teamId === 'cbe_sa');
           if (hasHalaba && hasCbe) {
@@ -522,6 +525,12 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ? 'Adama Kenema SC'
             : canonicalId === 'electric'
             ? 'Ethio Electric'
+            : canonicalId === 'shaggar'
+            ? 'Shaggar City FC'
+            : canonicalId === 'negelle'
+            ? 'Negele Arsi FC'
+            : canonicalId === 'hawassa'
+            ? 'Hawassa Kenema SC'
             : (data.teamName || 'Team'),
           played: Number(data.played) || 0,
           won: Number(data.won) || 0,
@@ -541,7 +550,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
 
-      // Guarantee all 16 Ethiopian Premier League clubs are present
+      // Guarantee all 18 Ethiopian Premier League clubs are present
       initialStandings.forEach((initT) => {
         if (!canonicalMap.has(initT.teamId)) {
           canonicalMap.set(initT.teamId, { ...initT });
@@ -552,7 +561,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       list.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
       const reordered = list.map((t, idx) => ({ ...t, position: idx + 1 }));
 
-      if (reordered.length === 16) {
+      if (reordered.length >= 18) {
         setStandings(reordered);
         localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(reordered));
       }

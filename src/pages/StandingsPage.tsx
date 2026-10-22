@@ -12,12 +12,7 @@ export const StandingsPage: React.FC = () => {
   const [recalculating, setRecalculating] = useState(false);
   const [recalcSuccess, setRecalcSuccess] = useState(false);
 
-  // Automatically refresh if any club is lagging behind Round 3
-  useEffect(() => {
-    if (standings.some((team) => team.played < 3)) {
-      recalculateStandingsFromMatches();
-    }
-  }, [standings, recalculateStandingsFromMatches]);
+
 
   const halabaStanding = standings.find((s) => s.isHalaba) || standings[0];
   const halabaName = halabaStanding ? getLocalizedTeamName(halabaStanding.teamId, halabaStanding.teamName, language) : '';
@@ -50,7 +45,7 @@ export const StandingsPage: React.FC = () => {
               }}
               disabled={recalculating}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-sports font-bold text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-60"
-              title="Recalculate all 16 club points and goal differences from finished match fixtures"
+              title="Recalculate all 18 club points and goal differences from finished match fixtures"
             >
               {recalcSuccess ? (
                 <CheckCircle2 className="w-3.5 h-3.5 text-white" />
@@ -82,7 +77,7 @@ export const StandingsPage: React.FC = () => {
                 await syncNow();
               }}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white font-sports font-bold text-xs uppercase tracking-wider border border-neutral-700 transition-all active:scale-95"
-              title="Clear all local caches and re-seed official 16-club Premier League table"
+              title="Clear all local caches and re-seed official 18-club Premier League table"
             >
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>{t.resetTable}</span>
@@ -125,10 +120,10 @@ export const StandingsPage: React.FC = () => {
                   {language === 'am'
                     ? halabaStanding.position === 1
                       ? 'ሀላባ ከተማ (በርበሬዎቹ) የኢትዮጵያ ፕሪሚየር ሊግን ይመራል'
-                      : `ሀላባ ከተማ (በርበሬዎቹ) በደረጃ #${halabaStanding.position} ላይ ይገኛል (የካፍ ማጣሪያ ቦታ)`
+                      : `ሀላባ ከተማ (በርበሬዎቹ) በደረጃ #${halabaStanding.position} ላይ ይገኛል (5 ነጥብ • ያለመሸነፍ ጉዞ)`
                     : halabaStanding.position === 1
                     ? 'Halaba Ketema (Berberewochu) leads the Ethiopian Premier League'
-                    : `Halaba Ketema (Berberewochu) stands in position #${halabaStanding.position} (Continental Qualification Spot)`}
+                    : `Halaba Ketema (Berberewochu) stands in position #${halabaStanding.position} (5 Pts • Undefeated Campaign)`}
                 </h3>
               </div>
             </div>
@@ -192,7 +187,7 @@ export const StandingsPage: React.FC = () => {
               {standings.map((team) => {
                 const isLeader = team.position === 1;
                 const isConfed = team.position === 2;
-                const isRelegation = team.position >= 14;
+                const isRelegation = team.position >= 16;
                 const localizedName = getLocalizedTeamName(team.teamId, team.teamName, language);
                 const shortName = formatTeamName(team.teamId, localizedName, language);
 
