@@ -233,15 +233,47 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const t = translations[language];
 
-  // Routing
-  const [currentPage, setCurrentPageState] = useState<PageRoute>('home');
+  // Routing (Hash / Memory Routing for local WebViews and PWAs)
+  const getInitialPage = (): PageRoute => {
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase() as PageRoute;
+      const validPages: PageRoute[] = ['home', 'fixtures', 'standings', 'news', 'membership', 'shop', 'about', 'contact', 'admin'];
+      if (validPages.includes(hash)) return hash;
+    }
+    return 'home';
+  };
+
+  const [currentPage, setCurrentPageState] = useState<PageRoute>(getInitialPage);
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
 
   const setCurrentPage = (page: PageRoute) => {
     setCurrentPageState(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof window !== 'undefined') {
+      if (page === 'home') {
+        if (window.location.hash) {
+          history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+      } else {
+        window.location.hash = page;
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase() as PageRoute;
+      const validPages: PageRoute[] = ['home', 'fixtures', 'standings', 'news', 'membership', 'shop', 'about', 'contact', 'admin'];
+      if (validPages.includes(hash)) {
+        setCurrentPageState(hash);
+      } else if (!hash) {
+        setCurrentPageState('home');
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Club Info
   const [clubInfo, setClubInfo] = useState<ClubInfo>(() => {

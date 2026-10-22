@@ -5,11 +5,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 
-export default defineConfig(({ command }) => {
-  const base = process.env.BASE_PATH !== undefined ? process.env.BASE_PATH : '/halaba-fc/';
-
+export default defineConfig(() => {
   return {
-    base,
+    base: './',
     plugins: [
       react(),
       tailwindcss(),

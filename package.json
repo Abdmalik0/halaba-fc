@@ -13,7 +13,7 @@
     "cap:sync": "cap sync",
     "cap:add:android": "cap add android",
     "cap:sync:android": "cap sync android",
-    "build:android": "BASE_PATH=/ vite build && cap sync android"
+    "build:android": "vite build && cap sync android"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
