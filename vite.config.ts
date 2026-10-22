@@ -1,5 +1,6 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import legacy from '@vitejs/plugin-legacy';
 import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
@@ -12,6 +13,9 @@ export default defineConfig(({ command }) => {
     plugins: [
       react(),
       tailwindcss(),
+      legacy({
+        targets: ['defaults', 'not IE 11', 'Android >= 4.4', 'iOS >= 9'],
+      }),
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.png', 'apple-touch-icon.png', 'icon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png'],
@@ -124,6 +128,9 @@ export default defineConfig(({ command }) => {
       host: '0.0.0.0',
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
+    },
+    build: {
+      target: 'es2015',
     },
   };
 });

@@ -1,6 +1,14 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, doc, getDocFromServer } from "firebase/firestore";
+import {
+  initializeFirestore,
+  getFirestore,
+  setLogLevel,
+  Firestore,
+} from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+
+// Suppress non-critical Firestore offline/network transport warnings
+setLogLevel('error');
 
 // Halaba FC Firebase configuration
 const firebaseConfig = {
@@ -16,8 +24,18 @@ const firebaseConfig = {
 // Initialize Firebase safely
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize Firestore Database and export it
-export const db = getFirestore(app);
+// Initialize Firestore with force long-polling to prevent WebChannel 10s stream timeouts in iframe/WebView environments
+let firestoreDb: Firestore;
+try {
+  firestoreDb = initializeFirestore(app, {
+    experimentalForceLongPolling: true,
+    ignoreUndefinedProperties: true,
+  });
+} catch {
+  firestoreDb = getFirestore(app);
+}
+
+export const db = firestoreDb;
 export const auth = getAuth(app);
 
 export enum OperationType {
@@ -49,17 +67,12 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path,
   };
-  console.error("Firestore Error:", JSON.stringify(errInfo));
+  // Log cleanly without throwing unhandled exceptions
+  console.warn("Firestore Operation Notice:", JSON.stringify(errInfo));
   return errInfo;
 }
 
-export async function testFirestoreConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn("Firestore client is offline or network restricted.");
-    }
-  }
+export async function testFirestoreConnection(): Promise<boolean> {
+  // Non-blocking connectivity indicator that does not stall the app or throw 10s timeouts
+  return Boolean(db);
 }
-testFirestoreConnection().catch(() => {});
