@@ -49,7 +49,8 @@ import {
   Loader2,
   ShieldCheck,
   Mail,
-  Calculator
+  Calculator,
+  Minus
 } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
@@ -140,6 +141,46 @@ export const AdminPage: React.FC = () => {
   const [isSavingShopToFirestore, setIsSavingShopToFirestore] = useState(false);
   const [deletingShopId, setDeletingShopId] = useState<string | null>(null);
   const [shopStatusToast, setShopStatusToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Standings Team Editing Modal State
+  const [editingStandingTeam, setEditingStandingTeam] = useState<StandingTeam | null>(null);
+  const [standingFormData, setStandingFormData] = useState({
+    played: 0,
+    won: 0,
+    drawn: 0,
+    lost: 0,
+    goalsFor: 0,
+    goalsAgainst: 0,
+    points: 0,
+  });
+
+  const openEditStanding = (team: StandingTeam) => {
+    setEditingStandingTeam(team);
+    setStandingFormData({
+      played: team.played,
+      won: team.won,
+      drawn: team.drawn,
+      lost: team.lost,
+      goalsFor: team.goalsFor,
+      goalsAgainst: team.goalsAgainst,
+      points: team.points,
+    });
+  };
+
+  const handleSaveStanding = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStandingTeam) return;
+    await updateStanding(editingStandingTeam.teamId, {
+      played: Math.max(0, Number(standingFormData.played)),
+      won: Math.max(0, Number(standingFormData.won)),
+      drawn: Math.max(0, Number(standingFormData.drawn)),
+      lost: Math.max(0, Number(standingFormData.lost)),
+      goalsFor: Math.max(0, Number(standingFormData.goalsFor)),
+      goalsAgainst: Math.max(0, Number(standingFormData.goalsAgainst)),
+      points: Math.max(0, Number(standingFormData.points)),
+    });
+    setEditingStandingTeam(null);
+  };
 
   // Compress & resize uploaded image to prevent exceeding browser storage quotas
   const processImageFileToDataUrl = (file: File, maxDim = 1200): Promise<string> => {
@@ -1638,14 +1679,14 @@ export const AdminPage: React.FC = () => {
                 <tr className="border-b border-neutral-800 uppercase text-neutral-400 font-sports tracking-wider">
                   <th className="py-3 px-3">Pos</th>
                   <th className="py-3 px-3">Team</th>
-                  <th className="py-3 px-2 text-center">P</th>
+                  <th className="py-3 px-2 text-center" title="Games Played - use buttons or type directly to change">P (Played)</th>
                   <th className="py-3 px-2 text-center">W</th>
                   <th className="py-3 px-2 text-center">D</th>
                   <th className="py-3 px-2 text-center">L</th>
                   <th className="py-3 px-2 text-center">GF</th>
                   <th className="py-3 px-2 text-center">GA</th>
                   <th className="py-3 px-3 text-center">Pts</th>
-                  <th className="py-3 px-3 text-right">Quick Edit</th>
+                  <th className="py-3 px-3 text-right">Quick Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-800/60">
@@ -1656,7 +1697,41 @@ export const AdminPage: React.FC = () => {
                   >
                     <td className="py-3 px-3">{st.position}</td>
                     <td className="py-3 px-3 text-white font-sports text-sm">{st.teamName}</td>
-                    <td className="py-3 px-2 text-center text-neutral-400">{st.played}</td>
+                    
+                    {/* Interactive Games Played (P) Stepper & Direct Input */}
+                    <td className="py-2.5 px-2 text-center">
+                      <div className="inline-flex items-center justify-center gap-1 bg-neutral-950 px-1.5 py-1 rounded-lg border border-neutral-800 hover:border-neutral-700 transition-colors">
+                        <button
+                          type="button"
+                          onClick={() => updateStanding(st.teamId, { played: Math.max(0, st.played - 1) })}
+                          className="w-5 h-5 flex items-center justify-center rounded bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                          title="Decrease Games Played"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <input
+                          type="number"
+                          min={0}
+                          max={50}
+                          value={st.played}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            updateStanding(st.teamId, { played: isNaN(val) ? 0 : Math.max(0, val) });
+                          }}
+                          className="w-8 text-center bg-transparent font-mono font-bold text-white text-xs focus:outline-none focus:bg-neutral-900 rounded p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          title="Click to type games played directly"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => updateStanding(st.teamId, { played: st.played + 1 })}
+                          className="w-5 h-5 flex items-center justify-center rounded bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                          title="Increase Games Played"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </td>
+
                     <td className="py-3 px-2 text-center text-emerald-400 font-bold">{st.won}</td>
                     <td className="py-3 px-2 text-center text-neutral-400">{st.drawn}</td>
                     <td className="py-3 px-2 text-center text-red-400">{st.lost}</td>
@@ -1665,40 +1740,221 @@ export const AdminPage: React.FC = () => {
                     <td className="py-3 px-3 text-center font-sports font-black text-white text-base">
                       {st.points}
                     </td>
-                    <td className="py-3 px-3 text-right space-x-1">
-                      <button
-                        onClick={() =>
-                          updateStanding(st.teamId, {
-                            played: st.played + 1,
-                            won: st.won + 1,
-                            points: st.points + 3,
-                            goalsFor: st.goalsFor + 1,
-                          })
-                        }
-                        className="px-2 py-1 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 text-xxs font-bold"
-                        title="Add 1 Win (+3 Pts)"
-                      >
-                        + Win
-                      </button>
-                      <button
-                        onClick={() =>
-                          updateStanding(st.teamId, {
-                            played: st.played + 1,
-                            drawn: st.drawn + 1,
-                            points: st.points + 1,
-                          })
-                        }
-                        className="px-2 py-1 rounded bg-neutral-800 text-neutral-300 text-xxs font-bold"
-                        title="Add 1 Draw (+1 Pt)"
-                      >
-                        + Draw
-                      </button>
+                    <td className="py-3 px-3 text-right">
+                      <div className="inline-flex items-center gap-1.5 justify-end">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateStanding(st.teamId, {
+                              played: st.played + 1,
+                              won: st.won + 1,
+                              points: st.points + 3,
+                              goalsFor: st.goalsFor + 1,
+                            })
+                          }
+                          className="px-2 py-1 rounded bg-emerald-950 hover:bg-emerald-900 text-emerald-400 border border-emerald-800 text-xxs font-bold transition-colors cursor-pointer"
+                          title="Add 1 Win (+3 Pts, +1 GF)"
+                        >
+                          + Win
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateStanding(st.teamId, {
+                              played: st.played + 1,
+                              drawn: st.drawn + 1,
+                              points: st.points + 1,
+                            })
+                          }
+                          className="px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 text-xxs font-bold transition-colors cursor-pointer"
+                          title="Add 1 Draw (+1 Pt)"
+                        >
+                          + Draw
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateStanding(st.teamId, {
+                              played: st.played + 1,
+                              lost: st.lost + 1,
+                              goalsAgainst: st.goalsAgainst + 1,
+                            })
+                          }
+                          className="px-2 py-1 rounded bg-red-950/90 hover:bg-red-900 text-red-300 border border-red-800 text-xxs font-bold transition-colors cursor-pointer"
+                          title="Add 1 Loss (0 Pts, +1 GA)"
+                        >
+                          + Lose
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openEditStanding(st)}
+                          className="p-1 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white border border-neutral-700 transition-colors cursor-pointer ml-1"
+                          title={`Edit all table stats for ${st.teamName}`}
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
+          {/* Detailed Team Standings Edit Modal */}
+          {editingStandingTeam && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+                  <div>
+                    <span className="text-xxs uppercase tracking-wider text-red-400 font-sports font-bold">
+                      Edit League Standing
+                    </span>
+                    <h4 className="text-lg font-sports font-black text-white">
+                      {editingStandingTeam.teamName}
+                    </h4>
+                  </div>
+                  <button
+                    onClick={() => setEditingStandingTeam(null)}
+                    className="p-1.5 rounded-lg bg-neutral-800 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveStanding} className="space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-xxs font-bold text-neutral-400 uppercase mb-1">
+                        Played (P)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={standingFormData.played}
+                        onChange={(e) =>
+                          setStandingFormData({ ...standingFormData, played: parseInt(e.target.value, 10) || 0 })
+                        }
+                        className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white font-mono font-bold text-sm focus:border-red-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xxs font-bold text-emerald-400 uppercase mb-1">
+                        Won (W)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={standingFormData.won}
+                        onChange={(e) =>
+                          setStandingFormData({ ...standingFormData, won: parseInt(e.target.value, 10) || 0 })
+                        }
+                        className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-emerald-400 font-mono font-bold text-sm focus:border-red-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xxs font-bold text-neutral-400 uppercase mb-1">
+                        Drawn (D)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={standingFormData.drawn}
+                        onChange={(e) =>
+                          setStandingFormData({ ...standingFormData, drawn: parseInt(e.target.value, 10) || 0 })
+                        }
+                        className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white font-mono font-bold text-sm focus:border-red-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xxs font-bold text-red-400 uppercase mb-1">
+                        Lost (L)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={standingFormData.lost}
+                        onChange={(e) =>
+                          setStandingFormData({ ...standingFormData, lost: parseInt(e.target.value, 10) || 0 })
+                        }
+                        className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-red-400 font-mono font-bold text-sm focus:border-red-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xxs font-bold text-neutral-400 uppercase mb-1">
+                        Goals For (GF)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={standingFormData.goalsFor}
+                        onChange={(e) =>
+                          setStandingFormData({ ...standingFormData, goalsFor: parseInt(e.target.value, 10) || 0 })
+                        }
+                        className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white font-mono font-bold text-sm focus:border-red-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xxs font-bold text-neutral-400 uppercase mb-1">
+                        Goals Against (GA)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={standingFormData.goalsAgainst}
+                        onChange={(e) =>
+                          setStandingFormData({ ...standingFormData, goalsAgainst: parseInt(e.target.value, 10) || 0 })
+                        }
+                        className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white font-mono font-bold text-sm focus:border-red-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xxs font-bold text-amber-400 uppercase mb-1">
+                        Points (Pts)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={standingFormData.points}
+                        onChange={(e) =>
+                          setStandingFormData({ ...standingFormData, points: parseInt(e.target.value, 10) || 0 })
+                        }
+                        className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-amber-400 font-sports font-black text-base focus:border-red-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-neutral-800 text-xs text-neutral-400">
+                    <div>
+                      Goal Diff:{' '}
+                      <span className="font-bold font-mono text-white">
+                        {standingFormData.goalsFor - standingFormData.goalsAgainst > 0 ? '+' : ''}
+                        {standingFormData.goalsFor - standingFormData.goalsAgainst}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingStandingTeam(null)}
+                        className="px-4 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-sports font-bold uppercase transition-colors cursor-pointer text-xs"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-sports font-black uppercase transition-colors cursor-pointer text-xs shadow-md"
+                      >
+                        Save Standing
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

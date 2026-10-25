@@ -213,7 +213,7 @@ const STORAGE_KEYS = {
   LANG: 'halaba_lang',
   CLUB: 'halaba_club_info_epl_26_27',
   MATCHES: 'halaba_matches_epl_2026_27_v18',
-  STANDINGS: 'halaba_official_epl_standings_v10_18teams',
+  STANDINGS: 'halaba_official_epl_standings_v12_real_table',
   NEWS: 'halaba_news_epl_2026_27',
   PLAYERS: 'halaba_players',
   STAFF: 'halaba_staff',

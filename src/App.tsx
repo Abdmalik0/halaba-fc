@@ -21,6 +21,7 @@ import { JerseyCheckoutModal } from './components/JerseyCheckoutModal';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { AppStoreInstallCard } from './components/pwa/AppStoreInstallCard';
 import { OfflineInterruptedOverlay } from './components/pwa/OfflineInterruptedOverlay';
+import { AppStartupLoader } from './components/AppStartupLoader';
 
 const MainApp: React.FC = () => {
   const { currentPage, matches, news, isDossierOpen, closeDossier } = useClub();
@@ -35,6 +36,9 @@ const MainApp: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden flex flex-col bg-neutral-950 text-neutral-100 selection:bg-red-600 selection:text-white font-sans overscroll-y-none">
+      {/* App Opening Splash Screen with loading icon and translucent backdrop */}
+      <AppStartupLoader minDurationMs={1200} />
+
       {/* Top Navigation */}
       <Navbar onOpenInstallModal={openInstallModal} isInstalled={isInstalled} />
 

@@ -91,7 +91,7 @@ export const translations = {
 
     // Standings
     standingsTitle: 'Ethiopian Premier League Table',
-    standingsSubtitle: 'Official 2026/27 season standings as of October 2026 (Halaba Ketema in 1st Place).',
+    standingsSubtitle: 'Official 2026/27 season standings (Halaba Ketema undefeated with 5 points in Top 5).',
     pos: 'Pos',
     club: 'Club',
     played: 'P',
@@ -465,7 +465,7 @@ export const translations = {
 
     // Standings
     standingsTitle: 'የኢትዮጵያ ፕሪሚየር ሊግ ደረጃ ሰንጠረዥ',
-    standingsSubtitle: 'የ2026/27 የውድድር ዘመን ይፋዊ የደረጃ ሰንጠረዥ (ሀላባ ከተማ በ1ኛ ደረጃ)።',
+    standingsSubtitle: 'የ2026/27 የውድድር ዘመን ይፋዊ የደረጃ ሰንጠረዥ (ሀላባ ከተማ በ5 ነጥብ ያለመሸነፍ ጉዞ)።',
     pos: 'ደረጃ',
     club: 'ክለብ',
     played: 'ተ',
@@ -839,7 +839,7 @@ export const translations = {
 
     // Standings
     standingsTitle: 'Gabatee Sadarkaa Liigii Piriimeeraa',
-    standingsSubtitle: 'Sadarkaa seeraa bara 2026/27 (Halaba Ketema Sadarkaa 1ffaa irra jira).',
+    standingsSubtitle: 'Sadarkaa seeraa bara 2026/27 (Halaba Ketema qabxii 5n utuu hin mo’amin dura jira).',
     pos: 'Sad',
     club: 'Kilabii',
     played: 'T',

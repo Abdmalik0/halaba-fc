@@ -110,7 +110,7 @@ export const StandingsPage: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/50 text-amber-300 font-sports font-bold text-xs uppercase tracking-wider">
-                    {t.officialLeagueStatus} {halabaStanding.position === 1 ? t.firstPlace : halabaStanding.position === 2 ? t.secondPlace : `${halabaStanding.position}ኛ ደረጃ`}
+                    {t.officialLeagueStatus} {halabaStanding.position === 1 ? t.firstPlace : halabaStanding.position === 2 ? t.secondPlace : halabaStanding.position === 3 ? t.thirdPlace : language === 'am' ? `${halabaStanding.position}ኛ ደረጃ` : language === 'om' ? `Sadarkaa ${halabaStanding.position}ffaa` : `${halabaStanding.position}th Place`}
                   </span>
                   <span className="text-emerald-400 text-xs font-bold uppercase tracking-wider hidden sm:inline">
                     • {language === 'am' ? 'የኢትዮጵያ ፕሪሚየር ሊግ (ከፍተኛ ዲቪዚዮን)' : 'Ethiopian Premier League (Top Tier)'}
