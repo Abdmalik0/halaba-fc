@@ -61,6 +61,18 @@ async function startServer() {
     CHAPA_SECRET_KEY.startsWith('CHASECK')
   );
 
+  // Free Over-The-Air Live Update endpoint for CapacitorUpdater
+  const updateCheckPayload = {
+    version: '1.0.1',
+    url: 'https://github.com/abdmalik0/halaba-fc/releases/download/v1.0.1/dist.zip',
+  };
+
+  app.get(['/api/update-check', '/update-check.json'], (_req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Content-Type', 'application/json');
+    res.json(updateCheckPayload);
+  });
+
   /**
    * POST /api/initialize-payment
    * Initializes a Chapa transaction for membership, jersey shop checkout, or supporter donation.

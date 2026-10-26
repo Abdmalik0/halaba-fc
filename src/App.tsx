@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { ClubProvider, useClub } from './context/ClubContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -30,6 +31,20 @@ const MainApp: React.FC = () => {
   // Modals state
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
+
+  // Free Over-The-Air Update: Confirm update stability upon successful mount to prevent rollbacks
+  useEffect(() => {
+    const confirmAppReady = async () => {
+      try {
+        await CapacitorUpdater.notifyAppReady();
+        console.log('[CapacitorUpdater] notifyAppReady() confirmed update stability');
+      } catch (err) {
+        // Gracefully ignored in standard web/dev environments where native plugin is not active
+        console.debug('[CapacitorUpdater] notifyAppReady note:', err);
+      }
+    };
+    confirmAppReady();
+  }, []);
 
   const activeMatch = selectedMatchId ? matches.find((m) => m.id === selectedMatchId) || null : null;
   const activeArticle = selectedArticleId ? news.find((n) => n.id === selectedArticleId) || null : null;

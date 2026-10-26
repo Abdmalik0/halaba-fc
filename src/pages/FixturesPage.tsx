@@ -35,6 +35,7 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
     simulateLiveMatchAction,
     syncNow,
     isSyncing,
+    isOnline,
   } = useClub();
 
   const [activeTab, setActiveTab] = useState<'ALL' | 'UPCOMING' | 'RESULTS'>('ALL');
@@ -60,13 +61,24 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
             <Flame className="w-6 h-6 text-red-400" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-sports font-bold text-xs uppercase px-2 py-0.5 rounded bg-red-600 text-white">
                 {t.officialEplFixtures}
               </span>
               <span className="text-xs text-neutral-400">
                 {t.eplCampaign}
               </span>
+              {!isOnline ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-950 border border-amber-800 text-amber-300 text-xxs font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  {language === 'am' ? 'ከመስመር ውጭ (የተቀመጠ)' : 'Offline Cache'}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-400 text-xxs font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  {language === 'am' ? 'የቀጥታ' : 'Live Sync'}
+                </span>
+              )}
             </div>
             <h3 className="font-sports font-black text-xl text-white uppercase tracking-wider mt-1">
               {t.matchScheduleHeadline}

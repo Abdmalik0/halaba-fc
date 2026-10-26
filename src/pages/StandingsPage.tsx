@@ -7,12 +7,10 @@ import { getLocalizedTeamName, getFormBadgeLocalized } from '../utils/localizati
 import { formatTeamName } from '../utils/formatTeamName';
 
 export const StandingsPage: React.FC = () => {
-  const { t, language, standings, isSyncing, syncNow, resetStandings, recalculateStandingsFromMatches } = useClub();
+  const { t, language, standings, isSyncing, syncNow, resetStandings, recalculateStandingsFromMatches, isOnline } = useClub();
   const [competition, setCompetition] = useState('ETHIOPIAN_PREMIER_LEAGUE');
   const [recalculating, setRecalculating] = useState(false);
   const [recalcSuccess, setRecalcSuccess] = useState(false);
-
-
 
   const halabaStanding = standings.find((s) => s.isHalaba) || standings[0];
   const halabaName = halabaStanding ? getLocalizedTeamName(halabaStanding.teamId, halabaStanding.teamName, language) : '';
@@ -31,6 +29,19 @@ export const StandingsPage: React.FC = () => {
               {t.standingsTitle}
             </h1>
             <p className="text-neutral-400 text-sm mt-1 max-w-xl">{t.standingsSubtitle}</p>
+            <div className="flex items-center gap-2 mt-2">
+              {!isOnline ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/80 border border-amber-800/80 text-amber-300 text-xxs font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  {language === 'am' ? 'የተቀመጠ መረጃ (ከመስመር ውጭ)' : 'Instant Cache Active (Offline)'}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-800/80 text-emerald-400 text-xxs font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  {language === 'am' ? 'የቀጥታ ግንኙነት ነቅቷል' : 'Live Cloud Connected'}
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">

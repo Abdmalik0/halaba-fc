@@ -163,7 +163,8 @@ interface ClubContextType {
   loginAdmin: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   logoutAdmin: () => Promise<void>;
 
-  // Utility
+  // Utility & Offline Resilience
+  isOnline: boolean;
   resetAllDataToDefault: () => void;
 }
 
@@ -238,6 +239,30 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const t = translations[language];
+
+  // Network & Offline Connectivity Listener
+  const [isOnline, setIsOnline] = useState<boolean>(() => {
+    return typeof navigator !== 'undefined' ? navigator.onLine : true;
+  });
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      console.info('[ClubContext] Network online: background sync active');
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      console.info('[ClubContext] Network offline: seamlessly serving cached data');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Routing (Hash / Memory Routing for local WebViews and PWAs)
   const getInitialPage = (): PageRoute => {
@@ -394,7 +419,11 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
     }, (error) => {
-      console.error('Firebase real-time matches error:', error);
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        // Offline: gracefully serve local cache without throwing UI errors
+        return;
+      }
+      console.warn('Firebase real-time matches note (serving cache):', error);
       handleFirestoreError(error, OperationType.LIST, 'matches');
     });
     return () => unsubscribe();
@@ -566,6 +595,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(reordered));
       }
     }, (error) => {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        // Offline: gracefully serve local cache without throwing UI errors
+        return;
+      }
       console.warn('Firebase real-time standings note:', error);
     });
     return () => unsubscribe();
@@ -1835,6 +1868,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthChecking,
         loginAdmin,
         logoutAdmin,
+        isOnline,
         resetAllDataToDefault,
       }}
     >
