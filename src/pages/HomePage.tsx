@@ -144,12 +144,11 @@ export const HomePage: React.FC<HomePageProps> = ({
           </h1>
 
           {/* Nickname & Ethiopic Badge */}
-          <div className="mt-2 text-xl sm:text-2xl md:text-3xl font-extrabold flex items-center justify-center gap-2">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-emerald-400 to-amber-300">
-              “Berberewochu”
-            </span>
-            <span className="text-amber-300 font-ethiopic font-bold">({clubInfo.nickname.am})</span>
-          </div>
+          {clubInfo.nickname?.am && (
+            <div className="mt-2 text-xl sm:text-2xl md:text-3xl font-extrabold flex items-center justify-center gap-2">
+              <span className="text-amber-300 font-ethiopic font-bold">{clubInfo.nickname.am}</span>
+            </div>
+          )}
 
           <p className="mt-4 max-w-2xl text-neutral-300 text-sm sm:text-base md:text-lg leading-relaxed font-normal">
             {t.heroSubtitle}
