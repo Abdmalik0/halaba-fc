@@ -32,7 +32,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
+          cache: ''
 
       - name: Step A - Install dependencies and compile dist/
         run: |
