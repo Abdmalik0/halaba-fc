@@ -54,6 +54,10 @@ jobs:
           VERSION_NUM="1.0.${{ github.run_number }}"
           echo "VERSION_TAG=${VERSION_TAG}" >> $GITHUB_ENV
           echo "VERSION_NUM=${VERSION_NUM}" >> $GITHUB_ENV
+          
+          echo "Cleaning up any existing release/tag for ${VERSION_TAG} if retry..."
+          gh release delete "${VERSION_TAG}" --yes --repo "${{ github.repository }}" 2>/dev/null || true
+          git push origin --delete "${VERSION_TAG}" 2>/dev/null || true
 
           echo "Publishing GitHub Release for tag: ${VERSION_TAG}..."
           gh release create "${VERSION_TAG}" dist.zip \
