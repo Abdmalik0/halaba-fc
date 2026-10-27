@@ -146,7 +146,12 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Nickname & Ethiopic Badge */}
           {clubInfo.nickname?.am && (
             <div className="mt-2 text-xl sm:text-2xl md:text-3xl font-extrabold flex items-center justify-center gap-2">
-              <span className="text-amber-300 font-ethiopic font-bold">{clubInfo.nickname.am}</span>
+              <span
+                className="font-ethiopic font-bold border border-[#ff7030] text-[#edff30] px-3 py-0.5 rounded-full"
+                style={{ color: '#edff30', borderColor: '#ff7030' }}
+              >
+                {clubInfo.nickname.am}
+              </span>
             </div>
           )}
 
