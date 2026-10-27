@@ -62,14 +62,14 @@ jobs:
             --title "Halaba FC OTA Update ${VERSION_TAG}" \
             --notes "Automated self-hosted Capgo live update bundle for version ${VERSION_NUM}."
 
-      - name: Step E - Update public/update-check.json and commit back to main
+      - name: Step E - Update update-check.json and push to main
         run: |
-          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION_TAG }}/dist.zip"
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION_TAG}/dist.zip"
+          
           echo "Writing updated version ${VERSION_NUM} to public/update-check.json..."
-
           cat <<EOF > public/update-check.json
           {
-            "version": "${{ env.VERSION_NUM }}",
+            "version": "${VERSION_NUM}",
             "url": "${DOWNLOAD_URL}"
           }
           EOF
@@ -77,5 +77,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/update-check.json
-          git commit -m "chore(ota): bump update-check to v${{ env.VERSION_NUM }} [skip ci]" || echo "No changes to commit"
+          git commit -m "chore(ota): bump update-check to ${VERSION_TAG} [skip ci]" || echo "No changes to commit"
+          
+          # Explicit refspec push to resolve branch name collision
           git push origin HEAD:refs/heads/main
+          
