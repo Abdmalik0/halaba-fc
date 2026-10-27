@@ -77,4 +77,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/update-check.json
           git commit -m "chore(ota): bump update-check to v${{ env.VERSION_NUM }} [skip ci]" || echo "No changes to commit"
-          git push origin main
+          git push origin HEAD:refs/heads/main
