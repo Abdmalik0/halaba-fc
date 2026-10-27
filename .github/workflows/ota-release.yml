@@ -1,0 +1,80 @@
+name: Automated Capgo OTA Release
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - '!public/update-check.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "capgo-ota-release"
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    name: Build & Publish OTA Update
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Step A - Install dependencies and compile dist/
+        run: |
+          npm install --legacy-peer-deps
+          npm run build
+
+      - name: Step B - Zip contents of dist/ into dist.zip
+        run: |
+          cd dist
+          zip -r ../dist.zip .
+          cd ..
+          ls -lh dist.zip
+
+      - name: Step C & D - Generate incremental version and create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION_TAG="v1.0.${{ github.run_number }}"
+          VERSION_NUM="1.0.${{ github.run_number }}"
+          echo "VERSION_TAG=${VERSION_TAG}" >> $GITHUB_ENV
+          echo "VERSION_NUM=${VERSION_NUM}" >> $GITHUB_ENV
+
+          echo "Publishing GitHub Release for tag: ${VERSION_TAG}..."
+          gh release create "${VERSION_TAG}" dist.zip \
+            --repo "${{ github.repository }}" \
+            --title "Halaba FC OTA Update ${VERSION_TAG}" \
+            --notes "Automated self-hosted Capgo live update bundle for version ${VERSION_NUM}."
+
+      - name: Step E - Update public/update-check.json and commit back to main
+        run: |
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION_TAG }}/dist.zip"
+          echo "Writing updated version ${VERSION_NUM} to public/update-check.json..."
+
+          cat <<EOF > public/update-check.json
+          {
+            "version": "${{ env.VERSION_NUM }}",
+            "url": "${DOWNLOAD_URL}"
+          }
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/update-check.json
+          git commit -m "chore(ota): bump update-check to v${{ env.VERSION_NUM }} [skip ci]" || echo "No changes to commit"
+          git push origin main

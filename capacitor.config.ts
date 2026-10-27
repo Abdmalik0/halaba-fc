@@ -14,8 +14,8 @@ const config: CapacitorConfig = {
   plugins: {
     CapacitorUpdater: {
       autoUpdate: 'onLaunch',
-      // Point to a free static update-check file hosted on Firebase
-      updateUrl: 'https://halaba-fc.web.app/update-check.json',
+      // Point to static update-check file on GitHub raw
+      updateUrl: 'https://raw.githubusercontent.com/abdmalik0/halaba-fc/main/public/update-check.json',
       statsUrl: '',
     },
   },
