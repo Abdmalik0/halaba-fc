@@ -30,6 +30,7 @@ import {
 import { translations } from '../translations';
 import { ClubImages } from '../assets/images';
 import { calculateStandingsFromMatches } from '../utils/standingsCalculator';
+import { getIdbItem, setIdbItem, createThumbnail } from '../utils/idb';
 
 export type PageRoute = 'home' | 'fixtures' | 'standings' | 'news' | 'membership' | 'shop' | 'about' | 'contact' | 'admin';
 
@@ -673,7 +674,24 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [matches]);
 
 
-  // News State & Real-Time Firebase Firestore Integration
+  // News State & Real-Time Firebase Firestore Integration with Instant Offline Cache
+  const getCategoryFallbackImage = (category?: string): string => {
+    switch (category) {
+      case 'MATCH_REPORTS':
+        return ClubImages.newsBahirDarWin || ClubImages.matchAction;
+      case 'INTERVIEWS':
+        return ClubImages.newsCoachInterview;
+      case 'ACADEMY':
+        return ClubImages.academyTraining;
+      case 'TRANSFERS':
+        return ClubImages.squadLineup;
+      case 'CLUB_NEWS':
+      case 'COMMUNITY':
+      default:
+        return ClubImages.heroStadium;
+    }
+  };
+
   const [news, setNews] = useState<NewsArticle[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.NEWS);
@@ -684,7 +702,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const initialMatch = initialNews.find((n) => n.id === item.id);
             return {
               ...item,
-              imageUrl: item.imageUrl || initialMatch?.imageUrl || ClubImages.newsCoachInterview,
+              imageUrl: item.imageUrl || initialMatch?.imageUrl || getCategoryFallbackImage(item.category),
             };
           });
         }
@@ -694,6 +712,45 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     return initialNews;
   });
+
+  // Rapidly hydrate full-resolution news & images from IndexedDB (runs in ~10ms on startup)
+  useEffect(() => {
+    getIdbItem<NewsArticle[]>('halaba_news_full_cache_v2')
+      .then((cached) => {
+        if (cached && Array.isArray(cached) && cached.length > 0) {
+          setNews((currentNews) => {
+            const currentMap = new Map(currentNews.map((n) => [n.id, n]));
+            let hasChanges = false;
+
+            const merged = cached.map((c) => {
+              const live = currentMap.get(c.id);
+              if (!live) {
+                hasChanges = true;
+                return c;
+              }
+              // If live item is missing image or only has low-res thumbnail, adopt cached full image
+              if (!live.imageUrl || (live.imageUrl.length < 5000 && c.imageUrl && c.imageUrl.length > 5000)) {
+                hasChanges = true;
+                return { ...live, imageUrl: c.imageUrl };
+              }
+              return live;
+            });
+
+            currentNews.forEach((n) => {
+              if (!merged.some((m) => m.id === n.id)) {
+                merged.unshift(n);
+                hasChanges = true;
+              }
+            });
+
+            return hasChanges ? merged : currentNews;
+          });
+        }
+      })
+      .catch(() => {
+        // ignore
+      });
+  }, []);
 
   useEffect(() => {
     const q = query(collection(db, "news"), orderBy("createdAt", "desc"));
@@ -706,7 +763,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const liveArticles: NewsArticle[] = snapshot.docs.map((docSnap) => {
         const data = docSnap.data();
         const initialMatch = initialNews.find((n) => n.id === docSnap.id);
-        const resolvedImage = initialMatch?.imageUrl || data.imageUrl || ClubImages.newsCoachInterview;
+        const resolvedImage = data.imageUrl || initialMatch?.imageUrl || getCategoryFallbackImage(data.category);
 
         return {
           id: docSnap.id,
@@ -724,7 +781,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
           author: data.author || initialMatch?.author || 'Club Administration',
           imageUrl: resolvedImage,
           readTime: data.readTime || initialMatch?.readTime || '3 min read',
-          isFeatured: docSnap.id === 'sxRTmExguBl4NTz4RYjR' || Boolean(data.isFeatured || initialMatch?.isFeatured),
+          isFeatured: docSnap.id === 'news-1793126013273' || docSnap.id === 'sxRTmExguBl4NTz4RYjR' || Boolean(data.isFeatured || initialMatch?.isFeatured),
         } as NewsArticle;
       });
 
@@ -737,15 +794,32 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (liveArticles.length > 0) {
         setNews(liveArticles);
-        try {
-          const cacheSafeArticles = liveArticles.map((a) => ({
-            ...a,
-            imageUrl: a.imageUrl?.startsWith('data:') ? '' : a.imageUrl,
-          }));
-          localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(cacheSafeArticles));
-        } catch (e) {
-          console.warn('Could not cache news in localStorage:', e);
-        }
+
+        // 1. Asynchronously cache full-resolution payload in IndexedDB (no 5MB quota limit)
+        setIdbItem('halaba_news_full_cache_v2', liveArticles);
+
+        // 2. Persist compressed thumbnails to localStorage for synchronous 0ms startup
+        Promise.all(
+          liveArticles.map(async (art) => {
+            if (art.imageUrl && art.imageUrl.startsWith('data:')) {
+              try {
+                const thumb = await createThumbnail(art.imageUrl, 360, 0.55);
+                return { ...art, imageUrl: thumb };
+              } catch {
+                return art;
+              }
+            }
+            return art;
+          })
+        ).then((thumbnailArticles) => {
+          try {
+            localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(thumbnailArticles));
+          } catch (e) {
+            console.warn('Could not cache news thumbnails in localStorage:', e);
+          }
+        }).catch(() => {
+          // ignore
+        });
       }
     }, (error) => {
       console.error("Firebase real-time news error:", error);
@@ -760,11 +834,22 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newArticle: NewsArticle = {
       ...art,
       id: newId,
+      imageUrl: art.imageUrl || getCategoryFallbackImage(art.category),
     };
     const updated = [newArticle, ...news];
     setNews(updated);
+    setIdbItem('halaba_news_full_cache_v2', updated);
+
+    createThumbnail(newArticle.imageUrl || '', 360, 0.55).then((thumb) => {
+      try {
+        const cached = updated.map((a) => (a.id === newId ? { ...a, imageUrl: thumb } : a));
+        localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(cached));
+      } catch {
+        // ignore
+      }
+    });
+
     try {
-      localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated.map((a) => ({ ...a, imageUrl: a.imageUrl?.startsWith('data:') ? '' : a.imageUrl }))));
       await setDoc(doc(db, "news", newId), {
         ...art,
         createdAt: serverTimestamp(),
@@ -777,8 +862,9 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateNewsArticle = async (id: string, updates: Partial<NewsArticle>) => {
     const updated = news.map((n) => (n.id === id ? { ...n, ...updates } : n));
     setNews(updated);
+    setIdbItem('halaba_news_full_cache_v2', updated);
+
     try {
-      localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated.map((a) => ({ ...a, imageUrl: a.imageUrl?.startsWith('data:') ? '' : a.imageUrl }))));
       await setDoc(doc(db, "news", id), {
         ...updates,
         updatedAt: serverTimestamp(),
@@ -796,7 +882,12 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     const updated = news.filter((n) => n.id !== id);
     setNews(updated);
-    localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated));
+    setIdbItem('halaba_news_full_cache_v2', updated);
+    try {
+      localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
   };
 
   // Players & Staff State & Real-Time Firebase Firestore Integration

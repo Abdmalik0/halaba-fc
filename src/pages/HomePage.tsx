@@ -406,11 +406,15 @@ export const HomePage: React.FC<HomePageProps> = ({
                 onClick={() => onOpenArticleModal(article.id)}
                 className="group cursor-pointer rounded-2xl bg-neutral-900 border border-neutral-800 hover:border-red-600/50 overflow-hidden flex flex-col transition-all duration-200 hover:-translate-y-1 shadow-lg"
               >
-                <div className="relative aspect-video overflow-hidden">
+                <div className="relative aspect-video overflow-hidden bg-neutral-950">
                   <img
-                    src={article.imageUrl}
+                    src={article.imageUrl || ClubImages.matchAction}
                     alt={title}
                     referrerPolicy="no-referrer"
+                    loading="lazy"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = ClubImages.matchAction;
+                    }}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-black/70 text-emerald-400 backdrop-blur-md">

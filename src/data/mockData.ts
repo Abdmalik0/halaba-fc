@@ -802,6 +802,78 @@ export const initialStandings: StandingTeam[] = [
 
 export const initialNews: NewsArticle[] = [
   {
+    id: 'news-1793126013273',
+    title: {
+      en: 'We will be back',
+      am: 'ተጠናክረን እንመለሳለን',
+      om: 'Cimnee Deebina',
+    },
+    summary: {
+      en: 'We will come back stronger from this setback. The season is long and our commitment to our club colors and supporters remains unwavering.',
+      am: 'ተጠናክረን እንመለሳለን! የሊጉ ጉዞ ረጅም ነው፤ ክለባችን ወደ አሸናፊነት ለመመለስ የሚያስፈልጉ ዝግጅቶችን እያደረገ ይገኛል።',
+      om: 'Cimnee deebina! Tapha itti aanuuf qophii gaarii taasisaa jirra.',
+    },
+    content: {
+      en: 'We will come back stronger from this setback. The season is long and our commitment to our club colors and supporters remains unwavering. The technical team and players are united in working tirelessly to deliver the results our supporters deserve.',
+      am: 'ተጠናክረን እንመለሳለን! የሊጉ ጉዞ ረጅም ነው፤ ክለባችን ወደ አሸናፊነት ለመመለስ የሚያስፈልጉ ዝግጅቶችን እያደረገ ይገኛል። መላው ደጋፊ ከክለቡ ጎን እንዲቆም ጥሪ ቀርቧል።',
+      om: 'Cimnee deebina! Tapha itti aanuuf qophii gaarii taasisaa jirra.',
+    },
+    category: 'CLUB_NEWS',
+    date: '2026-10-27',
+    author: 'Club Administration',
+    imageUrl: ClubImages.newsWeWillBeBack,
+    isFeatured: true,
+    readTime: '3 min read',
+  },
+  {
+    id: 'news-1793035517021',
+    title: {
+      en: 'Wolita dicha 6 : 0 Halaba city',
+      am: 'ወላይታ ዲቻ 6 : 0 ሀላባ ከተማ',
+      om: 'Wolita dicha 6 : 0 Halaba city',
+    },
+    summary: {
+      en: 'CBE Ethiopian Premier League Round 4: Halaba City suffered a difficult 6-0 away defeat against Wolaita Dicha at Hawassa Stadium.',
+      am: 'CBE የኢትዮጵያ ፕርሚየር ሊግ 4ኛ ሳምንት መረሃ ግብር ዛሬ ምሽት 12፡00 በሀዋሳ ስታድየም በተደረገው ጨዋታ ክለባችን ሀላባ ከተማ በወላይታ ዲቻ 6 ለ 0 በሆነ ውጤት ተረቷል፡፡',
+      om: 'CBE የኢትዮጵያ ፕርሚየር ሊግ 4ኛ ሳምንት መረሃ ግብር ዛሬ ምሽት 12፡00 በሀዋሳ ስታድየም በተደረገው ጨዋታ ክለባችን ሀላባ ከተማ በወላይታ ዲቻ 6 ለ 0 በሆነ ውጤት ተረቷል፡፡',
+    },
+    content: {
+      en: 'CBE Ethiopian Premier League Round 4: Halaba City suffered a difficult 6-0 away defeat against Wolaita Dicha at Hawassa Stadium. The technical team has analyzed the errors and pledged immediate tactical adjustments for Round 5.',
+      am: 'CBE የኢትዮጵያ ፕርሚየር ሊግ 4ኛ ሳምንት መረሃ ግብር ዛሬ ምሽት 12፡00 በሀዋሳ ስታድየም በተደረገው ጨዋታ ክለባችን ሀላባ ከተማ በወላይታ ዲቻ 6 ለ 0 በሆነ ውጤት ተረቷል፡፡ አሰልጣኞችና ተጫዋቾች ለቀጣይ ጨዋታ ከፍተኛ ዝግጅት እያደረጉ ነው።',
+      om: 'CBE የኢትዮጵያ ፕርሚየር ሊግ 4ኛ ሳምንት መረሃ ግብር ዛሬ ምሽት 12፡00 በሀዋሳ ስታድየም በተደረገው ጨዋታ ክለባችን ሀላባ ከተማ በወላይታ ዲቻ 6 ለ 0 በሆነ ውጤት ተረቷል፡፡',
+    },
+    category: 'MATCH_REPORTS',
+    date: '2026-10-26',
+    author: 'Club Administration',
+    imageUrl: ClubImages.newsWolitaMatch,
+    isFeatured: false,
+    readTime: '3 min read',
+  },
+  {
+    id: 'news-1792836094704',
+    title: {
+      en: 'Halab City vs Wolaita Dicha',
+      am: 'ሀላባ ከተማ ከወላይታ ዲቻ',
+      om: 'Halab City vs Wolaita Dicha',
+    },
+    summary: {
+      en: 'The eagerly anticipated clash between Halaba City and regional rivals Wolaita Dicha in Round 4 of the Ethiopian Premier League.',
+      am: 'ሀላባ ከተማ ከወላይታ ዲቻ የሚያደርጉት ፍልሚያ በጉጉት ይጠበቃል',
+      om: 'ሀላባ ከተማ ከወላይታ ዲቻ የሚያደርጉት ፍልሚያ በጉጉት ይጠበቃል',
+    },
+    content: {
+      en: 'The eagerly anticipated clash between Halaba City and regional rivals Wolaita Dicha in Round 4 of the Ethiopian Premier League scheduled at Hawassa Stadium.',
+      am: 'ሀላባ ከተማ ከወላይታ ዲቻ የሚያደርጉት ፍልሚያ በጉጉት ይጠበቃል። ደጋፊዎች በስታዲየም ተገኝተው ድጋፍ እንዲሰጡ ጥሪ ቀርቧል።',
+      om: 'ሀላባ ከተማ ከወላይታ ዲቻ የሚያደርጉት ፍልሚያ በጉጉት ይጠበቃል',
+    },
+    category: 'CLUB_NEWS',
+    date: '2026-10-24',
+    author: 'Club Administration',
+    imageUrl: ClubImages.newsWolitaPreview,
+    isFeatured: false,
+    readTime: '3 min read',
+  },
+  {
     id: 'sxRTmExguBl4NTz4RYjR',
     title: {
       en: 'AFTER MATCH INTERVIEW OF THE HEAD COACH KHALID MOHAMMED',

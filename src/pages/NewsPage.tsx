@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useClub } from '../context/ClubContext';
 import { Search, ChevronRight, Newspaper } from 'lucide-react';
 import { getLocalizedCategory } from '../utils/localization';
+import { ClubImages } from '../assets/images';
 
 interface NewsPageProps {
   onOpenArticleModal: (articleId: string) => void;
@@ -89,10 +90,14 @@ export const NewsPage: React.FC<NewsPageProps> = ({ onOpenArticleModal }) => {
           className="group cursor-pointer relative rounded-3xl overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-red-600/60 shadow-2xl transition-all duration-300"
         >
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
-            <div className="lg:col-span-7 relative aspect-video lg:aspect-auto min-h-[300px] sm:min-h-[380px] overflow-hidden">
+            <div className="lg:col-span-7 relative aspect-video lg:aspect-auto min-h-[300px] sm:min-h-[380px] overflow-hidden bg-neutral-950">
               <img
-                src={featuredArticle.imageUrl}
+                src={featuredArticle.imageUrl || ClubImages.matchAction}
                 alt="Featured Story"
+                loading="eager"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = ClubImages.matchAction;
+                }}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-transparent to-transparent lg:hidden" />
@@ -151,10 +156,14 @@ export const NewsPage: React.FC<NewsPageProps> = ({ onOpenArticleModal }) => {
                   className="group cursor-pointer rounded-2xl bg-neutral-900 border border-neutral-800 hover:border-red-600/50 overflow-hidden flex flex-col justify-between transition-all duration-200 hover:-translate-y-1 shadow-lg"
                 >
                   <div>
-                    <div className="relative aspect-video overflow-hidden">
+                    <div className="relative aspect-video overflow-hidden bg-neutral-950">
                       <img
-                        src={article.imageUrl}
+                        src={article.imageUrl || ClubImages.matchAction}
                         alt={title}
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = ClubImages.matchAction;
+                        }}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                       <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-black/75 text-emerald-400 backdrop-blur-md">

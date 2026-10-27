@@ -74,6 +74,9 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) 
               <img
                 src={article.imageUrl}
                 alt={title}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = '/assets/images/halaba_match_action_1792217992379.webp';
+                }}
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/80 via-transparent to-transparent" />

@@ -12,6 +12,9 @@ import newsCrowdCelebration from './halaba_news_crowd_celebration.jpg';
 import newsBahirDarWin from './halaba_news_bahirdar_win.jpg';
 import newsMatchPoster from './halaba_news_match_poster.webp';
 import newsCoachInterview from './firestore_news_sxRTmExguBl4NTz4RYjR.jpg';
+import newsWeWillBeBack from './firestore_news_news-1793126013273.jpg';
+import newsWolitaMatch from './firestore_news_news-1793035517021.jpg';
+import newsWolitaPreview from './firestore_news_news-1792836094704.jpg';
 import jerseyHomeReal from './firestore_prod_jersey-home-2026.jpg';
 import jerseyAwayReal from './firestore_prod_jersey-away-2026.jpg';
 import jerseyThirdReal from './firestore_prod_jersey-third-2026.jpg';
@@ -31,7 +34,11 @@ export const ClubImages = {
   newsBahirDarWin,
   newsMatchPoster,
   newsCoachInterview,
+  newsWeWillBeBack,
+  newsWolitaMatch,
+  newsWolitaPreview,
   jerseyHomeReal,
   jerseyAwayReal,
   jerseyThirdReal,
 };
+
