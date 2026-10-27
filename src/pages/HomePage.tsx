@@ -147,8 +147,8 @@ export const HomePage: React.FC<HomePageProps> = ({
           {clubInfo.nickname?.am && (
             <div className="mt-2 text-xl sm:text-2xl md:text-3xl font-extrabold flex items-center justify-center gap-2">
               <span
-                className="font-ethiopic font-bold border border-[#ff7030] text-[#edff30] px-3 py-0.5 rounded-full"
-                style={{ color: '#edff30', borderColor: '#ff7030' }}
+                className="font-ethiopic font-bold text-[#edff30]"
+                style={{ color: '#edff30', borderColor: '#080808', borderWidth: '0px', borderStyle: 'none' }}
               >
                 {clubInfo.nickname.am}
               </span>
