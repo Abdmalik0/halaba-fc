@@ -16,6 +16,7 @@ import {
   ShopItem,
   ShopOrder,
   DonationRecord,
+  Sponsor,
 } from '../types';
 import {
   initialClubInfo,
@@ -26,6 +27,7 @@ import {
   initialStaff,
   initialMemberships,
   initialShopItems,
+  initialSponsors,
 } from '../data/mockData';
 import { translations } from '../translations';
 import { ClubImages } from '../assets/images';
@@ -164,6 +166,13 @@ interface ClubContextType {
   loginAdmin: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   logoutAdmin: () => Promise<void>;
 
+  // Sponsors & Partner Posters
+  sponsors: Sponsor[];
+  addSponsor: (sponsor: Omit<Sponsor, 'id'>) => string;
+  updateSponsor: (id: string, updates: Partial<Sponsor>) => void;
+  deleteSponsor: (id: string) => void;
+  resetSponsors: () => void;
+
   // Utility & Offline Resilience
   isOnline: boolean;
   resetAllDataToDefault: () => void;
@@ -224,6 +233,7 @@ const STORAGE_KEYS = {
   SHOP_ORDERS: 'halaba_shop_orders_2026',
   DONATIONS: 'halaba_donations_2026',
   ADMIN_AUTH: 'halaba_admin_auth',
+  SPONSORS: 'halaba_sponsors_v2',
 };
 
 export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -1865,6 +1875,69 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(timer);
   }, [isAutoSyncEnabled, autoSyncInterval]);
 
+  // Sponsors & Partner Posters State
+  const [sponsors, setSponsors] = useState<Sponsor[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.SPONSORS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      // Ignore
+    }
+    return initialSponsors;
+  });
+
+  const addSponsor = (sponsorData: Omit<Sponsor, 'id'>): string => {
+    const newId = `sponsor-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const newSponsor: Sponsor = {
+      ...sponsorData,
+      id: newId,
+      order: sponsorData.order ?? (sponsors.length + 1),
+      active: sponsorData.active ?? true,
+    };
+    const updated = [...sponsors, newSponsor];
+    setSponsors(updated);
+    try {
+      localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed to save sponsors to localStorage:', e);
+    }
+    return newId;
+  };
+
+  const updateSponsor = (id: string, updates: Partial<Sponsor>) => {
+    const updated = sponsors.map((s) => (s.id === id ? { ...s, ...updates } : s));
+    setSponsors(updated);
+    try {
+      localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed to update sponsors in localStorage:', e);
+    }
+  };
+
+  const deleteSponsor = (id: string) => {
+    const updated = sponsors.filter((s) => s.id !== id);
+    setSponsors(updated);
+    try {
+      localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed to delete sponsor from localStorage:', e);
+    }
+  };
+
+  const resetSponsors = () => {
+    setSponsors(initialSponsors);
+    try {
+      localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(initialSponsors));
+    } catch (e) {
+      console.warn('Failed to reset sponsors in localStorage:', e);
+    }
+  };
+
   const resetAllDataToDefault = () => {
     localStorage.clear();
     setMatches(initialMatches);
@@ -1877,6 +1950,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setShopOrders([]);
     setDonations([]);
     setClubInfo(initialClubInfo);
+    setSponsors(initialSponsors);
     setIsAdminLoggedIn(false);
   };
 
@@ -1959,6 +2033,11 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthChecking,
         loginAdmin,
         logoutAdmin,
+        sponsors,
+        addSponsor,
+        updateSponsor,
+        deleteSponsor,
+        resetSponsors,
         isOnline,
         resetAllDataToDefault,
       }}

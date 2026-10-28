@@ -1,4 +1,4 @@
-import { ClubInfo, Match, StandingTeam, NewsArticle, Player, StaffMember, MembershipApplication, ShopItem } from '../types';
+import { ClubInfo, Match, StandingTeam, NewsArticle, Player, StaffMember, MembershipApplication, ShopItem, Sponsor } from '../types';
 import { ClubImages } from '../assets/images';
 
 export const initialClubInfo: ClubInfo = {
@@ -1219,6 +1219,65 @@ export const initialShopItems: ShopItem[] = [
     category: 'KIT',
     inStock: true,
     featured: false,
+  },
+];
+
+export const initialSponsors: Sponsor[] = [
+  {
+    id: 'sponsor-netvibe',
+    name: 'NetVibe Digital Solutions',
+    nameAm: 'ኔትቫይብ ዲጂታል ሶሉሽንስ',
+    nameOm: 'NetVibe Furmaata Dijitaalaa',
+    tier: 'Technology Partner & App Developer',
+    tierAm: 'ኦፊሴላዊ የቴክኖሎጂ አጋር እና የመተግበሪያ አበልፃጊ',
+    imageUrl: '/assets/aistudio/photo_2026-10-28_11.47.50_335eef24.jpeg',
+    websiteUrl: 'https://netvibesolutions.com',
+    description: 'Ideas • Code • Impact — Proudly architected & developed the official Halaba City FC digital platform & Android app.',
+    descriptionAm: 'ሀሳብ • ኮድ • ተፅዕኖ — የሀላባ ከተማ እግር ኳስ ክለብን ኦፊሴላዊ ድረ-ገጽ እና የሞባይል መተግበሪያ ያበለፀገ ድርጅት።',
+    active: true,
+    order: 1,
+  },
+  {
+    id: 'sponsor-halaba-union',
+    name: 'Halaba Agricultural & Berbere Union',
+    nameAm: 'የሀላባ በርበሬና ግብርና ህብረት ስራ ማህበር',
+    nameOm: 'Waldaa Hojii Gamtaa Qonnaa fi Mimmi’oo Halabaa',
+    tier: 'Principal Club Partner',
+    tierAm: 'ዋና የክለቡ አጋር',
+    imageUrl: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=1200&q=80',
+    websiteUrl: 'https://halabacity.gov.et',
+    description: 'Pride of Halaba — Cultivating the rich soil of our homeland and powering our champions on the national stage.',
+    descriptionAm: 'የበርበሬ ምድር ኩራት — የሀላባን ለም መሬትና የህዝባችንን ብርታት በመወከል ክለባችንን በታላቅ ኩራት እንደግፋለን።',
+    active: true,
+    order: 2,
+  },
+  {
+    id: 'sponsor-chapa',
+    name: 'Chapa Financial Technologies',
+    nameAm: 'ቻፓ የፋይናንስ ቴክኖሎጂስ',
+    nameOm: 'Chapa Teeknooloojii Faayinaansii',
+    tier: 'Official Digital Payment Partner',
+    tierAm: 'ኦፊሴላዊ የዲጂታል ክፍያ አጋር',
+    imageUrl: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=1200&q=80',
+    websiteUrl: 'https://chapa.co',
+    description: 'Fast, secure and seamless online payments for Halaba City FC memberships, donations, and official merchandise.',
+    descriptionAm: 'ለክለቡ አባላት ምዝገባ፣ እርዳታና ማሊያ ግዢ ፈጣንና አስተማማኝ የክፍያ አገልግሎት የሚሰጥ የቴክኖሎጂ አጋር።',
+    active: true,
+    order: 3,
+  },
+  {
+    id: 'sponsor-sports-commission',
+    name: 'Halaba City Sports & Youth Commission',
+    nameAm: 'የሀላባ ከተማ ወጣቶችና ስፖርት ኮሚሽን',
+    nameOm: 'Koomishinii Dargaggootaa fi Ispoortii Magaalaa Halabaa',
+    tier: 'Civic Governing Partner',
+    tierAm: 'ኦፊሴላዊ የመንግስትና ማህበረሰብ አጋር',
+    imageUrl: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
+    websiteUrl: 'https://halabacity.gov.et',
+    description: 'Building sports infrastructure, nurturing young talents, and uniting the community under one banner.',
+    descriptionAm: 'የስፖርት መሰረተ-ልማቶችን በማስፋፋት፣ ወጣት ተሰጥኦዎችን በማፍራትና ማህበረሰቡን በስፖርት አንድ የሚያደርግ ተቋም።',
+    active: true,
+    order: 4,
   },
 ];
 

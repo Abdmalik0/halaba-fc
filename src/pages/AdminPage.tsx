@@ -50,8 +50,10 @@ import {
   ShieldCheck,
   Mail,
   Calculator,
-  Minus
+  Minus,
+  Award,
 } from 'lucide-react';
+import { SponsorManager } from '../components/admin/SponsorManager';
 
 export const AdminPage: React.FC = () => {
   const {
@@ -106,6 +108,7 @@ export const AdminPage: React.FC = () => {
     simulateLiveMatchAction,
     advanceLeagueMatchday,
     liveNotifications,
+    sponsors,
   } = useClub();
 
   // Strict Firebase Admin Login form state
@@ -117,7 +120,7 @@ export const AdminPage: React.FC = () => {
 
   // Active admin tab
   const [adminTab, setAdminTab] = useState<
-    'memberships' | 'shop' | 'news' | 'fixtures' | 'standings' | 'squad' | 'sync' | 'settings'
+    'memberships' | 'shop' | 'news' | 'fixtures' | 'standings' | 'squad' | 'sponsors' | 'sync' | 'settings'
   >('memberships');
 
   // Shop admin sub-tab & modal states
@@ -975,6 +978,18 @@ export const AdminPage: React.FC = () => {
         >
           <Users className="w-4 h-4" />
           <span>{t.adminTabSquad}</span>
+        </button>
+
+        <button
+          onClick={() => setAdminTab('sponsors')}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider font-sports flex items-center gap-2 transition-all cursor-pointer ${
+            adminTab === 'sponsors'
+              ? 'bg-red-600 text-white shadow-md'
+              : 'bg-neutral-900 text-neutral-400 hover:text-white'
+          }`}
+        >
+          <Award className="w-4 h-4 text-amber-400" />
+          <span>{language === 'am' ? 'ስፖንሰሮችና ፖስተሮች' : 'Sponsors & Posters'} ({sponsors.length})</span>
         </button>
 
         <button
@@ -2211,6 +2226,9 @@ export const AdminPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* TAB CONTENT: SPONSORS & PARTNERS CAROUSEL MANAGEMENT */}
+      {adminTab === 'sponsors' && <SponsorManager />}
 
       {/* TAB CONTENT 6: CLUB SETTINGS & DB INTEGRATION GUIDE */}
       {adminTab === 'settings' && (

@@ -239,3 +239,18 @@ export interface DonationRecord {
   verifiedAt?: string;
 }
 
+export interface Sponsor {
+  id: string;
+  name: string;
+  nameAm?: string;
+  nameOm?: string;
+  tier: string;
+  tierAm?: string;
+  imageUrl: string;
+  websiteUrl?: string;
+  description?: string;
+  descriptionAm?: string;
+  active: boolean;
+  order: number;
+}
+

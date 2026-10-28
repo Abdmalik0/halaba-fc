@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { AppStoreInstallCard } from '../components/pwa/AppStoreInstallCard';
 import { usePWAInstall } from '../hooks/usePWAInstall';
+import { SponsorAutoSlider } from '../components/SponsorAutoSlider';
 import {
   getLocalizedTeamName,
   getLocalizedVenue,
@@ -186,26 +187,10 @@ export const HomePage: React.FC<HomePageProps> = ({
             </button>
           </div>
 
-          {/* Next Match Quick Banner */}
-          {nextMatch && (
-            <div
-              onClick={() => onOpenMatchModal(nextMatch.id)}
-              className="mt-6 cursor-pointer inline-flex flex-wrap items-center justify-center gap-2.5 px-4 py-2 rounded-2xl bg-neutral-900/85 hover:bg-neutral-800 border border-neutral-700/80 backdrop-blur-md transition-all hover:scale-[1.02] shadow-xl group text-center"
-            >
-              <div className="flex items-center gap-1.5 text-red-400 font-sports font-bold text-xs uppercase tracking-wider shrink-0">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>{t.nextHalabaMatch}</span>
-              </div>
-              <span className="font-sports font-black text-sm text-white uppercase tracking-wide truncate max-w-full" title={`${homeNextTeam} ${t.vs} ${awayNextTeam}`}>
-                {homeNextShort} {t.vs} {awayNextShort}
-              </span>
-              <span className="text-xxs text-amber-400 font-mono bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800 font-bold whitespace-nowrap shrink-0">
-                {nextMatch.date} • {nextMatch.kickoffTime} {t.eatTimezone}
-              </span>
-              <span className="text-xxs text-neutral-400 hidden sm:inline truncate max-w-[150px]">({nextVenue})</span>
-              <ChevronRight className="w-3.5 h-3.5 text-neutral-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
-            </div>
-          )}
+          {/* 5. Big Auto Slide Bar of Sponsor Posters */}
+          <div className="w-full mt-8 flex flex-col items-center">
+            <SponsorAutoSlider />
+          </div>
         </div>
       </section>
 
