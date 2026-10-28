@@ -1,6 +1,7 @@
 import React from 'react';
 import { useClub, PageRoute } from '../context/ClubContext';
 import { HalabaCrest } from './HalabaCrest';
+import { NetVibeLogo } from './NetVibeLogo';
 import {
   MapPin,
   Phone,
@@ -218,28 +219,12 @@ export const Footer: React.FC = () => {
 
         {/* Developer Attribution by NetVibe Digital Solutions */}
         <div className="mt-8 p-4 rounded-xl bg-gradient-to-r from-neutral-900/90 via-[#071322]/80 to-neutral-900/90 border border-cyan-900/40 shadow-lg text-xs text-neutral-300 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <img
-              src="/assets/aistudio/photo_2026-10-28_11.47.50_335eef24.jpeg"
-              alt="NetVibe Digital Solutions"
-              className="w-12 h-12 rounded-xl object-contain bg-[#060b18] border border-cyan-500/40 p-1 shadow-md shadow-cyan-950/60 shrink-0"
-            />
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm text-white tracking-wide">
-                  {language === 'am' ? 'የመተግበሪያ አዘጋጅ: NetVibe Digital Solutions' : 'Developed by NetVibe Digital Solutions'}
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-950/90 text-cyan-300 border border-cyan-700/50">
-                  Tech Partner
-                </span>
-              </div>
-              <p className="text-xs text-neutral-400 mt-0.5">
-                {language === 'am'
-                  ? 'IDEAS • CODE • IMPACT — ለሀላባ ከተማ እግርኳስ ክለብ በልዩ ጥራት የተዘጋጀ ይፋዊ መተግበሪያ'
-                  : 'IDEAS • CODE • IMPACT — Official digital portal & mobile application partner'}
-              </p>
-            </div>
-          </div>
+          <NetVibeLogo
+            size="md"
+            showText={true}
+            language={language}
+            className="flex-1"
+          />
           <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
             <span className="text-[11px] font-mono text-cyan-400/90 bg-cyan-950/50 px-2.5 py-1 rounded-md border border-cyan-800/40">
               NetVibe Digital

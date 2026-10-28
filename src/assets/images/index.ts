@@ -18,6 +18,7 @@ import newsWolitaPreview from './firestore_news_news-1792836094704.jpg';
 import jerseyHomeReal from './firestore_prod_jersey-home-2026.jpg';
 import jerseyAwayReal from './firestore_prod_jersey-away-2026.jpg';
 import jerseyThirdReal from './firestore_prod_jersey-third-2026.jpg';
+import netvibeLogo from './netvibe-logo.jpeg';
 
 export const ClubImages = {
   heroStadium,
@@ -40,5 +41,8 @@ export const ClubImages = {
   jerseyHomeReal,
   jerseyAwayReal,
   jerseyThirdReal,
+  netvibeLogo,
 };
+
+export { netvibeLogo };
 
