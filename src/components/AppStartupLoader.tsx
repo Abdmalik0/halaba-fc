@@ -86,6 +86,23 @@ export const AppStartupLoader: React.FC<AppStartupLoaderProps> = ({
         <span className="text-xxs text-neutral-400 font-mono uppercase tracking-widest mt-3.5">
           Loading Official Club Portal...
         </span>
+
+        {/* Developer Attribution by NetVibe */}
+        <div className="mt-5 pt-3.5 border-t border-neutral-800/80 w-full flex items-center justify-center gap-2.5">
+          <img
+            src="/assets/aistudio/photo_2026-10-28_11.47.50_335eef24.jpeg"
+            alt="NetVibe Digital Solutions"
+            className="w-7 h-7 rounded-lg object-contain bg-[#060b18] border border-cyan-500/40 p-0.5 shadow-sm shadow-cyan-950/60 shrink-0"
+          />
+          <div className="text-left">
+            <span className="block text-[9px] text-neutral-400 font-semibold uppercase tracking-wider leading-none">
+              Developed by
+            </span>
+            <span className="text-xs font-bold text-sky-400 tracking-wide leading-tight">
+              NetVibe Digital Solutions
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
