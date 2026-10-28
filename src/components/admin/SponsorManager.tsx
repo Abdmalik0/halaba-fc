@@ -20,6 +20,9 @@ import {
   ArrowUp,
   ArrowDown,
   Layers,
+  Loader2,
+  ShieldCheck,
+  Database,
 } from 'lucide-react';
 import { NetVibeSvgEmblem } from '../NetVibeLogo';
 
@@ -64,7 +67,16 @@ const compressPosterImage = (file: File, maxDim = 1200): Promise<string> => {
 };
 
 export const SponsorManager: React.FC = () => {
-  const { sponsors, addSponsor, updateSponsor, deleteSponsor, resetSponsors, language } = useClub();
+  const {
+    sponsors,
+    addSponsor,
+    updateSponsor,
+    deleteSponsor,
+    resetSponsors,
+    isSponsorsLoading,
+    sponsorsSyncError,
+    language,
+  } = useClub();
 
   // Modal & form states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -82,6 +94,7 @@ export const SponsorManager: React.FC = () => {
 
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSavingToFirestore, setIsSavingToFirestore] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -160,7 +173,7 @@ export const SponsorManager: React.FC = () => {
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       setUploadError('Please enter a sponsor name.');
@@ -171,51 +184,67 @@ export const SponsorManager: React.FC = () => {
       return;
     }
 
-    if (editingSponsorId) {
-      updateSponsor(editingSponsorId, {
-        name: name.trim(),
-        nameAm: nameAm.trim() || undefined,
-        tier: tier.trim(),
-        tierAm: tierAm.trim() || undefined,
-        imageUrl: imageUrl.trim(),
-        websiteUrl: websiteUrl.trim() || undefined,
-        description: description.trim() || undefined,
-        descriptionAm: descriptionAm.trim() || undefined,
-        active,
-      });
-      showToast(`Updated sponsor poster for "${name}" successfully.`);
-    } else {
-      addSponsor({
-        name: name.trim(),
-        nameAm: nameAm.trim() || undefined,
-        tier: tier.trim(),
-        tierAm: tierAm.trim() || undefined,
-        imageUrl: imageUrl.trim(),
-        websiteUrl: websiteUrl.trim() || undefined,
-        description: description.trim() || undefined,
-        descriptionAm: descriptionAm.trim() || undefined,
-        active,
-        order: sponsors.length + 1,
-      });
-      showToast(`Added new sponsor poster for "${name}" successfully.`);
+    setIsSavingToFirestore(true);
+    setUploadError(null);
+
+    try {
+      if (editingSponsorId) {
+        await updateSponsor(editingSponsorId, {
+          name: name.trim(),
+          nameAm: nameAm.trim() || undefined,
+          tier: tier.trim(),
+          tierAm: tierAm.trim() || undefined,
+          imageUrl: imageUrl.trim(),
+          websiteUrl: websiteUrl.trim() || undefined,
+          description: description.trim() || undefined,
+          descriptionAm: descriptionAm.trim() || undefined,
+          active,
+        });
+        showToast(`Updated sponsor poster for "${name}" in Firebase Firestore.`);
+      } else {
+        await addSponsor({
+          name: name.trim(),
+          nameAm: nameAm.trim() || undefined,
+          tier: tier.trim(),
+          tierAm: tierAm.trim() || undefined,
+          imageUrl: imageUrl.trim(),
+          websiteUrl: websiteUrl.trim() || undefined,
+          description: description.trim() || undefined,
+          descriptionAm: descriptionAm.trim() || undefined,
+          active,
+          order: sponsors.length + 1,
+        });
+        showToast(`Added new sponsor poster for "${name}" to Firebase Firestore.`);
+      }
+      setIsModalOpen(false);
+    } catch (err: any) {
+      setUploadError(err?.message || 'Failed to save sponsor to Firebase Firestore.');
+    } finally {
+      setIsSavingToFirestore(false);
     }
-
-    setIsModalOpen(false);
   };
 
-  const handleDelete = (id: string, sponsorName: string) => {
-    if (window.confirm(`Are you sure you want to remove the sponsor poster for "${sponsorName}"?`)) {
-      deleteSponsor(id);
-      showToast(`Removed "${sponsorName}" from sponsor posters.`);
+  const handleDelete = async (id: string, sponsorName: string) => {
+    if (window.confirm(`Are you sure you want to remove the sponsor poster for "${sponsorName}" from Firebase Firestore?`)) {
+      try {
+        await deleteSponsor(id);
+        showToast(`Removed "${sponsorName}" from Firebase Firestore.`);
+      } catch (err: any) {
+        showToast(`Error deleting sponsor: ${err?.message || 'Failed'}`);
+      }
     }
   };
 
-  const handleToggleActive = (sponsor: Sponsor) => {
-    updateSponsor(sponsor.id, { active: !sponsor.active });
-    showToast(`${sponsor.name} poster set to ${!sponsor.active ? 'Active' : 'Hidden'}.`);
+  const handleToggleActive = async (sponsor: Sponsor) => {
+    try {
+      await updateSponsor(sponsor.id, { active: !sponsor.active });
+      showToast(`${sponsor.name} poster set to ${!sponsor.active ? 'Active' : 'Hidden'} in Firebase.`);
+    } catch (err: any) {
+      showToast(`Error updating visibility: ${err?.message || 'Failed'}`);
+    }
   };
 
-  const handleMoveOrder = (index: number, direction: 'up' | 'down') => {
+  const handleMoveOrder = async (index: number, direction: 'up' | 'down') => {
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= sponsors.length) return;
 
@@ -224,11 +253,14 @@ export const SponsorManager: React.FC = () => {
     copy[index] = copy[targetIndex];
     copy[targetIndex] = temp;
 
-    // re-assign order numbers
-    copy.forEach((item, idx) => {
-      updateSponsor(item.id, { order: idx + 1 });
-    });
-    showToast('Updated slide display order.');
+    try {
+      for (let idx = 0; idx < copy.length; idx++) {
+        await updateSponsor(copy[idx].id, { order: idx + 1 });
+      }
+      showToast('Updated slide display order in Firebase.');
+    } catch (err: any) {
+      showToast('Error saving order changes to Firebase.');
+    }
   };
 
   const sortedSponsors = [...sponsors].sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -284,6 +316,50 @@ export const SponsorManager: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Firebase Cloud Live Connection Banner */}
+      <div className="p-4 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-neutral-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
+        <div className="flex items-start gap-3">
+          <Database className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <strong className="text-white font-sports font-bold tracking-wide uppercase">
+                {language === 'am'
+                  ? 'የፈርቤዝ ክላውድ ፋየርቤዝ ዳታቤዝ ተገናኝቷል'
+                  : 'Firebase Cloud Firestore Linked'}
+              </strong>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Live Cloud Sync Active
+              </span>
+            </div>
+            <p className="text-neutral-400 text-xxs">
+              {language === 'am'
+                ? 'ሁሉም የስፖንሰር ፖስተሮች፣ ባነሮች እና መረጃዎች በቀጥታ በፈርቤዝ /sponsors ውስጥ ይቀመጣሉ።'
+                : 'All sponsor posters, tiers, descriptions, and uploaded images sync live with Cloud Firestore collection /sponsors.'}
+            </p>
+          </div>
+        </div>
+
+        {isSponsorsLoading ? (
+          <div className="flex items-center gap-1.5 text-amber-400 text-xxs font-mono shrink-0">
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+            <span>Syncing Firestore...</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-neutral-400 text-xxs font-mono shrink-0">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{sponsors.length} Cloud Documents</span>
+          </div>
+        )}
+      </div>
+
+      {sponsorsSyncError && (
+        <div className="p-3 rounded-xl bg-amber-950/80 border border-amber-500/40 text-amber-300 text-xs flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>Offline fallback active: {sponsorsSyncError}</span>
+        </div>
+      )}
 
       {/* Sponsors Grid / List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -685,11 +761,20 @@ export const SponsorManager: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isUploading}
+                  disabled={isUploading || isSavingToFirestore}
                   className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-sports font-black text-sm uppercase tracking-wider shadow-lg shadow-red-950/50 flex items-center gap-2 transition-all hover:scale-102 active:scale-95 disabled:opacity-50"
                 >
-                  <Check className="w-4 h-4" />
-                  <span>{editingSponsorId ? 'Save Changes' : 'Publish Poster'}</span>
+                  {isSavingToFirestore ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Saving to Firestore...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>{editingSponsorId ? 'Save Changes' : 'Publish Poster'}</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>

@@ -192,6 +192,25 @@
         "status": { "type": "string", "description": "Payment status" }
       },
       "required": ["donationNumber", "amount", "fullName"]
+    },
+    "Sponsor": {
+      "title": "Sponsor",
+      "description": "Official club sponsor and partner posters displayed on the home carousel",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Sponsor brand or organization name" },
+        "nameAm": { "type": "string", "description": "Sponsor brand name in Amharic" },
+        "nameOm": { "type": "string", "description": "Sponsor brand name in Afaan Oromoo" },
+        "tier": { "type": "string", "description": "Partnership level / category tier" },
+        "tierAm": { "type": "string", "description": "Partnership level in Amharic" },
+        "imageUrl": { "type": "string", "description": "Poster image URL or data URI" },
+        "websiteUrl": { "type": "string", "description": "Official partner website link" },
+        "description": { "type": "string", "description": "Tagline or company description" },
+        "descriptionAm": { "type": "string", "description": "Tagline or description in Amharic" },
+        "active": { "type": "boolean", "description": "Visibility flag on homepage" },
+        "order": { "type": "number", "description": "Carousel display sequence order" }
+      },
+      "required": ["name", "tier", "imageUrl"]
     }
   },
   "firestore": {
@@ -234,6 +253,10 @@
     "/donations/{donationId}": {
       "schema": "Donation",
       "description": "Stores supporter club donations"
+    },
+    "/sponsors/{sponsorId}": {
+      "schema": "Sponsor",
+      "description": "Stores official club sponsors, partner billboards, and carousel posters"
     }
   }
 }

@@ -166,12 +166,14 @@ interface ClubContextType {
   loginAdmin: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   logoutAdmin: () => Promise<void>;
 
-  // Sponsors & Partner Posters
+  // Sponsors & Partner Posters (Firebase Firestore Connected)
   sponsors: Sponsor[];
-  addSponsor: (sponsor: Omit<Sponsor, 'id'>) => string;
-  updateSponsor: (id: string, updates: Partial<Sponsor>) => void;
-  deleteSponsor: (id: string) => void;
-  resetSponsors: () => void;
+  addSponsor: (sponsor: Omit<Sponsor, 'id'>) => Promise<string | void> | string | void;
+  updateSponsor: (id: string, updates: Partial<Sponsor>) => Promise<void> | void;
+  deleteSponsor: (id: string) => Promise<void> | void;
+  resetSponsors: () => Promise<void> | void;
+  isSponsorsLoading: boolean;
+  sponsorsSyncError: string | null;
 
   // Utility & Offline Resilience
   isOnline: boolean;
@@ -1875,7 +1877,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(timer);
   }, [isAutoSyncEnabled, autoSyncInterval]);
 
-  // Sponsors & Partner Posters State
+  // Sponsors & Partner Posters State with Real-Time Firebase Firestore Integration
   const [sponsors, setSponsors] = useState<Sponsor[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.SPONSORS);
@@ -1891,50 +1893,203 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return initialSponsors;
   });
 
-  const addSponsor = (sponsorData: Omit<Sponsor, 'id'>): string => {
-    const newId = `sponsor-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-    const newSponsor: Sponsor = {
-      ...sponsorData,
-      id: newId,
-      order: sponsorData.order ?? (sponsors.length + 1),
-      active: sponsorData.active ?? true,
-    };
-    const updated = [...sponsors, newSponsor];
-    setSponsors(updated);
+  const [isSponsorsLoading, setIsSponsorsLoading] = useState<boolean>(true);
+  const [sponsorsSyncError, setSponsorsSyncError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const sponsorsRef = collection(db, 'sponsors');
+    const unsubscribe = onSnapshot(
+      sponsorsRef,
+      async (snapshot) => {
+        setIsSponsorsLoading(false);
+        setSponsorsSyncError(null);
+
+        // If Firestore collection is empty, seed initial official sponsors so they persist in Firebase Cloud
+        if (snapshot.empty) {
+          console.info('[Firebase Firestore] Initializing sponsors collection in Cloud Firestore...');
+          try {
+            for (const initSponsor of initialSponsors) {
+              await setDoc(doc(db, 'sponsors', initSponsor.id), {
+                name: initSponsor.name,
+                nameAm: initSponsor.nameAm || '',
+                nameOm: initSponsor.nameOm || '',
+                tier: initSponsor.tier,
+                tierAm: initSponsor.tierAm || '',
+                imageUrl: initSponsor.imageUrl,
+                websiteUrl: initSponsor.websiteUrl || '',
+                description: initSponsor.description || '',
+                descriptionAm: initSponsor.descriptionAm || '',
+                active: initSponsor.active,
+                order: initSponsor.order,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+              });
+            }
+          } catch (seedErr) {
+            console.warn('[Firebase Firestore] Could not auto-seed sponsors:', seedErr);
+          }
+          return;
+        }
+
+        const liveSponsors: Sponsor[] = [];
+        snapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data();
+          liveSponsors.push({
+            id: docSnap.id,
+            name: data.name || 'Sponsor',
+            nameAm: data.nameAm || undefined,
+            nameOm: data.nameOm || undefined,
+            tier: data.tier || 'Official Partner',
+            tierAm: data.tierAm || undefined,
+            imageUrl: data.imageUrl || '',
+            websiteUrl: data.websiteUrl || undefined,
+            description: data.description || undefined,
+            descriptionAm: data.descriptionAm || undefined,
+            active: data.active !== undefined ? Boolean(data.active) : true,
+            order: typeof data.order === 'number' ? data.order : 10,
+          });
+        });
+
+        // Sort by order ascending
+        liveSponsors.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        setSponsors(liveSponsors);
+        try {
+          localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(liveSponsors));
+        } catch (e) {
+          console.warn('Could not cache sponsors in localStorage:', e);
+        }
+      },
+      (error) => {
+        console.error('Firebase real-time sponsors sync error:', error);
+        setIsSponsorsLoading(false);
+        setSponsorsSyncError(error.message);
+        handleFirestoreError(error, OperationType.LIST, 'sponsors');
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  const addSponsor = async (sponsorData: Omit<Sponsor, 'id'>): Promise<string> => {
     try {
+      const docRef = await addDoc(collection(db, 'sponsors'), {
+        name: sponsorData.name,
+        nameAm: sponsorData.nameAm || '',
+        nameOm: sponsorData.nameOm || '',
+        tier: sponsorData.tier,
+        tierAm: sponsorData.tierAm || '',
+        imageUrl: sponsorData.imageUrl,
+        websiteUrl: sponsorData.websiteUrl || '',
+        description: sponsorData.description || '',
+        descriptionAm: sponsorData.descriptionAm || '',
+        active: sponsorData.active !== undefined ? sponsorData.active : true,
+        order: sponsorData.order ?? (sponsors.length + 1),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      const newSponsor: Sponsor = {
+        ...sponsorData,
+        id: docRef.id,
+        order: sponsorData.order ?? (sponsors.length + 1),
+        active: sponsorData.active !== undefined ? sponsorData.active : true,
+      };
+      const updated = [...sponsors, newSponsor].sort((a, b) => (a.order || 0) - (b.order || 0));
+      setSponsors(updated);
+      try {
+        localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Could not cache updated sponsors in localStorage:', e);
+      }
+      return docRef.id;
+    } catch (error) {
+      console.error('Firestore add sponsor error, falling back locally:', error);
+      handleFirestoreError(error, OperationType.CREATE, 'sponsors');
+      const fallbackId = `sponsor-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const newSponsor: Sponsor = {
+        ...sponsorData,
+        id: fallbackId,
+        order: sponsorData.order ?? (sponsors.length + 1),
+        active: sponsorData.active ?? true,
+      };
+      const updated = [...sponsors, newSponsor];
+      setSponsors(updated);
       localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(updated));
-    } catch (e) {
-      console.warn('Failed to save sponsors to localStorage:', e);
+      return fallbackId;
     }
-    return newId;
   };
 
-  const updateSponsor = (id: string, updates: Partial<Sponsor>) => {
-    const updated = sponsors.map((s) => (s.id === id ? { ...s, ...updates } : s));
-    setSponsors(updated);
+  const updateSponsor = async (id: string, updates: Partial<Sponsor>): Promise<void> => {
     try {
+      const sponsorRef = doc(db, 'sponsors', id);
+      await setDoc(sponsorRef, {
+        ...updates,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+
+      const updated = sponsors.map((s) => (s.id === id ? { ...s, ...updates } : s));
+      setSponsors(updated);
+      try {
+        localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Could not cache updated sponsors in localStorage:', e);
+      }
+    } catch (error) {
+      console.error('Firestore update sponsor error, falling back locally:', error);
+      handleFirestoreError(error, OperationType.UPDATE, `sponsors/${id}`);
+      const updated = sponsors.map((s) => (s.id === id ? { ...s, ...updates } : s));
+      setSponsors(updated);
       localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(updated));
-    } catch (e) {
-      console.warn('Failed to update sponsors in localStorage:', e);
     }
   };
 
-  const deleteSponsor = (id: string) => {
-    const updated = sponsors.filter((s) => s.id !== id);
-    setSponsors(updated);
+  const deleteSponsor = async (id: string): Promise<void> => {
     try {
+      const sponsorRef = doc(db, 'sponsors', id);
+      await deleteDoc(sponsorRef);
+
+      const updated = sponsors.filter((s) => s.id !== id);
+      setSponsors(updated);
+      try {
+        localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Could not cache sponsors after deletion:', e);
+      }
+    } catch (error) {
+      console.error('Firestore delete sponsor error, falling back locally:', error);
+      handleFirestoreError(error, OperationType.DELETE, `sponsors/${id}`);
+      const updated = sponsors.filter((s) => s.id !== id);
+      setSponsors(updated);
       localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(updated));
-    } catch (e) {
-      console.warn('Failed to delete sponsor from localStorage:', e);
     }
   };
 
-  const resetSponsors = () => {
-    setSponsors(initialSponsors);
+  const resetSponsors = async (): Promise<void> => {
     try {
+      for (const initS of initialSponsors) {
+        await setDoc(doc(db, 'sponsors', initS.id), {
+          name: initS.name,
+          nameAm: initS.nameAm || '',
+          nameOm: initS.nameOm || '',
+          tier: initS.tier,
+          tierAm: initS.tierAm || '',
+          imageUrl: initS.imageUrl,
+          websiteUrl: initS.websiteUrl || '',
+          description: initS.description || '',
+          descriptionAm: initS.descriptionAm || '',
+          active: initS.active,
+          order: initS.order,
+          updatedAt: serverTimestamp(),
+        }, { merge: true });
+      }
+      setSponsors(initialSponsors);
       localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(initialSponsors));
-    } catch (e) {
-      console.warn('Failed to reset sponsors in localStorage:', e);
+    } catch (error) {
+      console.error('Firestore reset sponsors error, falling back locally:', error);
+      handleFirestoreError(error, OperationType.WRITE, 'sponsors');
+      setSponsors(initialSponsors);
+      localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(initialSponsors));
     }
   };
 
@@ -2038,6 +2193,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateSponsor,
         deleteSponsor,
         resetSponsors,
+        isSponsorsLoading,
+        sponsorsSyncError,
         isOnline,
         resetAllDataToDefault,
       }}
