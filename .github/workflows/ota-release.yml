@@ -55,9 +55,11 @@ jobs:
           echo "VERSION_TAG=${VERSION_TAG}" >> $GITHUB_ENV
           echo "VERSION_NUM=${VERSION_NUM}" >> $GITHUB_ENV
 
+          # Delete existing release via GitHub API if a re-run occurs, avoiding CLI flag issues
+          gh release delete "${VERSION_TAG}" --yes --repo "${{ github.repository }}" || true
+
           echo "Publishing GitHub Release for tag: ${VERSION_TAG}..."
           gh release create "${VERSION_TAG}" dist.zip \
-            --clobber \
             --repo "${{ github.repository }}" \
             --title "Halaba FC OTA Update ${VERSION_TAG}" \
             --notes "Automated self-hosted Capgo live update bundle for version ${VERSION_NUM}."
@@ -79,6 +81,5 @@ jobs:
           git add public/update-check.json
           git commit -m "chore(ota): bump update-check to ${VERSION_TAG} [skip ci]" || echo "No changes to commit"
           
-          # Explicit refspec push to resolve branch name collision
+          # Use explicit refspec push to fix branch collision
           git push origin HEAD:refs/heads/main
-          
