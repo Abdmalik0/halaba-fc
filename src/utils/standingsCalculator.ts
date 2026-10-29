@@ -1,5 +1,6 @@
 import { Match, StandingTeam } from '../types';
 import { normalizeEplTeamId } from '../context/ClubContext';
+import halabaLogoUrl from '../assets/images/halaba-city-fc-logo.png';
 
 /**
  * Baseline team templates with verified names and official badges
@@ -23,7 +24,7 @@ export const defaultClubTemplates: Record<string, { teamName: string; isHalaba: 
   halaba: {
     teamName: 'Halaba Ketema (በርበሬዎቹ)',
     isHalaba: true,
-    badgeUrl: '/images/halaba-city-fc-logo.png',
+    badgeUrl: halabaLogoUrl,
   },
   fasil: {
     teamName: 'Fasil Kenema',

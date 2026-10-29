@@ -199,9 +199,25 @@ fs.writeFileSync(path.join(publicDir, 'icon.svg'), svgIcon);
 
 async function generateAllIcons() {
   console.log('Generating high-resolution PWA, Capacitor, and Android launcher icons...');
-  const iconBuffer = Buffer.from(svgIcon);
+  const officialLogoPath = path.resolve('public/images/halaba-city-fc-logo.png');
+  const iconBuffer = fs.existsSync(officialLogoPath)
+    ? fs.readFileSync(officialLogoPath)
+    : Buffer.from(svgIcon);
+
+  // Generate padded adaptive foreground buffer from official logo
+  const foregroundBuffer = await sharp(iconBuffer)
+    .resize(750, 750, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .extend({
+      top: 137,
+      bottom: 137,
+      left: 137,
+      right: 137,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png()
+    .toBuffer();
+
   const circularBuffer = Buffer.from(svgCircular);
-  const foregroundBuffer = Buffer.from(svgForeground);
   const splashBuffer = Buffer.from(svgSplash);
 
   // 1. Root /assets/ (for Capacitor Assets CLI: npx @capacitor/assets generate --android)

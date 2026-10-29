@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import halabaLogoUrl from '../assets/images/halaba-city-fc-logo.png';
+import { HalabaCrest } from './HalabaCrest';
 
 // Official TheSportsDB API strBadge values for Ethiopian Premier League clubs
 // Directly sourced from TheSportsDB (League ID 4959)
 export const OFFICIAL_SPORTSDB_BADGES: Record<string, string> = {
-  halaba: '/images/halaba-city-fc-logo.png',
+  halaba: halabaLogoUrl,
   cbe_sa: 'https://r2.thesportsdb.com/images/media/team/badge/fn7am21727368578.png',
   insurance: 'https://r2.thesportsdb.com/images/media/team/badge/oboroa1776295149.png',
   medhin: 'https://r2.thesportsdb.com/images/media/team/badge/oboroa1776295149.png',
@@ -120,6 +122,11 @@ export const EthiopianClubLogo: React.FC<EthiopianClubLogoProps> = ({
 }) => {
   // Normalize lookup key
   const normalizedKey = (teamId || teamName).toLowerCase().trim();
+
+  // If rendering Halaba City FC, directly render the pristine HalabaCrest component
+  if (normalizedKey.includes('halaba') || teamId === 'halaba') {
+    return <HalabaCrest size={size} className={className} />;
+  }
 
   // Instant synchronous lookup for zero delay on initial render
   const initialBadge = (): string | null => {

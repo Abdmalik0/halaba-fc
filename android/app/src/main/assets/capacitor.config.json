@@ -8,5 +8,12 @@
 	},
 	"android": {
 		"allowMixedContent": true
+	},
+	"plugins": {
+		"CapacitorUpdater": {
+			"autoUpdate": "onLaunch",
+			"updateUrl": "https://raw.githubusercontent.com/abdmalik0/halaba-fc/main/public/update-check.json",
+			"statsUrl": ""
+		}
 	}
 }

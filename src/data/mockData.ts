@@ -1,5 +1,5 @@
 import { ClubInfo, Match, StandingTeam, NewsArticle, Player, StaffMember, MembershipApplication, ShopItem, Sponsor } from '../types';
-import { ClubImages } from '../assets/images';
+import { ClubImages, clubLogo } from '../assets/images';
 
 export const initialClubInfo: ClubInfo = {
   name: 'HALABA City FC',
@@ -588,7 +588,7 @@ export const initialStandings: StandingTeam[] = [
     points: 5,
     form: ['D', 'W', 'D'],
     isHalaba: true,
-    badgeUrl: '/images/halaba-city-fc-logo.png',
+    badgeUrl: clubLogo,
   },
   {
     position: 6,

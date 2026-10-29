@@ -99,30 +99,14 @@ export const HomePage: React.FC<HomePageProps> = ({
     <div className="space-y-16 pb-16">
       {/* 1. Hero Section */}
       <section className="relative min-h-[580px] sm:min-h-[660px] flex items-center justify-center overflow-hidden border-b border-red-950/40">
-        {/* Background Image with Dark & Club Color Gradients */}
-        <div className="absolute inset-0 z-0 bg-neutral-950 overflow-hidden">
-          <picture>
-            <source
-              media="(max-width: 640px)"
-              srcSet={ClubImages.heroStadiumMobile}
-              type="image/webp"
-            />
-            <source
-              srcSet={ClubImages.heroStadiumWebp || ClubImages.heroStadium}
-              type="image/webp"
-            />
-            <img
-              src={ClubImages.heroStadiumJpg || ClubImages.heroStadium}
-              alt="Halaba Stadium Supporters"
-              loading="eager"
-              {...({ fetchpriority: 'high' } as any)}
-              decoding="async"
-              className="w-full h-full object-cover object-center filter brightness-[0.45] contrast-110 scale-105 transition-opacity duration-300"
-            />
-          </picture>
-          {/* Robust cross-browser hero dark overlay */}
-          <div className="hero-stadium-overlay" />
-        </div>
+        {/* Unified Hero Stadium Background with CSS Multi-Layer Dark Stack (Chrome & Samsung Internet Consistent) */}
+        <div
+          className="hero-background"
+          style={{
+            backgroundImage: `linear-gradient(to bottom, rgba(10, 10, 10, 0.58) 0%, rgba(30, 3, 5, 0.66) 45%, rgba(10, 10, 10, 0.92) 85%, #0a0a0a 100%), url(${ClubImages.heroStadiumJpg || ClubImages.heroStadium})`,
+          }}
+          aria-hidden="true"
+        />
 
         {/* Hero Content */}
         <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-10 pb-16 flex flex-col items-center">

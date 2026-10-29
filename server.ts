@@ -54,6 +54,12 @@ async function startServer() {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+  // Serve static assets from public folder under root and subpaths
+  app.use(express.static(path.join(__dirname, 'public')));
+  app.use('/halaba-fc', express.static(path.join(__dirname, 'public')));
+  app.use('/images', express.static(path.join(__dirname, 'public', 'images')));
+  app.use('/halaba-fc/images', express.static(path.join(__dirname, 'public', 'images')));
+
   const CHAPA_SECRET_KEY = process.env.CHAPA_SECRET_KEY || '';
   const isChapaConfigured = Boolean(
     CHAPA_SECRET_KEY &&

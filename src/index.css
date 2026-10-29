@@ -236,9 +236,10 @@ select,
 }
 
 /* ==========================================================================
-   TASK 3: HERO STADIUM BACKGROUND DARKENING OVERLAY (Cross-Browser Rock Solid)
+   HERO STADIUM BACKGROUND WITH UNIFIED MULTI-LAYER CSS STACK
+   Rock-solid consistency across Google Chrome, Samsung Internet, and older Android
    ========================================================================== */
-.hero-stadium-overlay {
+.hero-background {
   position: absolute;
   top: 0;
   left: 0;
@@ -247,15 +248,22 @@ select,
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 1;
-  /* Solid base dark background fallback so stadium is never bright on any engine */
-  background-color: rgba(10, 10, 10, 0.72);
-  /* WebKit prefix for older Android browsers and WebViews */
-  background-image: -webkit-linear-gradient(top, rgba(69, 10, 10, 0.5) 0%, rgba(10, 10, 10, 0.65) 45%, #0a0a0a 100%),
-                    -webkit-radial-gradient(center, ellipse cover, rgba(0, 0, 0, 0.2) 0%, rgba(10, 10, 10, 0.7) 70%, #0a0a0a 100%);
-  /* Standard CSS Linear and Radial Gradients */
-  background-image: linear-gradient(to bottom, rgba(69, 10, 10, 0.5) 0%, rgba(10, 10, 10, 0.65) 45%, #0a0a0a 100%),
-                    radial-gradient(ellipse at center, rgba(0, 0, 0, 0.2) 0%, rgba(10, 10, 10, 0.7) 70%, #0a0a0a 100%);
+  z-index: 0;
+  /* Solid base fallback color so foreground content is immediately readable */
+  background-color: #0a0a0a;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  /* Multi-layer CSS background stack: top dark gradient overlay + stadium image */
+  background-image:
+    linear-gradient(
+      to bottom,
+      rgba(10, 10, 10, 0.58) 0%,
+      rgba(30, 3, 5, 0.66) 45%,
+      rgba(10, 10, 10, 0.92) 85%,
+      #0a0a0a 100%
+    ),
+    url('/images/halaba_stadium_hero.jpg');
 }
 
 /* ==========================================================================

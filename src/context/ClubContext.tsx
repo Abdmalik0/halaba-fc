@@ -1669,7 +1669,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // 2. Direct fetch fallback from TheSportsDB
-      if (!freshStandings || freshStandings.length !== 16) {
+      if (!freshStandings || freshStandings.length < 14) {
         try {
           const directRes = await fetch('https://www.thesportsdb.com/api/v1/json/123/lookuptable.php?l=4959&s=2026-2027');
           if (directRes.ok) {
@@ -1723,7 +1723,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      if (!freshStandings || freshStandings.length !== 16) {
+      if (!freshStandings || freshStandings.length === 0) {
         freshStandings = initialStandings;
         syncSource = 'Official SportsDB Seed';
       }
