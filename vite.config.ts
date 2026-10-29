@@ -12,7 +12,9 @@ export default defineConfig(() => {
       react(),
       tailwindcss(),
       legacy({
-        targets: ['defaults', 'not IE 11', 'Android >= 4.4', 'iOS >= 9'],
+        targets: ['defaults', 'not IE 11', 'Android >= 4.4', 'iOS >= 9', 'Chrome >= 49'],
+        additionalLegacyPolyfills: ['regenerator-runtime/runtime'],
+        modernPolyfills: true,
       }),
       VitePWA({
         registerType: 'autoUpdate',
@@ -158,6 +160,34 @@ export default defineConfig(() => {
     },
     build: {
       target: 'es2015',
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          passes: 2,
+        },
+        safari10: true,
+      },
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            if (id.includes('node_modules')) {
+              if (id.includes('react') || id.includes('scheduler')) {
+                return 'vendor-react';
+              }
+              if (id.includes('firebase')) {
+                return 'vendor-firebase';
+              }
+              if (id.includes('lucide-react')) {
+                return 'vendor-icons';
+              }
+              if (id.includes('@capgo') || id.includes('@capacitor')) {
+                return 'vendor-capacitor';
+              }
+            }
+          },
+        },
+      },
     },
   };
 });

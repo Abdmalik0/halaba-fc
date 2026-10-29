@@ -1,28 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { ClubProvider, useClub } from './context/ClubContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { MobileFixedFooter } from './components/MobileFixedFooter';
 import { HomePage } from './pages/HomePage';
-import { FixturesPage } from './pages/FixturesPage';
-import { StandingsPage } from './pages/StandingsPage';
-import { NewsPage } from './pages/NewsPage';
-import { MembershipPage } from './pages/MembershipPage';
-import { AboutPage } from './pages/AboutPage';
-import { ContactPage } from './pages/ContactPage';
-import { AdminPage } from './pages/AdminPage';
-import { ShopPage } from './pages/ShopPage';
-import { MatchDetailsModal } from './components/MatchDetailsModal';
-import { ArticleModal } from './components/ArticleModal';
-import { ClubDossierModal } from './components/ClubDossierModal';
 import { LiveNotificationToast } from './components/LiveNotificationToast';
-import { DonationModal } from './components/DonationModal';
-import { JerseyCheckoutModal } from './components/JerseyCheckoutModal';
 import { usePWAInstall } from './hooks/usePWAInstall';
-import { AppStoreInstallCard } from './components/pwa/AppStoreInstallCard';
 import { OfflineInterruptedOverlay } from './components/pwa/OfflineInterruptedOverlay';
 import { AppStartupLoader } from './components/AppStartupLoader';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { PageFallbackLoader } from './components/PageFallbackLoader';
+
+// Code-split heavy routes to keep initial bundle tiny (<250KB) on low-RAM phones & 3G networks
+const FixturesPage = lazy(() => import('./pages/FixturesPage').then((m) => ({ default: m.FixturesPage })));
+const StandingsPage = lazy(() => import('./pages/StandingsPage').then((m) => ({ default: m.StandingsPage })));
+const NewsPage = lazy(() => import('./pages/NewsPage').then((m) => ({ default: m.NewsPage })));
+const MembershipPage = lazy(() => import('./pages/MembershipPage').then((m) => ({ default: m.MembershipPage })));
+const AboutPage = lazy(() => import('./pages/AboutPage').then((m) => ({ default: m.AboutPage })));
+const ContactPage = lazy(() => import('./pages/ContactPage').then((m) => ({ default: m.ContactPage })));
+const AdminPage = lazy(() => import('./pages/AdminPage').then((m) => ({ default: m.AdminPage })));
+const ShopPage = lazy(() => import('./pages/ShopPage').then((m) => ({ default: m.ShopPage })));
+
+// Code-split modals so they only load when requested
+const MatchDetailsModal = lazy(() => import('./components/MatchDetailsModal').then((m) => ({ default: m.MatchDetailsModal })));
+const ArticleModal = lazy(() => import('./components/ArticleModal').then((m) => ({ default: m.ArticleModal })));
+const ClubDossierModal = lazy(() => import('./components/ClubDossierModal').then((m) => ({ default: m.ClubDossierModal })));
+const DonationModal = lazy(() => import('./components/DonationModal').then((m) => ({ default: m.DonationModal })));
+const JerseyCheckoutModal = lazy(() => import('./components/JerseyCheckoutModal').then((m) => ({ default: m.JerseyCheckoutModal })));
+const AppStoreInstallCard = lazy(() => import('./components/pwa/AppStoreInstallCard').then((m) => ({ default: m.AppStoreInstallCard })));
 
 const MainApp: React.FC = () => {
   const { currentPage, matches, news, isDossierOpen, closeDossier } = useClub();
@@ -63,26 +69,28 @@ const MainApp: React.FC = () => {
       {/* Graceful Offline Interruption Layer */}
       <OfflineInterruptedOverlay />
 
-      {/* Main Page Body */}
+      {/* Main Page Body with Suspense Fallback */}
       <main className="flex-1 w-full max-w-[100vw] overflow-x-hidden pb-28 sm:pb-0">
-        {currentPage === 'home' && (
-          <HomePage
-            onOpenMatchModal={(id) => setSelectedMatchId(id)}
-            onOpenArticleModal={(id) => setSelectedArticleId(id)}
-          />
-        )}
-        {currentPage === 'fixtures' && (
-          <FixturesPage onOpenMatchModal={(id) => setSelectedMatchId(id)} />
-        )}
-        {currentPage === 'standings' && <StandingsPage />}
-        {currentPage === 'news' && (
-          <NewsPage onOpenArticleModal={(id) => setSelectedArticleId(id)} />
-        )}
-        {currentPage === 'membership' && <MembershipPage />}
-        {currentPage === 'shop' && <ShopPage />}
-        {currentPage === 'about' && <AboutPage />}
-        {currentPage === 'contact' && <ContactPage />}
-        {currentPage === 'admin' && <AdminPage />}
+        <Suspense fallback={<PageFallbackLoader />}>
+          {currentPage === 'home' && (
+            <HomePage
+              onOpenMatchModal={(id) => setSelectedMatchId(id)}
+              onOpenArticleModal={(id) => setSelectedArticleId(id)}
+            />
+          )}
+          {currentPage === 'fixtures' && (
+            <FixturesPage onOpenMatchModal={(id) => setSelectedMatchId(id)} />
+          )}
+          {currentPage === 'standings' && <StandingsPage />}
+          {currentPage === 'news' && (
+            <NewsPage onOpenArticleModal={(id) => setSelectedArticleId(id)} />
+          )}
+          {currentPage === 'membership' && <MembershipPage />}
+          {currentPage === 'shop' && <ShopPage />}
+          {currentPage === 'about' && <AboutPage />}
+          {currentPage === 'contact' && <ContactPage />}
+          {currentPage === 'admin' && <AdminPage />}
+        </Suspense>
       </main>
 
       {/* Mobile Fixed Footer */}
@@ -91,34 +99,45 @@ const MainApp: React.FC = () => {
       {/* Footer */}
       <Footer />
 
-      {/* App Store Style Download Modal */}
-      {isInstallModalOpen && !isInstalled && (
-        <AppStoreInstallCard mode="modal" onClose={closeInstallModal} />
-      )}
+      {/* Suspense-guarded Modals */}
+      <Suspense fallback={null}>
+        {/* App Store Style Download Modal */}
+        {isInstallModalOpen && !isInstalled && (
+          <AppStoreInstallCard mode="modal" onClose={closeInstallModal} />
+        )}
 
-      {/* Modals */}
-      <MatchDetailsModal
-        match={activeMatch}
-        onClose={() => setSelectedMatchId(null)}
-      />
-      <ArticleModal
-        article={activeArticle}
-        onClose={() => setSelectedArticleId(null)}
-      />
-      <ClubDossierModal
-        isOpen={isDossierOpen}
-        onClose={closeDossier}
-      />
-      <DonationModal />
-      <JerseyCheckoutModal />
+        {/* Dynamic Modals */}
+        {activeMatch && (
+          <MatchDetailsModal
+            match={activeMatch}
+            onClose={() => setSelectedMatchId(null)}
+          />
+        )}
+        {activeArticle && (
+          <ArticleModal
+            article={activeArticle}
+            onClose={() => setSelectedArticleId(null)}
+          />
+        )}
+        {isDossierOpen && (
+          <ClubDossierModal
+            isOpen={isDossierOpen}
+            onClose={closeDossier}
+          />
+        )}
+        <DonationModal />
+        <JerseyCheckoutModal />
+      </Suspense>
     </div>
   );
 };
 
 export default function App() {
   return (
-    <ClubProvider>
-      <MainApp />
-    </ClubProvider>
+    <ErrorBoundary>
+      <ClubProvider>
+        <MainApp />
+      </ClubProvider>
+    </ErrorBoundary>
   );
 }
