@@ -120,8 +120,8 @@ export const HomePage: React.FC<HomePageProps> = ({
               className="w-full h-full object-cover object-center filter brightness-[0.45] contrast-110 scale-105 transition-opacity duration-300"
             />
           </picture>
-          <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/60 to-red-950/40" />
-          <div className="absolute inset-0 bg-radial-at-c from-transparent via-neutral-950/40 to-neutral-950" />
+          {/* Robust cross-browser hero dark overlay */}
+          <div className="hero-stadium-overlay" />
         </div>
 
         {/* Hero Content */}
@@ -164,7 +164,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
             <button
               onClick={openDonationModal}
-              className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-600 text-white font-bold text-sm sm:text-base tracking-wide uppercase font-sports shadow-xl shadow-emerald-950/80 flex items-center gap-2 transform active:scale-95 transition-all ring-2 ring-emerald-500/40 hover:scale-102"
+              className="px-6 py-3.5 rounded-xl btn-donate-emerald font-bold text-sm sm:text-base tracking-wide uppercase font-sports shadow-xl flex items-center gap-2 transform active:scale-95 transition-all ring-2 ring-emerald-500/40 hover:scale-102"
             >
               <Heart className="w-5 h-5 fill-white text-white" />
               <span>{t.heroDonateBtn}</span>
@@ -172,7 +172,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
             <button
               onClick={() => setCurrentPage('membership')}
-              className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-red-600 via-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-sm sm:text-base tracking-wide uppercase font-sports shadow-xl shadow-red-950/80 flex items-center gap-2 transform active:scale-95 transition-all"
+              className="px-6 py-3.5 rounded-xl btn-membership-join font-bold text-sm sm:text-base tracking-wide uppercase font-sports shadow-xl flex items-center gap-2 transform active:scale-95 transition-all"
             >
               <UserPlus className="w-5 h-5" />
               <span>{t.heroBtnJoin}</span>
@@ -180,7 +180,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
             <button
               onClick={() => setCurrentPage('shop')}
-              className="px-6 py-3.5 rounded-xl bg-neutral-900/90 hover:bg-neutral-800 text-white border border-neutral-700 font-bold text-sm sm:text-base tracking-wide uppercase font-sports backdrop-blur-md flex items-center gap-2 transition-all hover:border-red-600/60"
+              className="px-6 py-3.5 rounded-xl btn-shop-neutral font-bold text-sm sm:text-base tracking-wide uppercase font-sports flex items-center gap-2 transition-all hover:border-red-600/60"
             >
               <ShoppingBag className="w-5 h-5 text-red-400" />
               <span>{t.navShop}</span>
@@ -602,13 +602,13 @@ export const HomePage: React.FC<HomePageProps> = ({
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-neutral-800/80 flex items-center justify-between">
+                    <div className="pt-3 border-t border-neutral-800/80 flex items-center justify-between">
                     <span className="font-sports font-black text-xl text-emerald-400">
                       {item.price.toLocaleString()} {t.etbCurrency}
                     </span>
                     <button
                       onClick={() => openCheckoutModal(item)}
-                      className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-sports font-black uppercase tracking-wider text-xs shadow-md shadow-red-950/40 flex items-center gap-1.5 transition-all"
+                      className="px-4 py-2 rounded-xl btn-primary-red font-sports font-black uppercase tracking-wider text-xs shadow-md shadow-red-950/40 flex items-center gap-1.5 transition-all"
                     >
                       <ShoppingBag className="w-3.5 h-3.5" />
                       <span>{t.buyNowBtn}</span>
@@ -649,7 +649,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
               <button
                 onClick={openDonationModal}
-                className="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-600 text-white font-sports font-black text-base uppercase tracking-wider shadow-xl shadow-emerald-950/60 flex items-center justify-center gap-2.5 transition-all transform active:scale-95 hover:scale-102"
+                className="px-8 py-4 rounded-2xl btn-donate-emerald text-white font-sports font-black text-base uppercase tracking-wider shadow-xl shadow-emerald-950/60 flex items-center justify-center gap-2.5 transition-all transform active:scale-95 hover:scale-102"
               >
                 <Heart className="w-5 h-5 fill-white text-white" />
                 <span>{t.donateBtn}</span>
@@ -708,7 +708,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div className="pt-2 flex flex-wrap items-center gap-4">
               <button
                 onClick={() => setCurrentPage('membership')}
-                className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-sm sm:text-base uppercase tracking-wider font-sports shadow-xl flex items-center gap-2 transform active:scale-95 transition-all"
+                className="px-6 py-3.5 rounded-xl btn-secondary-amber text-white font-bold text-sm sm:text-base uppercase tracking-wider font-sports shadow-xl flex items-center gap-2 transform active:scale-95 transition-all"
               >
                 <UserPlus className="w-5 h-5" />
                 <span>{t.joinNowBtn}</span>

@@ -100,7 +100,7 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
 
           <button
             onClick={simulateLiveMatchAction}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-sports font-bold text-xs uppercase tracking-wider shadow-md transition-all active:scale-95"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl btn-secondary-amber text-white font-sports font-bold text-xs uppercase tracking-wider shadow-md transition-all active:scale-95"
             title="Simulate live kickoff or goal action"
           >
             <Zap className="w-3.5 h-3.5 text-amber-200" />

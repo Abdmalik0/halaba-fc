@@ -55,7 +55,7 @@ export const StandingsPage: React.FC = () => {
                 setTimeout(() => setRecalcSuccess(false), 3000);
               }}
               disabled={recalculating}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-sports font-bold text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-60"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl btn-donate-emerald font-sports font-bold text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-60"
               title="Recalculate all 18 club points and goal differences from finished match fixtures"
             >
               {recalcSuccess ? (
@@ -74,7 +74,7 @@ export const StandingsPage: React.FC = () => {
             <button
               onClick={syncNow}
               disabled={isSyncing}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-sports font-bold text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl btn-secondary-amber font-sports font-bold text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 disabled:opacity-50"
               title="Sync directly with TheSportsDB official data"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
@@ -207,7 +207,7 @@ export const StandingsPage: React.FC = () => {
                     key={team.teamId}
                     className={`transition-colors ${
                       team.isHalaba
-                        ? 'bg-gradient-to-r from-red-950/80 via-neutral-900 to-green-950/40 border-l-4 border-l-amber-500 font-bold'
+                        ? 'standings-halaba-row border-l-4 border-l-amber-500 font-bold'
                         : 'hover:bg-neutral-800/40'
                     }`}
                   >
@@ -216,7 +216,7 @@ export const StandingsPage: React.FC = () => {
                       <span
                         className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-bold ${
                           isLeader
-                            ? 'bg-gradient-to-br from-amber-500 to-amber-700 text-neutral-950 shadow-md shadow-amber-950 font-black'
+                            ? 'standings-pos-leader font-black shadow-md'
                             : isConfed
                             ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
                             : isRelegation

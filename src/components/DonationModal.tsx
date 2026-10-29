@@ -403,7 +403,7 @@ export const DonationModal: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting || currentAmount <= 0}
-                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-600 text-white font-sports font-black uppercase tracking-wider text-xs shadow-xl flex items-center gap-2 transition-all disabled:opacity-50"
+                  className="px-6 py-3 rounded-xl btn-donate-emerald text-white font-sports font-black uppercase tracking-wider text-xs shadow-xl flex items-center gap-2 transition-all disabled:opacity-50"
                 >
                   <Heart className="w-4 h-4 fill-white" />
                   <span>{isSubmitting ? t.submitting : (language === 'am' ? 'በቻፓ ይለግሱ' : 'Donate with Chapa')}</span>

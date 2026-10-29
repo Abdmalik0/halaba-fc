@@ -162,7 +162,10 @@ export const SponsorAutoSlider: React.FC<SponsorAutoSliderProps> = ({
       </div>
 
       {/* Main Large Auto-Slide Billboard / Card */}
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-neutral-900 via-neutral-900/95 to-neutral-950 border border-neutral-700/70 shadow-2xl transition-all duration-500 hover:border-red-500/40">
+      <div 
+        className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-neutral-900 bg-gradient-to-br from-neutral-900 via-neutral-900/95 to-neutral-950 border border-neutral-700/70 shadow-2xl transition-all duration-500 hover:border-red-500/40"
+        style={{ backgroundColor: '#171717' }}
+      >
         {/* Ambient colored backdrop glow */}
         <div
           className="absolute -top-24 -right-24 w-72 h-72 rounded-full blur-3xl pointer-events-none opacity-20 transition-all duration-700"
@@ -285,7 +288,7 @@ export const SponsorAutoSlider: React.FC<SponsorAutoSliderProps> = ({
                   href={currentSponsor.websiteUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-sports font-bold text-xs uppercase tracking-wider shadow-lg shadow-red-950/50 transition-all hover:scale-102 active:scale-95 group"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl btn-secondary-amber text-white font-sports font-bold text-xs uppercase tracking-wider shadow-lg shadow-red-950/50 transition-all hover:scale-102 active:scale-95 group"
                 >
                   <span>
                     {language === 'am'
@@ -310,7 +313,7 @@ export const SponsorAutoSlider: React.FC<SponsorAutoSliderProps> = ({
                 onClick={() => setCurrentIndex(idx)}
                 className={`transition-all duration-300 rounded-full ${
                   idx === currentIndex
-                    ? 'w-6 h-2 bg-gradient-to-r from-red-500 to-amber-400'
+                    ? 'w-6 h-2 btn-secondary-amber'
                     : 'w-2 h-2 bg-neutral-700 hover:bg-neutral-500'
                 }`}
                 aria-label={`Go to slide ${idx + 1}: ${s.name}`}

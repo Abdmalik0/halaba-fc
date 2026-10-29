@@ -77,7 +77,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
           {!isInstalled && onOpenInstallModal && (
             <button
               onClick={onOpenInstallModal}
-              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-red-600/40 to-emerald-600/40 hover:from-red-600/60 hover:to-emerald-600/60 border border-red-500/50 text-white text-xs font-bold transition-all shadow-sm active:scale-95"
+              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full btn-secondary-amber text-white text-xs font-bold transition-all shadow-sm active:scale-95"
               title="Download official Halaba City FC App (Android APK / iOS)"
             >
               <Smartphone className="w-3 h-3 text-amber-300" />
@@ -197,7 +197,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
             {/* Donate CTA Button */}
             <button
               onClick={openDonationModal}
-              className="px-3.5 py-2 rounded-md bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/50 text-emerald-400 font-bold text-sm tracking-wide transition-all active:scale-95 flex items-center gap-1.5 font-sports uppercase"
+              className="px-3.5 py-2 rounded-md btn-donate-emerald font-bold text-sm tracking-wide transition-all active:scale-95 flex items-center gap-1.5 font-sports uppercase"
             >
               <Heart className="w-3.5 h-3.5 fill-emerald-400" />
               <span>{t.navDonate}</span>
@@ -206,7 +206,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
             {/* Become a Member CTA */}
             <button
               onClick={() => handleNavClick('membership')}
-              className="px-4 py-2 rounded-md bg-gradient-to-r from-red-600 via-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-sm tracking-wide shadow-md shadow-red-950/60 hover:shadow-red-800/40 transition-all transform active:scale-95 flex items-center gap-1.5 font-sports uppercase"
+              className="px-4 py-2 rounded-md btn-membership-join font-bold text-sm tracking-wide shadow-md shadow-red-950/60 hover:shadow-red-800/40 transition-all transform active:scale-95 flex items-center gap-1.5 font-sports uppercase"
             >
               <UserPlus className="w-4 h-4" />
               <span>{t.navJoinBtn}</span>
@@ -314,7 +314,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
           <div className="pt-2 space-y-2">
             <button
               onClick={() => handleNavClick('membership')}
-              className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-red-600 to-amber-600 text-white font-bold text-center tracking-wide shadow-lg uppercase font-sports flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 rounded-lg btn-membership-join text-white font-bold text-center tracking-wide shadow-lg uppercase font-sports flex items-center justify-center gap-2"
             >
               <UserPlus className="w-5 h-5" />
               <span>{t.navJoinBtn}</span>

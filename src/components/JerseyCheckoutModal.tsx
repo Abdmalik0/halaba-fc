@@ -473,7 +473,7 @@ export const JerseyCheckoutModal: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-sports font-black uppercase tracking-wider text-xs shadow-xl flex items-center gap-2 transition-all disabled:opacity-50"
+                  className="px-6 py-3 rounded-xl btn-secondary-amber text-white font-sports font-black uppercase tracking-wider text-xs shadow-xl flex items-center gap-2 transition-all disabled:opacity-50"
                 >
                   <ShoppingBag className="w-4 h-4" />
                   <span>{isSubmitting ? t.submitting : t.proceedToPayment}</span>

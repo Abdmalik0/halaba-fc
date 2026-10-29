@@ -260,7 +260,7 @@ export const ShopPage: React.FC = () => {
                     <button
                       onClick={() => openCheckoutModal(item)}
                       disabled={!item.inStock}
-                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-600 text-white font-sports font-black uppercase tracking-wider text-xs shadow-lg shadow-red-950/40 flex items-center gap-2 transition-all hover:scale-102 disabled:opacity-50"
+                      className="px-5 py-2.5 rounded-xl btn-primary-red font-sports font-black uppercase tracking-wider text-xs shadow-lg shadow-red-950/40 flex items-center gap-2 transition-all hover:scale-102 disabled:opacity-50"
                     >
                       <ShoppingBag className="w-3.5 h-3.5" />
                       <span>{t.buyNowBtn}</span>
