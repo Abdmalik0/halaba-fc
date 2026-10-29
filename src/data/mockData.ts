@@ -588,7 +588,7 @@ export const initialStandings: StandingTeam[] = [
     points: 5,
     form: ['D', 'W', 'D'],
     isHalaba: true,
-    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/ol9g9y1790265506.png',
+    badgeUrl: '/images/halaba-city-fc-logo.png',
   },
   {
     position: 6,

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 // Official TheSportsDB API strBadge values for Ethiopian Premier League clubs
 // Directly sourced from TheSportsDB (League ID 4959)
 export const OFFICIAL_SPORTSDB_BADGES: Record<string, string> = {
-  halaba: 'https://r2.thesportsdb.com/images/media/team/badge/ol9g9y1790265506.png',
+  halaba: '/images/halaba-city-fc-logo.png',
   cbe_sa: 'https://r2.thesportsdb.com/images/media/team/badge/fn7am21727368578.png',
   insurance: 'https://r2.thesportsdb.com/images/media/team/badge/oboroa1776295149.png',
   medhin: 'https://r2.thesportsdb.com/images/media/team/badge/oboroa1776295149.png',

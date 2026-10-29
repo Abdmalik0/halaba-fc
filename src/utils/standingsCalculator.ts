@@ -23,7 +23,7 @@ export const defaultClubTemplates: Record<string, { teamName: string; isHalaba: 
   halaba: {
     teamName: 'Halaba Ketema (በርበሬዎቹ)',
     isHalaba: true,
-    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/ol9g9y1790265506.png',
+    badgeUrl: '/images/halaba-city-fc-logo.png',
   },
   fasil: {
     teamName: 'Fasil Kenema',

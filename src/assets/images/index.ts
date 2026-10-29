@@ -42,7 +42,9 @@ export const ClubImages = {
   jerseyAwayReal,
   jerseyThirdReal,
   netvibeLogo,
+  clubLogo: '/images/halaba-city-fc-logo.png',
 };
 
+export const clubLogo = '/images/halaba-city-fc-logo.png';
 export { netvibeLogo };
 
