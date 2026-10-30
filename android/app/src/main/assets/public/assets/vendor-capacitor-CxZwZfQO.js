@@ -1,0 +1,1111 @@
+const scriptRel = "modulepreload";
+const assetsURL = function(dep, importerUrl) {
+  return new URL(dep, importerUrl).href;
+};
+const seen = {};
+const __vitePreload = function preload(baseModule, deps, importerUrl) {
+  let promise = Promise.resolve();
+  if (deps && deps.length > 0) {
+    const links = document.getElementsByTagName("link");
+    const cspNonceMeta = document.querySelector(
+      "meta[property=csp-nonce]"
+    );
+    const cspNonce = (cspNonceMeta == null ? void 0 : cspNonceMeta.nonce) || (cspNonceMeta == null ? void 0 : cspNonceMeta.getAttribute("nonce"));
+    promise = Promise.allSettled(
+      deps.map((dep) => {
+        dep = assetsURL(dep, importerUrl);
+        if (dep in seen) return;
+        seen[dep] = true;
+        const isCss = dep.endsWith(".css");
+        const cssSelector = isCss ? '[rel="stylesheet"]' : "";
+        const isBaseRelative = !!importerUrl;
+        if (isBaseRelative) {
+          for (let i = links.length - 1; i >= 0; i--) {
+            const link2 = links[i];
+            if (link2.href === dep && (!isCss || link2.rel === "stylesheet")) {
+              return;
+            }
+          }
+        } else if (document.querySelector('link[href="'.concat(dep, '"]').concat(cssSelector))) {
+          return;
+        }
+        const link = document.createElement("link");
+        link.rel = isCss ? "stylesheet" : scriptRel;
+        if (!isCss) {
+          link.as = "script";
+        }
+        link.crossOrigin = "";
+        link.href = dep;
+        if (cspNonce) {
+          link.setAttribute("nonce", cspNonce);
+        }
+        document.head.appendChild(link);
+        if (isCss) {
+          return new Promise((res, rej) => {
+            link.addEventListener("load", res);
+            link.addEventListener(
+              "error",
+              () => rej(new Error("Unable to preload CSS for ".concat(dep)))
+            );
+          });
+        }
+      })
+    );
+  }
+  function handlePreloadError(err) {
+    const e = new Event("vite:preloadError", {
+      cancelable: true
+    });
+    e.payload = err;
+    window.dispatchEvent(e);
+    if (!e.defaultPrevented) {
+      throw err;
+    }
+  }
+  return promise.then((res) => {
+    for (const item of res || []) {
+      if (item.status !== "rejected") continue;
+      handlePreloadError(item.reason);
+    }
+    return baseModule().catch(handlePreloadError);
+  });
+};
+/*! Capacitor: https://capacitorjs.com/ - MIT License */
+var ExceptionCode;
+(function(ExceptionCode2) {
+  ExceptionCode2["Unimplemented"] = "UNIMPLEMENTED";
+  ExceptionCode2["Unavailable"] = "UNAVAILABLE";
+})(ExceptionCode || (ExceptionCode = {}));
+class CapacitorException extends Error {
+  constructor(message, code, data) {
+    super(message);
+    this.message = message;
+    this.code = code;
+    this.data = data;
+  }
+}
+const getPlatformId = (win) => {
+  var _a, _b;
+  if (win === null || win === void 0 ? void 0 : win.androidBridge) {
+    return "android";
+  } else if ((_b = (_a = win === null || win === void 0 ? void 0 : win.webkit) === null || _a === void 0 ? void 0 : _a.messageHandlers) === null || _b === void 0 ? void 0 : _b.bridge) {
+    return "ios";
+  } else {
+    return "web";
+  }
+};
+const createCapacitor = (win) => {
+  const capCustomPlatform = win.CapacitorCustomPlatform || null;
+  const cap = win.Capacitor || {};
+  const Plugins = cap.Plugins = cap.Plugins || {};
+  const getPlatform = () => {
+    return capCustomPlatform !== null ? capCustomPlatform.name : getPlatformId(win);
+  };
+  const isNativePlatform = () => getPlatform() !== "web";
+  const isPluginAvailable = (pluginName) => {
+    const plugin = registeredPlugins.get(pluginName);
+    if (plugin === null || plugin === void 0 ? void 0 : plugin.platforms.has(getPlatform())) {
+      return true;
+    }
+    if (getPluginHeader(pluginName)) {
+      return true;
+    }
+    return false;
+  };
+  const getPluginHeader = (pluginName) => {
+    var _a;
+    return (_a = cap.PluginHeaders) === null || _a === void 0 ? void 0 : _a.find((h) => h.name === pluginName);
+  };
+  const handleError = (err) => win.console.error(err);
+  const registeredPlugins = /* @__PURE__ */ new Map();
+  const registerPlugin2 = (pluginName, jsImplementations = {}) => {
+    const registeredPlugin = registeredPlugins.get(pluginName);
+    if (registeredPlugin) {
+      console.warn('Capacitor plugin "'.concat(pluginName, '" already registered. Cannot register plugins twice.'));
+      return registeredPlugin.proxy;
+    }
+    const platform = getPlatform();
+    const pluginHeader = getPluginHeader(pluginName);
+    let jsImplementation;
+    const loadPluginImplementation = async () => {
+      if (!jsImplementation && platform in jsImplementations) {
+        jsImplementation = typeof jsImplementations[platform] === "function" ? jsImplementation = await jsImplementations[platform]() : jsImplementation = jsImplementations[platform];
+      } else if (capCustomPlatform !== null && !jsImplementation && "web" in jsImplementations) {
+        jsImplementation = typeof jsImplementations["web"] === "function" ? jsImplementation = await jsImplementations["web"]() : jsImplementation = jsImplementations["web"];
+      }
+      return jsImplementation;
+    };
+    const createPluginMethod = (impl, prop) => {
+      var _a, _b;
+      if (pluginHeader) {
+        const methodHeader = pluginHeader === null || pluginHeader === void 0 ? void 0 : pluginHeader.methods.find((m) => prop === m.name);
+        if (methodHeader) {
+          if (methodHeader.rtype === "promise") {
+            return (options) => cap.nativePromise(pluginName, prop.toString(), options);
+          } else {
+            return (options, callback) => cap.nativeCallback(pluginName, prop.toString(), options, callback);
+          }
+        } else if (impl) {
+          return (_a = impl[prop]) === null || _a === void 0 ? void 0 : _a.bind(impl);
+        }
+      } else if (impl) {
+        return (_b = impl[prop]) === null || _b === void 0 ? void 0 : _b.bind(impl);
+      } else {
+        throw new CapacitorException('"'.concat(pluginName, '" plugin is not implemented on ').concat(platform), ExceptionCode.Unimplemented);
+      }
+    };
+    const createPluginMethodWrapper = (prop) => {
+      let remove;
+      const wrapper = (...args) => {
+        const p = loadPluginImplementation().then((impl) => {
+          const fn = createPluginMethod(impl, prop);
+          if (fn) {
+            const p2 = fn(...args);
+            remove = p2 === null || p2 === void 0 ? void 0 : p2.remove;
+            return p2;
+          } else {
+            throw new CapacitorException('"'.concat(pluginName, ".").concat(prop, '()" is not implemented on ').concat(platform), ExceptionCode.Unimplemented);
+          }
+        });
+        if (prop === "addListener") {
+          p.remove = async () => remove();
+        }
+        return p;
+      };
+      wrapper.toString = () => "".concat(prop.toString(), "() { [capacitor code] }");
+      Object.defineProperty(wrapper, "name", {
+        value: prop,
+        writable: false,
+        configurable: false
+      });
+      return wrapper;
+    };
+    const addListener = createPluginMethodWrapper("addListener");
+    const removeListener = createPluginMethodWrapper("removeListener");
+    const addListenerNative = (eventName, callback) => {
+      const call = addListener({ eventName }, callback);
+      const remove = async () => {
+        const callbackId = await call;
+        removeListener({
+          eventName,
+          callbackId
+        }, callback);
+      };
+      const p = new Promise((resolve) => call.then(() => resolve({ remove })));
+      p.remove = async () => {
+        console.warn("Using addListener() without 'await' is deprecated.");
+        await remove();
+      };
+      return p;
+    };
+    const proxy = new Proxy({}, {
+      get(_, prop) {
+        switch (prop) {
+          case "$$typeof":
+            return void 0;
+          case "toJSON":
+            return () => ({});
+          case "addListener":
+            return pluginHeader ? addListenerNative : addListener;
+          case "removeListener":
+            return removeListener;
+          default:
+            return createPluginMethodWrapper(prop);
+        }
+      }
+    });
+    Plugins[pluginName] = proxy;
+    registeredPlugins.set(pluginName, {
+      name: pluginName,
+      proxy,
+      platforms: /* @__PURE__ */ new Set([...Object.keys(jsImplementations), ...pluginHeader ? [platform] : []])
+    });
+    return proxy;
+  };
+  if (!cap.convertFileSrc) {
+    cap.convertFileSrc = (filePath) => filePath;
+  }
+  cap.getPlatform = getPlatform;
+  cap.handleError = handleError;
+  cap.isNativePlatform = isNativePlatform;
+  cap.isPluginAvailable = isPluginAvailable;
+  cap.registerPlugin = registerPlugin2;
+  cap.Exception = CapacitorException;
+  cap.DEBUG = !!cap.DEBUG;
+  cap.isLoggingEnabled = !!cap.isLoggingEnabled;
+  return cap;
+};
+const initCapacitorGlobal = (win) => win.Capacitor = createCapacitor(win);
+const Capacitor = /* @__PURE__ */ initCapacitorGlobal(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : {});
+const registerPlugin = Capacitor.registerPlugin;
+class WebPlugin {
+  constructor() {
+    this.listeners = {};
+    this.retainedEventArguments = {};
+    this.windowListeners = {};
+  }
+  addListener(eventName, listenerFunc) {
+    let firstListener = false;
+    const listeners = this.listeners[eventName];
+    if (!listeners) {
+      this.listeners[eventName] = [];
+      firstListener = true;
+    }
+    this.listeners[eventName].push(listenerFunc);
+    const windowListener = this.windowListeners[eventName];
+    if (windowListener && !windowListener.registered) {
+      this.addWindowListener(windowListener);
+    }
+    if (firstListener) {
+      this.sendRetainedArgumentsForEvent(eventName);
+    }
+    const remove = async () => this.removeListener(eventName, listenerFunc);
+    const p = Promise.resolve({ remove });
+    return p;
+  }
+  async removeAllListeners() {
+    this.listeners = {};
+    for (const listener in this.windowListeners) {
+      this.removeWindowListener(this.windowListeners[listener]);
+    }
+    this.windowListeners = {};
+  }
+  notifyListeners(eventName, data, retainUntilConsumed) {
+    const listeners = this.listeners[eventName];
+    if (!listeners) {
+      if (retainUntilConsumed) {
+        let args = this.retainedEventArguments[eventName];
+        if (!args) {
+          args = [];
+        }
+        args.push(data);
+        this.retainedEventArguments[eventName] = args;
+      }
+      return;
+    }
+    listeners.forEach((listener) => listener(data));
+  }
+  hasListeners(eventName) {
+    var _a;
+    return !!((_a = this.listeners[eventName]) === null || _a === void 0 ? void 0 : _a.length);
+  }
+  registerWindowListener(windowEventName, pluginEventName) {
+    this.windowListeners[pluginEventName] = {
+      registered: false,
+      windowEventName,
+      pluginEventName,
+      handler: (event) => {
+        this.notifyListeners(pluginEventName, event);
+      }
+    };
+  }
+  unimplemented(msg = "not implemented") {
+    return new Capacitor.Exception(msg, ExceptionCode.Unimplemented);
+  }
+  unavailable(msg = "not available") {
+    return new Capacitor.Exception(msg, ExceptionCode.Unavailable);
+  }
+  async removeListener(eventName, listenerFunc) {
+    const listeners = this.listeners[eventName];
+    if (!listeners) {
+      return;
+    }
+    const index = listeners.indexOf(listenerFunc);
+    if (index !== -1) {
+      this.listeners[eventName].splice(index, 1);
+    }
+    if (!this.listeners[eventName].length) {
+      this.removeWindowListener(this.windowListeners[eventName]);
+    }
+  }
+  addWindowListener(handle) {
+    window.addEventListener(handle.windowEventName, handle.handler);
+    handle.registered = true;
+  }
+  removeWindowListener(handle) {
+    if (!handle) {
+      return;
+    }
+    window.removeEventListener(handle.windowEventName, handle.handler);
+    handle.registered = false;
+  }
+  sendRetainedArgumentsForEvent(eventName) {
+    const args = this.retainedEventArguments[eventName];
+    if (!args) {
+      return;
+    }
+    delete this.retainedEventArguments[eventName];
+    args.forEach((arg) => {
+      this.notifyListeners(eventName, arg);
+    });
+  }
+}
+const encode = (str) => encodeURIComponent(str).replace(/%(2[346B]|5E|60|7C)/g, decodeURIComponent).replace(/[()]/g, escape);
+const decode = (str) => str.replace(/(%[\dA-F]{2})+/gi, decodeURIComponent);
+class CapacitorCookiesPluginWeb extends WebPlugin {
+  async getCookies() {
+    const cookies = document.cookie;
+    const cookieMap = {};
+    cookies.split(";").forEach((cookie) => {
+      if (cookie.length <= 0)
+        return;
+      let [key, value] = cookie.replace(/=/, "CAP_COOKIE").split("CAP_COOKIE");
+      key = decode(key).trim();
+      value = decode(value).trim();
+      cookieMap[key] = value;
+    });
+    return cookieMap;
+  }
+  async setCookie(options) {
+    try {
+      const encodedKey = encode(options.key);
+      const encodedValue = encode(options.value);
+      const expires = options.expires ? "; expires=".concat(options.expires.replace("expires=", "")) : "";
+      const path = (options.path || "/").replace("path=", "");
+      const domain = options.url != null && options.url.length > 0 ? "domain=".concat(options.url) : "";
+      document.cookie = "".concat(encodedKey, "=").concat(encodedValue || "").concat(expires, "; path=").concat(path, "; ").concat(domain, ";");
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+  async deleteCookie(options) {
+    try {
+      document.cookie = "".concat(options.key, "=; Max-Age=0");
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+  async clearCookies() {
+    try {
+      const cookies = document.cookie.split(";") || [];
+      for (const cookie of cookies) {
+        document.cookie = cookie.replace(/^ +/, "").replace(/=.*/, "=;expires=".concat((/* @__PURE__ */ new Date()).toUTCString(), ";path=/"));
+      }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+  async clearAllCookies() {
+    try {
+      await this.clearCookies();
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+}
+registerPlugin("CapacitorCookies", {
+  web: () => new CapacitorCookiesPluginWeb()
+});
+const readBlobAsBase64 = async (blob) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const base64String = reader.result;
+    resolve(base64String.indexOf(",") >= 0 ? base64String.split(",")[1] : base64String);
+  };
+  reader.onerror = (error) => reject(error);
+  reader.readAsDataURL(blob);
+});
+const normalizeHttpHeaders = (headers = {}) => {
+  const originalKeys = Object.keys(headers);
+  const loweredKeys = Object.keys(headers).map((k) => k.toLocaleLowerCase());
+  const normalized = loweredKeys.reduce((acc, key, index) => {
+    acc[key] = headers[originalKeys[index]];
+    return acc;
+  }, {});
+  return normalized;
+};
+const buildUrlParams = (params, shouldEncode = true) => {
+  if (!params)
+    return null;
+  const output = Object.entries(params).reduce((accumulator, entry) => {
+    const [key, value] = entry;
+    let encodedValue;
+    let item;
+    if (Array.isArray(value)) {
+      item = "";
+      value.forEach((str) => {
+        encodedValue = shouldEncode ? encodeURIComponent(str) : str;
+        item += "".concat(key, "=").concat(encodedValue, "&");
+      });
+      item.slice(0, -1);
+    } else {
+      encodedValue = shouldEncode ? encodeURIComponent(value) : value;
+      item = "".concat(key, "=").concat(encodedValue);
+    }
+    return "".concat(accumulator, "&").concat(item);
+  }, "");
+  return output.substr(1);
+};
+const buildRequestInit = (options, extra = {}) => {
+  const output = Object.assign({ method: options.method || "GET", headers: options.headers }, extra);
+  const headers = normalizeHttpHeaders(options.headers);
+  const type = headers["content-type"] || "";
+  if (typeof options.data === "string") {
+    output.body = options.data;
+  } else if (type.includes("application/x-www-form-urlencoded")) {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(options.data || {})) {
+      params.set(key, value);
+    }
+    output.body = params.toString();
+  } else if (type.includes("multipart/form-data") || options.data instanceof FormData) {
+    const form = new FormData();
+    if (options.data instanceof FormData) {
+      options.data.forEach((value, key) => {
+        form.append(key, value);
+      });
+    } else {
+      for (const key of Object.keys(options.data)) {
+        form.append(key, options.data[key]);
+      }
+    }
+    output.body = form;
+    const headers2 = new Headers(output.headers);
+    headers2.delete("content-type");
+    output.headers = headers2;
+  } else if (type.includes("application/json") || typeof options.data === "object") {
+    output.body = JSON.stringify(options.data);
+  }
+  return output;
+};
+class CapacitorHttpPluginWeb extends WebPlugin {
+  /**
+   * Perform an Http request given a set of options
+   * @param options Options to build the HTTP request
+   */
+  async request(options) {
+    const requestInit = buildRequestInit(options, options.webFetchExtra);
+    const urlParams = buildUrlParams(options.params, options.shouldEncodeUrlParams);
+    const url = urlParams ? "".concat(options.url, "?").concat(urlParams) : options.url;
+    const response = await fetch(url, requestInit);
+    const contentType = response.headers.get("content-type") || "";
+    let { responseType = "text" } = response.ok ? options : {};
+    if (contentType.includes("application/json")) {
+      responseType = "json";
+    }
+    let data;
+    let blob;
+    switch (responseType) {
+      case "arraybuffer":
+      case "blob":
+        blob = await response.blob();
+        data = await readBlobAsBase64(blob);
+        break;
+      case "json":
+        data = await response.json();
+        break;
+      case "document":
+      case "text":
+      default:
+        data = await response.text();
+    }
+    const headers = {};
+    response.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    return {
+      data,
+      headers,
+      status: response.status,
+      url: response.url
+    };
+  }
+  /**
+   * Perform an Http GET request given a set of options
+   * @param options Options to build the HTTP request
+   */
+  async get(options) {
+    return this.request(Object.assign(Object.assign({}, options), { method: "GET" }));
+  }
+  /**
+   * Perform an Http POST request given a set of options
+   * @param options Options to build the HTTP request
+   */
+  async post(options) {
+    return this.request(Object.assign(Object.assign({}, options), { method: "POST" }));
+  }
+  /**
+   * Perform an Http PUT request given a set of options
+   * @param options Options to build the HTTP request
+   */
+  async put(options) {
+    return this.request(Object.assign(Object.assign({}, options), { method: "PUT" }));
+  }
+  /**
+   * Perform an Http PATCH request given a set of options
+   * @param options Options to build the HTTP request
+   */
+  async patch(options) {
+    return this.request(Object.assign(Object.assign({}, options), { method: "PATCH" }));
+  }
+  /**
+   * Perform an Http DELETE request given a set of options
+   * @param options Options to build the HTTP request
+   */
+  async delete(options) {
+    return this.request(Object.assign(Object.assign({}, options), { method: "DELETE" }));
+  }
+}
+registerPlugin("CapacitorHttp", {
+  web: () => new CapacitorHttpPluginWeb()
+});
+var SystemBarsStyle;
+(function(SystemBarsStyle2) {
+  SystemBarsStyle2["Dark"] = "DARK";
+  SystemBarsStyle2["Light"] = "LIGHT";
+  SystemBarsStyle2["Default"] = "DEFAULT";
+})(SystemBarsStyle || (SystemBarsStyle = {}));
+var SystemBarType;
+(function(SystemBarType2) {
+  SystemBarType2["StatusBar"] = "StatusBar";
+  SystemBarType2["NavigationBar"] = "NavigationBar";
+})(SystemBarType || (SystemBarType = {}));
+class SystemBarsPluginWeb extends WebPlugin {
+  async setStyle() {
+    this.unavailable("not available for web");
+  }
+  async setAnimation() {
+    this.unavailable("not available for web");
+  }
+  async show() {
+    this.unavailable("not available for web");
+  }
+  async hide() {
+    this.unavailable("not available for web");
+  }
+}
+registerPlugin("SystemBars", {
+  web: () => new SystemBarsPluginWeb()
+});
+const KEEP_FLAG_KEY = "__capgo_keep_url_path_after_reload";
+const HISTORY_STORAGE_KEY = "__capgo_history_stack__";
+const MAX_STACK_ENTRIES = 100;
+const isBrowser = typeof window !== "undefined" && typeof document !== "undefined" && typeof history !== "undefined";
+if (isBrowser) {
+  const win = window;
+  if (!win.__capgoHistoryPatched) {
+    win.__capgoHistoryPatched = true;
+    const isFeatureConfigured = () => {
+      try {
+        if (win.__capgoKeepUrlPathAfterReload) {
+          return true;
+        }
+      } catch (_a) {
+      }
+      try {
+        return window.localStorage.getItem(KEEP_FLAG_KEY) === "1";
+      } catch (_b) {
+        return false;
+      }
+    };
+    const readStored = () => {
+      try {
+        const raw = window.sessionStorage.getItem(HISTORY_STORAGE_KEY);
+        if (!raw) {
+          return { stack: [], index: -1 };
+        }
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.stack) || typeof parsed.index !== "number") {
+          return { stack: [], index: -1 };
+        }
+        return parsed;
+      } catch (_a) {
+        return { stack: [], index: -1 };
+      }
+    };
+    const writeStored = (stack, index) => {
+      try {
+        window.sessionStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify({ stack, index }));
+      } catch (_a) {
+      }
+    };
+    const clearStored = () => {
+      try {
+        window.sessionStorage.removeItem(HISTORY_STORAGE_KEY);
+      } catch (_a) {
+      }
+    };
+    const normalize = (url) => {
+      try {
+        const base = url !== null && url !== void 0 ? url : window.location.href;
+        const parsed = new URL(base instanceof URL ? base.toString() : base, window.location.href);
+        return "".concat(parsed.pathname).concat(parsed.search).concat(parsed.hash);
+      } catch (_a) {
+        return null;
+      }
+    };
+    const trimStack = (stack, index) => {
+      if (stack.length <= MAX_STACK_ENTRIES) {
+        return { stack, index };
+      }
+      const start = stack.length - MAX_STACK_ENTRIES;
+      const trimmed = stack.slice(start);
+      const adjustedIndex = Math.max(0, index - start);
+      return { stack: trimmed, index: adjustedIndex };
+    };
+    const runWhenReady = (fn) => {
+      if (document.readyState === "complete" || document.readyState === "interactive") {
+        fn();
+      } else {
+        window.addEventListener("DOMContentLoaded", fn, { once: true });
+      }
+    };
+    let featureActive = false;
+    let isRestoring = false;
+    let restoreScheduled = false;
+    const ensureCurrentTracked = () => {
+      if (!featureActive) {
+        return;
+      }
+      const stored = readStored();
+      const current = normalize();
+      if (!current) {
+        return;
+      }
+      if (stored.stack.length === 0) {
+        stored.stack.push(current);
+        stored.index = 0;
+        writeStored(stored.stack, stored.index);
+        return;
+      }
+      if (stored.index < 0 || stored.index >= stored.stack.length) {
+        stored.index = stored.stack.length - 1;
+      }
+      if (stored.stack[stored.index] !== current) {
+        stored.stack[stored.index] = current;
+        writeStored(stored.stack, stored.index);
+      }
+    };
+    const record = (url, replace) => {
+      if (!featureActive || isRestoring) {
+        return;
+      }
+      const normalized = normalize(url);
+      if (!normalized) {
+        return;
+      }
+      let { stack, index } = readStored();
+      if (stack.length === 0) {
+        stack.push(normalized);
+        index = stack.length - 1;
+      } else if (replace) {
+        if (index < 0 || index >= stack.length) {
+          index = stack.length - 1;
+        }
+        stack[index] = normalized;
+      } else {
+        if (index >= stack.length - 1) {
+          stack.push(normalized);
+          index = stack.length - 1;
+        } else {
+          stack = stack.slice(0, index + 1);
+          stack.push(normalized);
+          index = stack.length - 1;
+        }
+      }
+      ({ stack, index } = trimStack(stack, index));
+      writeStored(stack, index);
+    };
+    const restoreHistory = () => {
+      if (!featureActive || isRestoring) {
+        return;
+      }
+      const stored = readStored();
+      if (stored.stack.length === 0) {
+        ensureCurrentTracked();
+        return;
+      }
+      const targetIndex = stored.index >= 0 && stored.index < stored.stack.length ? stored.index : stored.stack.length - 1;
+      const normalizedCurrent = normalize();
+      if (stored.stack.length === 1 && normalizedCurrent === stored.stack[0]) {
+        return;
+      }
+      const firstEntry = stored.stack[0];
+      if (!firstEntry) {
+        return;
+      }
+      isRestoring = true;
+      try {
+        history.replaceState(history.state, document.title, firstEntry);
+        for (let i = 1; i < stored.stack.length; i += 1) {
+          history.pushState(history.state, document.title, stored.stack[i]);
+        }
+      } catch (_a) {
+        isRestoring = false;
+        return;
+      }
+      isRestoring = false;
+      const currentIndex = stored.stack.length - 1;
+      const offset = targetIndex - currentIndex;
+      if (offset !== 0) {
+        history.go(offset);
+      } else {
+        history.replaceState(history.state, document.title, stored.stack[targetIndex]);
+        window.dispatchEvent(new PopStateEvent("popstate"));
+      }
+    };
+    const scheduleRestore = () => {
+      if (!featureActive || restoreScheduled) {
+        return;
+      }
+      restoreScheduled = true;
+      runWhenReady(() => {
+        restoreScheduled = false;
+        restoreHistory();
+      });
+    };
+    let originalPushState = null;
+    let originalReplaceState = null;
+    const popstateHandler = () => {
+      if (!featureActive || isRestoring) {
+        return;
+      }
+      const normalized = normalize();
+      if (!normalized) {
+        return;
+      }
+      const stored = readStored();
+      const idx = stored.stack.lastIndexOf(normalized);
+      if (idx >= 0) {
+        stored.index = idx;
+      } else {
+        stored.stack.push(normalized);
+        stored.index = stored.stack.length - 1;
+      }
+      const trimmed = trimStack(stored.stack, stored.index);
+      writeStored(trimmed.stack, trimmed.index);
+    };
+    const patchHistory = () => {
+      if (originalPushState && originalReplaceState) {
+        return;
+      }
+      originalPushState = history.pushState;
+      originalReplaceState = history.replaceState;
+      history.pushState = function pushStatePatched(state, title, url) {
+        const result = originalPushState === null || originalPushState === void 0 ? void 0 : originalPushState.call(history, state, title, url);
+        record(url, false);
+        return result;
+      };
+      history.replaceState = function replaceStatePatched(state, title, url) {
+        const result = originalReplaceState === null || originalReplaceState === void 0 ? void 0 : originalReplaceState.call(history, state, title, url);
+        record(url, true);
+        return result;
+      };
+      window.addEventListener("popstate", popstateHandler);
+    };
+    const unpatchHistory = () => {
+      if (originalPushState) {
+        history.pushState = originalPushState;
+        originalPushState = null;
+      }
+      if (originalReplaceState) {
+        history.replaceState = originalReplaceState;
+        originalReplaceState = null;
+      }
+      window.removeEventListener("popstate", popstateHandler);
+    };
+    const setFeatureActive = (enabled) => {
+      if (featureActive === enabled) {
+        if (featureActive) {
+          ensureCurrentTracked();
+          scheduleRestore();
+        }
+        return;
+      }
+      featureActive = enabled;
+      if (featureActive) {
+        patchHistory();
+        ensureCurrentTracked();
+        scheduleRestore();
+      } else {
+        unpatchHistory();
+        clearStored();
+      }
+    };
+    window.addEventListener("CapacitorUpdaterKeepUrlPathAfterReload", (event) => {
+      var _a;
+      const evt = event;
+      const enabled = (_a = evt === null || evt === void 0 ? void 0 : evt.detail) === null || _a === void 0 ? void 0 : _a.enabled;
+      if (typeof enabled === "boolean") {
+        win.__capgoKeepUrlPathAfterReload = enabled;
+        setFeatureActive(enabled);
+      } else {
+        win.__capgoKeepUrlPathAfterReload = true;
+        setFeatureActive(true);
+      }
+    });
+    setFeatureActive(isFeatureConfigured());
+  }
+}
+var AppUpdateAvailability;
+(function(AppUpdateAvailability2) {
+  AppUpdateAvailability2[AppUpdateAvailability2["UNKNOWN"] = 0] = "UNKNOWN";
+  AppUpdateAvailability2[AppUpdateAvailability2["UPDATE_NOT_AVAILABLE"] = 1] = "UPDATE_NOT_AVAILABLE";
+  AppUpdateAvailability2[AppUpdateAvailability2["UPDATE_AVAILABLE"] = 2] = "UPDATE_AVAILABLE";
+  AppUpdateAvailability2[AppUpdateAvailability2["UPDATE_IN_PROGRESS"] = 3] = "UPDATE_IN_PROGRESS";
+})(AppUpdateAvailability || (AppUpdateAvailability = {}));
+var FlexibleUpdateInstallStatus;
+(function(FlexibleUpdateInstallStatus2) {
+  FlexibleUpdateInstallStatus2[FlexibleUpdateInstallStatus2["UNKNOWN"] = 0] = "UNKNOWN";
+  FlexibleUpdateInstallStatus2[FlexibleUpdateInstallStatus2["PENDING"] = 1] = "PENDING";
+  FlexibleUpdateInstallStatus2[FlexibleUpdateInstallStatus2["DOWNLOADING"] = 2] = "DOWNLOADING";
+  FlexibleUpdateInstallStatus2[FlexibleUpdateInstallStatus2["INSTALLING"] = 3] = "INSTALLING";
+  FlexibleUpdateInstallStatus2[FlexibleUpdateInstallStatus2["INSTALLED"] = 4] = "INSTALLED";
+  FlexibleUpdateInstallStatus2[FlexibleUpdateInstallStatus2["FAILED"] = 5] = "FAILED";
+  FlexibleUpdateInstallStatus2[FlexibleUpdateInstallStatus2["CANCELED"] = 6] = "CANCELED";
+  FlexibleUpdateInstallStatus2[FlexibleUpdateInstallStatus2["DOWNLOADED"] = 11] = "DOWNLOADED";
+})(FlexibleUpdateInstallStatus || (FlexibleUpdateInstallStatus = {}));
+var AppUpdateResultCode;
+(function(AppUpdateResultCode2) {
+  AppUpdateResultCode2[AppUpdateResultCode2["OK"] = 0] = "OK";
+  AppUpdateResultCode2[AppUpdateResultCode2["CANCELED"] = 1] = "CANCELED";
+  AppUpdateResultCode2[AppUpdateResultCode2["FAILED"] = 2] = "FAILED";
+  AppUpdateResultCode2[AppUpdateResultCode2["NOT_AVAILABLE"] = 3] = "NOT_AVAILABLE";
+  AppUpdateResultCode2[AppUpdateResultCode2["NOT_ALLOWED"] = 4] = "NOT_ALLOWED";
+  AppUpdateResultCode2[AppUpdateResultCode2["INFO_MISSING"] = 5] = "INFO_MISSING";
+})(AppUpdateResultCode || (AppUpdateResultCode = {}));
+const CapacitorUpdater = registerPlugin("CapacitorUpdater", {
+  web: () => __vitePreload(() => Promise.resolve().then(() => web), true ? void 0 : void 0, import.meta.url).then((m) => new m.CapacitorUpdaterWeb())
+});
+const BUNDLE_BUILTIN = {
+  status: "success",
+  version: "",
+  downloaded: "1970-01-01T00:00:00.000Z",
+  id: "builtin",
+  checksum: ""
+};
+class CapacitorUpdaterWeb extends WebPlugin {
+  async setStatsUrl(options) {
+    console.warn("Cannot setStatsUrl in web", options);
+    return;
+  }
+  async setUpdateUrl(options) {
+    console.warn("Cannot setUpdateUrl in web", options);
+    return;
+  }
+  async setChannelUrl(options) {
+    console.warn("Cannot setChannelUrl in web", options);
+    return;
+  }
+  async download(options) {
+    console.warn("Cannot download version in web", options);
+    return BUNDLE_BUILTIN;
+  }
+  async next(options) {
+    console.warn("Cannot set next version in web", options);
+    return BUNDLE_BUILTIN;
+  }
+  async isAutoUpdateEnabled() {
+    console.warn("Cannot get isAutoUpdateEnabled in web");
+    return { enabled: false };
+  }
+  async set(options) {
+    console.warn("Cannot set active bundle in web", options);
+    return;
+  }
+  async startPreviewSession(options) {
+    console.warn("Cannot start preview session in web", options);
+    return;
+  }
+  async listPreviews() {
+    console.warn("Cannot list previews in web");
+    return { previews: [], currentBundle: BUNDLE_BUILTIN };
+  }
+  async setPreview(options) {
+    console.warn("Cannot set preview in web", options);
+    return;
+  }
+  async resetPreview() {
+    console.warn("Cannot reset preview in web");
+    return;
+  }
+  async deletePreview(options) {
+    console.warn("Cannot delete preview in web", options);
+    return { removed: false, deleted: false };
+  }
+  async checkPreviewUpdate(options) {
+    console.warn("Cannot check preview update in web", options);
+    throw this.unimplemented("Preview updates are not available on web platform");
+  }
+  async updatePreview(options) {
+    console.warn("Cannot update preview in web", options);
+    throw this.unimplemented("Preview updates are not available on web platform");
+  }
+  async getDeviceId() {
+    console.warn("Cannot get ID in web");
+    return { deviceId: "default" };
+  }
+  async getBuiltinVersion() {
+    console.warn("Cannot get version in web");
+    return { version: "default" };
+  }
+  async getPluginVersion() {
+    console.warn("Cannot get plugin version in web");
+    return { version: "default" };
+  }
+  async delete(options) {
+    console.warn("Cannot delete bundle in web", options);
+  }
+  async setBundleError(options) {
+    console.warn("Cannot setBundleError in web", options);
+    return BUNDLE_BUILTIN;
+  }
+  async list() {
+    console.warn("Cannot list bundles in web");
+    return { bundles: [] };
+  }
+  async reset(options) {
+    console.warn("Cannot reset version in web", options);
+  }
+  async current() {
+    console.warn("Cannot get current bundle in web");
+    return { bundle: BUNDLE_BUILTIN, native: "0.0.0" };
+  }
+  async reload() {
+    console.warn("Cannot reload current bundle in web");
+    return;
+  }
+  async getLatest() {
+    console.warn("Cannot getLatest current bundle in web");
+    return {
+      version: "0.0.0",
+      message: "Cannot getLatest current bundle in web"
+    };
+  }
+  async triggerUpdateCheck() {
+    console.warn("Cannot triggerUpdateCheck in web");
+    return { status: "unavailable", queued: false };
+  }
+  async getMissingBundleFiles(options) {
+    var _a, _b, _c;
+    console.warn("Cannot inspect missing bundle files in web", { manifestLength: (_b = (_a = options.manifest) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0 });
+    const missing = (_c = options.manifest) !== null && _c !== void 0 ? _c : [];
+    return {
+      missing,
+      total: missing.length,
+      missingCount: missing.length,
+      reusableCount: 0
+    };
+  }
+  async getBundleDownloadSize(options) {
+    var _a, _b, _c, _d, _e;
+    console.warn("Cannot estimate bundle download size in web", { manifestLength: (_b = (_a = options.manifest) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0 });
+    return {
+      totalSize: 0,
+      knownFiles: 0,
+      unknownFiles: (_d = (_c = options.manifest) === null || _c === void 0 ? void 0 : _c.length) !== null && _d !== void 0 ? _d : 0,
+      files: ((_e = options.manifest) !== null && _e !== void 0 ? _e : []).map((entry) => ({
+        file_name: entry.file_name,
+        file_hash: entry.file_hash,
+        download_url: entry.download_url,
+        error: "unavailable"
+      }))
+    };
+  }
+  async setChannel(options) {
+    console.warn("Cannot setChannel in web", options);
+    return {
+      status: "error",
+      error: "Cannot setChannel in web"
+    };
+  }
+  async unsetChannel(options) {
+    console.warn("Cannot unsetChannel in web", options);
+    return;
+  }
+  async setCustomId(options) {
+    console.warn("Cannot setCustomId in web", options);
+    return;
+  }
+  async getChannel() {
+    console.warn("Cannot getChannel in web");
+    return {
+      status: "error",
+      error: "Cannot getChannel in web"
+    };
+  }
+  async listChannels() {
+    console.warn("Cannot listChannels in web");
+    throw {
+      message: "Cannot listChannels in web",
+      error: "platform_not_supported"
+    };
+  }
+  async notifyAppReady() {
+    return { bundle: BUNDLE_BUILTIN };
+  }
+  async setMultiDelay(options) {
+    console.warn("Cannot setMultiDelay in web", options === null || options === void 0 ? void 0 : options.delayConditions);
+    return;
+  }
+  async cancelDelay() {
+    console.warn("Cannot cancelDelay in web");
+    return;
+  }
+  async isAutoUpdateAvailable() {
+    console.warn("Cannot isAutoUpdateAvailable in web");
+    return { available: false };
+  }
+  async getCurrentBundle() {
+    console.warn("Cannot get current bundle in web");
+    return BUNDLE_BUILTIN;
+  }
+  async getNextBundle() {
+    return Promise.resolve(null);
+  }
+  async getFailedUpdate() {
+    console.warn("Cannot getFailedUpdate in web");
+    return null;
+  }
+  async setShakeMenu(_options) {
+    throw this.unimplemented("Shake menu not available on web platform");
+  }
+  async isShakeMenuEnabled() {
+    return Promise.resolve({ enabled: false, gesture: "shake" });
+  }
+  async setShakeChannelSelector(_options) {
+    throw this.unimplemented("Shake channel selector not available on web platform");
+  }
+  async isShakeChannelSelectorEnabled() {
+    return Promise.resolve({ enabled: false });
+  }
+  async getAppId() {
+    console.warn("Cannot getAppId in web");
+    return { appId: "default" };
+  }
+  async setAppId(options) {
+    console.warn("Cannot setAppId in web", options);
+    return;
+  }
+  // ============================================================================
+  // App Store / Play Store Update Methods (Web stubs)
+  // ============================================================================
+  async getAppUpdateInfo(_options) {
+    console.warn("getAppUpdateInfo is not available on web platform");
+    return {
+      currentVersionName: "0.0.0",
+      currentVersionCode: "0",
+      updateAvailability: AppUpdateAvailability.UNKNOWN
+    };
+  }
+  async openAppStore(_options) {
+    throw this.unimplemented("openAppStore is not available on web platform");
+  }
+  async performImmediateUpdate() {
+    throw this.unimplemented("performImmediateUpdate is only available on Android");
+  }
+  async startFlexibleUpdate() {
+    throw this.unimplemented("startFlexibleUpdate is only available on Android");
+  }
+  async completeFlexibleUpdate() {
+    throw this.unimplemented("completeFlexibleUpdate is only available on Android");
+  }
+}
+const web = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  CapacitorUpdaterWeb
+}, Symbol.toStringTag, { value: "Module" }));
+export {
+  CapacitorUpdater as C,
+  __vitePreload as _
+};

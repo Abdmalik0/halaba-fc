@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useClub } from '../../context/ClubContext';
 import { HalabaCrest } from '../HalabaCrest';
@@ -10,13 +10,29 @@ import {
   CheckCircle2,
   ExternalLink,
   ShieldCheck,
-  Smartphone
+  Smartphone,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 
 interface AppStoreInstallCardProps {
   mode?: 'modal' | 'embedded';
   onClose?: () => void;
 }
+
+interface LatestApkInfo {
+  downloadUrl: string;
+  fileName: string;
+  version: string;
+  sizeFormatted: string;
+}
+
+const DEFAULT_APK: LatestApkInfo = {
+  downloadUrl: 'https://github.com/Abdmalik0/halaba-fc/releases/download/v1.0/HalabaCityFC-v1.0-debug.apk',
+  fileName: 'HalabaCityFC-v1.0-debug.apk',
+  version: 'v1.0',
+  sizeFormatted: '22.3 MB',
+};
 
 export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
   mode = 'embedded',
@@ -36,16 +52,109 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
   });
 
   const [downloadStarted, setDownloadStarted] = useState(false);
+  const [apkInfo, setApkInfo] = useState<LatestApkInfo>(DEFAULT_APK);
+  const [isResolving, setIsResolving] = useState(false);
 
-  // One-click direct APK download handler
-  const handleDownloadAPK = () => {
+  // Fetch latest APK info from GitHub via our server API with fallback
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchLatestApk = async () => {
+      try {
+        const res = await fetch('/api/latest-apk');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.downloadUrl && isMounted) {
+            setApkInfo({
+              downloadUrl: data.downloadUrl,
+              fileName: data.fileName || DEFAULT_APK.fileName,
+              version: data.version || DEFAULT_APK.version,
+              sizeFormatted: data.sizeFormatted || DEFAULT_APK.sizeFormatted,
+            });
+            return;
+          }
+        }
+      } catch (err) {
+        console.debug('Failed to fetch from /api/latest-apk, checking GitHub directly:', err);
+      }
+
+      // Direct GitHub API fallback
+      try {
+        const ghRes = await fetch('https://api.github.com/repos/Abdmalik0/halaba-fc/releases', {
+          headers: { Accept: 'application/vnd.github.v3+json' },
+        });
+        if (ghRes.ok) {
+          const releases = await ghRes.json();
+          if (Array.isArray(releases)) {
+            for (const rel of releases) {
+              const asset = rel.assets?.find((a: any) =>
+                typeof a?.name === 'string' && a.name.toLowerCase().endsWith('.apk')
+              );
+              if (asset && isMounted) {
+                const mb = (asset.size / (1024 * 1024)).toFixed(1);
+                setApkInfo({
+                  downloadUrl: asset.browser_download_url,
+                  fileName: asset.name,
+                  version: rel.tag_name || 'Latest',
+                  sizeFormatted: `${mb} MB`,
+                });
+                return;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.debug('Direct GitHub API check skipped/rate-limited:', err);
+      }
+    };
+
+    fetchLatestApk();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // One-click direct latest APK download handler from GitHub
+  const handleDownloadAPK = async () => {
+    setIsResolving(true);
     setDownloadStarted(true);
+
+    let targetUrl = apkInfo.downloadUrl;
+    let targetFileName = apkInfo.fileName;
+
+    try {
+      // Perform quick verification or use existing resolved URL
+      if (!targetUrl || targetUrl === '/HalabaCityFC-v1.0-debug.apk') {
+        const res = await fetch('/api/latest-apk');
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.downloadUrl) {
+            targetUrl = data.downloadUrl;
+            targetFileName = data.fileName || targetFileName;
+          }
+        }
+      }
+    } catch {
+      // Fallback to default verified GitHub APK URL
+      targetUrl = DEFAULT_APK.downloadUrl;
+    } finally {
+      setIsResolving(false);
+    }
+
+    // Trigger download
     const link = document.createElement('a');
-    link.href = '/HalabaCityFC-v1.0-debug.apk';
-    link.download = 'HalabaCityFC-v1.0-debug.apk';
+    link.href = targetUrl;
+    link.setAttribute('download', targetFileName);
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+    }, 500);
   };
 
   const content = (
@@ -124,20 +233,36 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
                 <h4 className="font-sports font-black text-lg text-white uppercase tracking-wide">
                   {language === 'am' ? 'የአንድሮይድ መተግበሪያ (APK) አውርድ' : 'Halaba City FC Android APK'}
                 </h4>
-                <p className="text-xs text-neutral-300 mt-1">
-                  {language === 'am'
-                    ? 'አንድሮይድ ስቱዲዮ ሳያስፈልግ በGitHub የተሰራ ይፋዊ የክለቡ መተግበሪያ ፋይል'
-                    : 'Official Android APK package built automatically via GitHub Actions.'}
-                </p>
+                <div className="flex items-center justify-center gap-2 mt-1.5 flex-wrap">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 font-mono text-xxs font-bold">
+                    <Sparkles className="w-3 h-3" />
+                    <span>{apkInfo.version}</span>
+                  </span>
+                  <span className="text-xxs text-neutral-400 font-mono bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800">
+                    {apkInfo.sizeFormatted}
+                  </span>
+                  <span className="text-xxs text-neutral-400">
+                    {language === 'am' ? 'ይፋዊ የGitHub ስራ' : 'GitHub Actions Release'}
+                  </span>
+                </div>
               </div>
 
               {/* 1-Click Direct Download Button */}
               <button
                 onClick={handleDownloadAPK}
-                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-600 text-white font-sports font-black text-base uppercase tracking-wider shadow-xl shadow-emerald-950/80 flex items-center justify-center gap-2.5 transition-all transform active:scale-95 hover:scale-[1.01] cursor-pointer"
+                disabled={isResolving}
+                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-600 text-white font-sports font-black text-base uppercase tracking-wider shadow-xl shadow-emerald-950/80 flex items-center justify-center gap-2.5 transition-all transform active:scale-95 hover:scale-[1.01] cursor-pointer disabled:opacity-75"
               >
-                <Download className="w-5 h-5 animate-bounce" />
-                <span>{language === 'am' ? 'አሁን አውርድ (Direct APK Download)' : 'Download Android APK'}</span>
+                {isResolving ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Download className="w-5 h-5 animate-bounce" />
+                )}
+                <span>
+                  {isResolving
+                    ? (language === 'am' ? 'ፋይሉን በማገናኘት ላይ...' : 'Connecting to GitHub...')
+                    : (language === 'am' ? 'አሁን አውርድ (Direct APK Download)' : 'Download Android APK')}
+                </span>
               </button>
 
               {downloadStarted && (
@@ -149,8 +274,8 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
                     </strong>
                     <span>
                       {language === 'am'
-                        ? 'ፋይሉ ወርዶ ሲጠናቀቅ ማሳወቂያውን (Notification) ወይም የስልክዎን Downloads ፎልደር ከፍተው Install ያድርጉት።'
-                        : 'Once downloaded, open the HalabaCityFC-v1.0-debug.apk from your notifications or Downloads folder to install.'}
+                        ? `ፋይሉ (${apkInfo.fileName}) ወርዶ ሲጠናቀቅ ማሳወቂያውን (Notification) ወይም የስልክዎን Downloads ፎልደር ከፍተው Install ያድርጉት።`
+                        : `Once downloaded, open ${apkInfo.fileName} from your notifications or Downloads folder to install.`}
                     </span>
                   </div>
                 </div>
@@ -180,7 +305,7 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
               {/* Secondary link to GitHub Releases */}
               <div className="pt-2 text-center">
                 <a
-                  href="https://github.com/abdpriin/halaba-fc/releases"
+                  href="https://github.com/Abdmalik0/halaba-fc/releases"
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 text-xxs text-neutral-400 hover:text-white transition-colors"

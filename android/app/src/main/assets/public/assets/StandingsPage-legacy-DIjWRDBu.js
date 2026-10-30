@@ -1,0 +1,401 @@
+;
+(function () {
+  function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */ var e, t, r = "function" == typeof Symbol ? Symbol : {}, n = r.iterator || "@@iterator", o = r.toStringTag || "@@toStringTag"; function i(r, n, o, i) { var c = n && n.prototype instanceof Generator ? n : Generator, u = Object.create(c.prototype); return _regeneratorDefine2(u, "_invoke", function (r, n, o) { var i, c, u, f = 0, p = o || [], y = !1, G = { p: 0, n: 0, v: e, a: d, f: d.bind(e, 4), d: function d(t, r) { return i = t, c = 0, u = e, G.n = r, a; } }; function d(r, n) { for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) { var o, i = p[t], d = G.p, l = i[2]; r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0)); } if (o || r > 1) return a; throw y = !0, n; } return function (o, p, l) { if (f > 1) throw TypeError("Generator is already running"); for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) { i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u); try { if (f = 2, i) { if (c || (o = "next"), t = i[o]) { if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object"); if (!t.done) return t; u = t.value, c < 2 && (c = 0); } else 1 === c && (t = i.return) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1); i = e; } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break; } catch (t) { i = e, c = 1, u = t; } finally { f = 1; } } return { value: t, done: y }; }; }(r, o, i), !0), u; } var a = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} t = Object.getPrototypeOf; var c = [][n] ? t(t([][n]())) : (_regeneratorDefine2(t = {}, n, function () { return this; }), t), u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c); function f(e) { return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine2(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine2(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine2(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine2(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine2(u), _regeneratorDefine2(u, o, "Generator"), _regeneratorDefine2(u, n, function () { return this; }), _regeneratorDefine2(u, "toString", function () { return "[object Generator]"; }), (_regenerator = function _regenerator() { return { w: i, m: f }; })(); }
+  function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
+  function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
+  function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
+  function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
+  function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+  function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
+  function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
+  function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
+  function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
+  System.register(['./vendor-react-legacy-0mKvI6Bt.js', './index-legacy-yoxQ1ABl.js', './vendor-capacitor-legacy-DBOunZTQ.js', './vendor-firebase-legacy-BbBCOsOA.js'], function (exports, module) {
+    'use strict';
+
+    var reactExports, jsxRuntimeExports, Trophy, CircleCheck, Calculator, RefreshCw, ShieldCheck, Filter, useClub, getLocalizedTeamName, HalabaCrest, formatTeamName, EthiopianClubLogo, getFormBadgeLocalized;
+    return {
+      setters: [function (module) {
+        reactExports = module.r;
+        jsxRuntimeExports = module.j;
+        Trophy = module.T;
+        CircleCheck = module.l;
+        Calculator = module.z;
+        RefreshCw = module.v;
+        ShieldCheck = module.d;
+        Filter = module.y;
+      }, function (module) {
+        useClub = module.u;
+        getLocalizedTeamName = module.a;
+        HalabaCrest = module.H;
+        formatTeamName = module.f;
+        EthiopianClubLogo = module.E;
+        getFormBadgeLocalized = module.d;
+      }, null, null],
+      execute: function execute() {
+        var StandingsPage = exports("StandingsPage", function () {
+          var _useClub = useClub(),
+            t = _useClub.t,
+            language = _useClub.language,
+            standings = _useClub.standings,
+            isSyncing = _useClub.isSyncing,
+            syncNow = _useClub.syncNow,
+            resetStandings = _useClub.resetStandings,
+            recalculateStandingsFromMatches = _useClub.recalculateStandingsFromMatches,
+            isOnline = _useClub.isOnline;
+          var _reactExports$useStat = reactExports.useState("ETHIOPIAN_PREMIER_LEAGUE"),
+            _reactExports$useStat2 = _slicedToArray(_reactExports$useStat, 2),
+            competition = _reactExports$useStat2[0],
+            setCompetition = _reactExports$useStat2[1];
+          var _reactExports$useStat3 = reactExports.useState(false),
+            _reactExports$useStat4 = _slicedToArray(_reactExports$useStat3, 2),
+            recalculating = _reactExports$useStat4[0],
+            setRecalculating = _reactExports$useStat4[1];
+          var _reactExports$useStat5 = reactExports.useState(false),
+            _reactExports$useStat6 = _slicedToArray(_reactExports$useStat5, 2),
+            recalcSuccess = _reactExports$useStat6[0],
+            setRecalcSuccess = _reactExports$useStat6[1];
+          var halabaStanding = standings.find(function (s) {
+            return s.isHalaba;
+          }) || standings[0];
+          halabaStanding ? getLocalizedTeamName(halabaStanding.teamId, halabaStanding.teamName, language) : "";
+          return /* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+            className: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8",
+            children: [/* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+              className: "bg-gradient-to-r from-neutral-900 via-neutral-900 to-neutral-950 p-6 sm:p-8 rounded-2xl border border-neutral-800 shadow-xl",
+              children: [/* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                className: "flex flex-col md:flex-row md:items-center justify-between gap-4",
+                children: [/* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                  children: [/* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                    className: "flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-400 mb-1",
+                    children: [/* @__PURE__ */jsxRuntimeExports.jsx(Trophy, {
+                      className: "w-4 h-4"
+                    }), /* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                      children: t.standingsEplBadge
+                    })]
+                  }), /* @__PURE__ */jsxRuntimeExports.jsx("h1", {
+                    className: "font-sports font-black text-3xl sm:text-5xl text-white uppercase tracking-wider",
+                    children: t.standingsTitle
+                  }), /* @__PURE__ */jsxRuntimeExports.jsx("p", {
+                    className: "text-neutral-400 text-sm mt-1 max-w-xl",
+                    children: t.standingsSubtitle
+                  }), /* @__PURE__ */jsxRuntimeExports.jsx("div", {
+                    className: "flex items-center gap-2 mt-2",
+                    children: !isOnline ? /* @__PURE__ */jsxRuntimeExports.jsxs("span", {
+                      className: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/80 border border-amber-800/80 text-amber-300 text-xxs font-bold",
+                      children: [/* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                        className: "w-1.5 h-1.5 rounded-full bg-amber-400"
+                      }), language === "am" ? "የተቀመጠ መረጃ (ከመስመር ውጭ)" : "Instant Cache Active (Offline)"]
+                    }) : /* @__PURE__ */jsxRuntimeExports.jsxs("span", {
+                      className: "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-800/80 text-emerald-400 text-xxs font-bold",
+                      children: [/* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                        className: "w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"
+                      }), language === "am" ? "የቀጥታ ግንኙነት ነቅቷል" : "Live Cloud Connected"]
+                    })
+                  })]
+                }), /* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                  className: "flex flex-wrap items-center gap-2 self-start md:self-auto",
+                  children: [/* @__PURE__ */jsxRuntimeExports.jsxs("button", {
+                    onClick: function () {
+                      var _onClick = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee() {
+                        return _regenerator().w(function (_context) {
+                          while (1) switch (_context.n) {
+                            case 0:
+                              setRecalculating(true);
+                              _context.n = 1;
+                              return recalculateStandingsFromMatches();
+                            case 1:
+                              setRecalculating(false);
+                              setRecalcSuccess(true);
+                              setTimeout(function () {
+                                return setRecalcSuccess(false);
+                              }, 3e3);
+                            case 2:
+                              return _context.a(2);
+                          }
+                        }, _callee);
+                      }));
+                      function onClick() {
+                        return _onClick.apply(this, arguments);
+                      }
+                      return onClick;
+                    }(),
+                    disabled: recalculating,
+                    className: "flex items-center gap-1.5 px-3.5 py-2 rounded-xl btn-donate-emerald font-sports font-bold text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-60",
+                    title: "Recalculate all 18 club points and goal differences from finished match fixtures",
+                    children: [recalcSuccess ? /* @__PURE__ */jsxRuntimeExports.jsx(CircleCheck, {
+                      className: "w-3.5 h-3.5 text-white"
+                    }) : /* @__PURE__ */jsxRuntimeExports.jsx(Calculator, {
+                      className: "w-3.5 h-3.5 ".concat(recalculating ? "animate-spin" : "")
+                    }), /* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                      children: recalcSuccess ? language === "am" ? "ተዘምኗል!" : "Updated!" : language === "am" ? "ከውጤቶች አድስ" : "Update from Match Results"
+                    })]
+                  }), /* @__PURE__ */jsxRuntimeExports.jsxs("button", {
+                    onClick: syncNow,
+                    disabled: isSyncing,
+                    className: "flex items-center gap-2 px-3.5 py-2 rounded-xl btn-secondary-amber font-sports font-bold text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 disabled:opacity-50",
+                    title: "Sync directly with TheSportsDB official data",
+                    children: [/* @__PURE__ */jsxRuntimeExports.jsx(RefreshCw, {
+                      className: "w-3.5 h-3.5 ".concat(isSyncing ? "animate-spin" : "")
+                    }), /* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                      children: isSyncing ? t.syncingStatus : t.syncTheSportsDb
+                    })]
+                  }), /* @__PURE__ */jsxRuntimeExports.jsxs("button", {
+                    onClick: function () {
+                      var _onClick2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
+                        return _regenerator().w(function (_context2) {
+                          while (1) switch (_context2.n) {
+                            case 0:
+                              _context2.n = 1;
+                              return resetStandings();
+                            case 1:
+                              _context2.n = 2;
+                              return syncNow();
+                            case 2:
+                              return _context2.a(2);
+                          }
+                        }, _callee2);
+                      }));
+                      function onClick() {
+                        return _onClick2.apply(this, arguments);
+                      }
+                      return onClick;
+                    }(),
+                    className: "flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white font-sports font-bold text-xs uppercase tracking-wider border border-neutral-700 transition-all active:scale-95",
+                    title: "Clear all local caches and re-seed official 18-club Premier League table",
+                    children: [/* @__PURE__ */jsxRuntimeExports.jsx(ShieldCheck, {
+                      className: "w-3.5 h-3.5 text-emerald-400"
+                    }), /* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                      children: t.resetTable
+                    })]
+                  }), /* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                    className: "flex items-center gap-2 bg-neutral-950 p-1.5 rounded-xl border border-neutral-800",
+                    children: [/* @__PURE__ */jsxRuntimeExports.jsx(Filter, {
+                      className: "w-4 h-4 text-neutral-400 ml-2"
+                    }), /* @__PURE__ */jsxRuntimeExports.jsxs("select", {
+                      value: competition,
+                      onChange: function onChange(e) {
+                        return setCompetition(e.target.value);
+                      },
+                      className: "bg-transparent text-neutral-200 text-xs sm:text-sm font-semibold rounded-lg px-2 py-1.5 focus:outline-none",
+                      children: [/* @__PURE__ */jsxRuntimeExports.jsx("option", {
+                        value: "ETHIOPIAN_PREMIER_LEAGUE",
+                        children: language === "am" ? "የኢትዮጵያ ፕሪሚየር ሊግ (ከፍተኛ ዲቪዚዮን) • ይፋዊ" : "Ethiopian Premier League (Top Tier) • Official"
+                      }), /* @__PURE__ */jsxRuntimeExports.jsx("option", {
+                        value: "ETHIOPIAN_CUP",
+                        children: language === "am" ? "የኢትዮጵያ ዋንጫ 2026/27" : "Ethiopian Cup 2026/27"
+                      })]
+                    })]
+                  })]
+                })]
+              }), halabaStanding && /* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                className: "mt-6 p-4 rounded-xl bg-gradient-to-r from-red-950/80 via-neutral-950 to-emerald-950/60 border border-amber-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4",
+                children: [/* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                  className: "flex items-center gap-3",
+                  children: [/* @__PURE__ */jsxRuntimeExports.jsx(HalabaCrest, {
+                    size: 44,
+                    showGlow: true
+                  }), /* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                    children: [/* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                      className: "flex items-center gap-2",
+                      children: [/* @__PURE__ */jsxRuntimeExports.jsxs("span", {
+                        className: "px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/50 text-amber-300 font-sports font-bold text-xs uppercase tracking-wider",
+                        children: [t.officialLeagueStatus, " ", halabaStanding.position === 1 ? t.firstPlace : halabaStanding.position === 2 ? t.secondPlace : halabaStanding.position === 3 ? t.thirdPlace : language === "am" ? "".concat(halabaStanding.position, "\u129B \u12F0\u1228\u1303") : language === "om" ? "Sadarkaa ".concat(halabaStanding.position, "ffaa") : "".concat(halabaStanding.position, "th Place")]
+                      }), /* @__PURE__ */jsxRuntimeExports.jsxs("span", {
+                        className: "text-emerald-400 text-xs font-bold uppercase tracking-wider hidden sm:inline",
+                        children: ["• ", language === "am" ? "የኢትዮጵያ ፕሪሚየር ሊግ (ከፍተኛ ዲቪዚዮን)" : "Ethiopian Premier League (Top Tier)"]
+                      })]
+                    }), /* @__PURE__ */jsxRuntimeExports.jsx("h3", {
+                      className: "font-sports font-black text-white text-lg sm:text-xl mt-0.5",
+                      children: language === "am" ? halabaStanding.position === 1 ? "ሀላባ ከተማ (በርበሬዎቹ) የኢትዮጵያ ፕሪሚየር ሊግን ይመራል" : "\u1200\u120B\u1263 \u12A8\u1270\u121B (\u1260\u122D\u1260\u122C\u12CE\u1279) \u1260\u12F0\u1228\u1303 #".concat(halabaStanding.position, " \u120B\u12ED \u12ED\u1308\u129B\u120D (5 \u1290\u1325\u1265 \u2022 \u12EB\u1208\u1218\u1238\u1290\u134D \u1309\u12DE)") : halabaStanding.position === 1 ? "Halaba Ketema (Berberewochu) leads the Ethiopian Premier League" : "Halaba Ketema (Berberewochu) stands in position #".concat(halabaStanding.position, " (5 Pts \u2022 Undefeated Campaign)")
+                    })]
+                  })]
+                }), /* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                  className: "flex items-center gap-3 sm:gap-6 self-start md:self-auto bg-neutral-950/80 px-4 py-2 rounded-lg border border-neutral-800 text-xs font-mono",
+                  children: [/* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                    children: [/* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                      className: "text-neutral-400 block text-xxs uppercase",
+                      children: t.points
+                    }), /* @__PURE__ */jsxRuntimeExports.jsxs("span", {
+                      className: "text-amber-400 font-black text-base",
+                      children: [halabaStanding.points, " ", t.pts]
+                    })]
+                  }), /* @__PURE__ */jsxRuntimeExports.jsx("div", {
+                    className: "h-6 w-px bg-neutral-800"
+                  }), /* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                    children: [/* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                      className: "text-neutral-400 block text-xxs uppercase",
+                      children: t.record
+                    }), /* @__PURE__ */jsxRuntimeExports.jsxs("span", {
+                      className: "text-white font-bold",
+                      children: [halabaStanding.played, " (", halabaStanding.won, language === "am" ? "አ" : "W", " - ", halabaStanding.drawn, language === "am" ? "አቻ" : "D", " - ", halabaStanding.lost, language === "am" ? "ተ" : "L", ")"]
+                    })]
+                  }), /* @__PURE__ */jsxRuntimeExports.jsx("div", {
+                    className: "h-6 w-px bg-neutral-800"
+                  }), /* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                    children: [/* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                      className: "text-neutral-400 block text-xxs uppercase",
+                      children: t.goalsGd
+                    }), /* @__PURE__ */jsxRuntimeExports.jsxs("span", {
+                      className: "text-emerald-400 font-bold",
+                      children: [halabaStanding.goalsFor, " ", t.gf, " / ", halabaStanding.goalsAgainst, " ", t.ga, " (", halabaStanding.goalDifference > 0 ? "+".concat(halabaStanding.goalDifference) : halabaStanding.goalDifference, ")"]
+                    })]
+                  })]
+                })]
+              }), /* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                className: "mt-6 pt-6 border-t border-neutral-800 flex flex-wrap items-center gap-6 text-xs text-neutral-400",
+                children: [/* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                  className: "flex items-center gap-2",
+                  children: [/* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                    className: "w-3 h-3 rounded bg-amber-500 shadow-sm shadow-amber-500/50"
+                  }), /* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                    className: "text-neutral-300 font-medium",
+                    children: t.cafChampionsLeagueQual
+                  })]
+                }), /* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                  className: "flex items-center gap-2",
+                  children: [/* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                    className: "w-3 h-3 rounded bg-emerald-500"
+                  }), /* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                    className: "text-emerald-300 font-medium",
+                    children: t.cafConfedCupQual
+                  })]
+                }), /* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                  className: "flex items-center gap-2",
+                  children: [/* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                    className: "w-3 h-3 rounded bg-red-600"
+                  }), /* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                    children: t.relegationZoneDesc
+                  })]
+                })]
+              })]
+            }), /* @__PURE__ */jsxRuntimeExports.jsx("div", {
+              className: "bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl overflow-hidden max-w-full",
+              children: /* @__PURE__ */jsxRuntimeExports.jsx("div", {
+                className: "overflow-x-auto max-w-full rounded-xl",
+                children: /* @__PURE__ */jsxRuntimeExports.jsxs("table", {
+                  className: "w-full text-left text-sm whitespace-nowrap",
+                  children: [/* @__PURE__ */jsxRuntimeExports.jsx("thead", {
+                    children: /* @__PURE__ */jsxRuntimeExports.jsxs("tr", {
+                      className: "bg-neutral-950 border-b border-neutral-800 text-xs uppercase font-sports font-bold tracking-wider text-neutral-400",
+                      children: [/* @__PURE__ */jsxRuntimeExports.jsx("th", {
+                        className: "py-3.5 px-3 sm:px-4 text-center w-10 sm:w-12",
+                        children: t.pos
+                      }), /* @__PURE__ */jsxRuntimeExports.jsx("th", {
+                        className: "py-3.5 px-3 sm:px-4 min-w-[150px]",
+                        children: t.club
+                      }), /* @__PURE__ */jsxRuntimeExports.jsx("th", {
+                        className: "py-3.5 px-2.5 sm:px-3 text-center w-10",
+                        children: t.played
+                      }), /* @__PURE__ */jsxRuntimeExports.jsx("th", {
+                        className: "py-3.5 px-2.5 sm:px-3 text-center w-10",
+                        children: t.won
+                      }), /* @__PURE__ */jsxRuntimeExports.jsx("th", {
+                        className: "py-3.5 px-2.5 sm:px-3 text-center w-10",
+                        children: t.drawn
+                      }), /* @__PURE__ */jsxRuntimeExports.jsx("th", {
+                        className: "py-3.5 px-2.5 sm:px-3 text-center w-10",
+                        children: t.lost
+                      }), /* @__PURE__ */jsxRuntimeExports.jsx("th", {
+                        className: "py-3.5 px-2.5 sm:px-3 text-center w-10 hidden md:table-cell",
+                        children: t.gf
+                      }), /* @__PURE__ */jsxRuntimeExports.jsx("th", {
+                        className: "py-3.5 px-2.5 sm:px-3 text-center w-10 hidden md:table-cell",
+                        children: t.ga
+                      }), /* @__PURE__ */jsxRuntimeExports.jsx("th", {
+                        className: "py-3.5 px-2.5 sm:px-3 text-center w-12",
+                        children: t.gd
+                      }), /* @__PURE__ */jsxRuntimeExports.jsx("th", {
+                        className: "py-3.5 px-3 sm:px-4 text-center font-black w-12",
+                        children: t.pts
+                      }), /* @__PURE__ */jsxRuntimeExports.jsx("th", {
+                        className: "py-3.5 px-3 sm:px-4 text-center hidden sm:table-cell w-24",
+                        children: t.form
+                      })]
+                    })
+                  }), /* @__PURE__ */jsxRuntimeExports.jsx("tbody", {
+                    className: "divide-y divide-neutral-800/80",
+                    children: standings.map(function (team) {
+                      var isLeader = team.position === 1;
+                      var isConfed = team.position === 2;
+                      var isRelegation = team.position >= 16;
+                      var localizedName = getLocalizedTeamName(team.teamId, team.teamName, language);
+                      var shortName = formatTeamName(team.teamId, localizedName, language);
+                      return /* @__PURE__ */jsxRuntimeExports.jsxs("tr", {
+                        className: "transition-colors ".concat(team.isHalaba ? "standings-halaba-row border-l-4 border-l-amber-500 font-bold" : "hover:bg-neutral-800/40"),
+                        children: [/* @__PURE__ */jsxRuntimeExports.jsx("td", {
+                          className: "py-3.5 px-3 sm:px-4 text-center",
+                          children: /* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                            className: "inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-bold ".concat(isLeader ? "standings-pos-leader font-black shadow-md" : isConfed ? "bg-emerald-950 text-emerald-400 border border-emerald-800" : isRelegation ? "bg-red-950/60 text-red-400 border border-red-900" : "text-neutral-400 bg-neutral-950/50"),
+                            children: team.position
+                          })
+                        }), /* @__PURE__ */jsxRuntimeExports.jsx("td", {
+                          className: "py-3.5 px-3 sm:px-4",
+                          children: /* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                            className: "flex items-center gap-2.5 sm:gap-3 min-w-0",
+                            children: [/* @__PURE__ */jsxRuntimeExports.jsx(EthiopianClubLogo, {
+                              teamId: team.teamId,
+                              teamName: localizedName,
+                              size: 32,
+                              badgeUrl: team.badgeUrl,
+                              className: "shrink-0 flex-shrink-0"
+                            }), /* @__PURE__ */jsxRuntimeExports.jsxs("div", {
+                              className: "min-w-0 truncate",
+                              children: [/* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                                className: "font-sports text-sm sm:text-base tracking-wide truncate max-w-[140px] sm:max-w-none block ".concat(team.isHalaba ? "text-red-400 font-black text-base sm:text-lg" : "text-neutral-200"),
+                                title: localizedName,
+                                children: shortName
+                              }), team.isHalaba && /* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                                className: "block text-xxs uppercase tracking-wider text-emerald-400 font-sans truncate",
+                                children: t.officialClub
+                              })]
+                            })]
+                          })
+                        }), /* @__PURE__ */jsxRuntimeExports.jsx("td", {
+                          className: "py-4 px-3 text-center text-neutral-300",
+                          children: team.played
+                        }), /* @__PURE__ */jsxRuntimeExports.jsx("td", {
+                          className: "py-4 px-3 text-center text-emerald-400 font-semibold",
+                          children: team.won
+                        }), /* @__PURE__ */jsxRuntimeExports.jsx("td", {
+                          className: "py-4 px-3 text-center text-amber-300",
+                          children: team.drawn
+                        }), /* @__PURE__ */jsxRuntimeExports.jsx("td", {
+                          className: "py-4 px-3 text-center text-red-400",
+                          children: team.lost
+                        }), /* @__PURE__ */jsxRuntimeExports.jsx("td", {
+                          className: "py-4 px-3 text-center text-neutral-400 hidden md:table-cell",
+                          children: team.goalsFor
+                        }), /* @__PURE__ */jsxRuntimeExports.jsx("td", {
+                          className: "py-4 px-3 text-center text-neutral-400 hidden md:table-cell",
+                          children: team.goalsAgainst
+                        }), /* @__PURE__ */jsxRuntimeExports.jsx("td", {
+                          className: "py-4 px-3 text-center font-mono",
+                          children: team.goalDifference > 0 ? "+".concat(team.goalDifference) : team.goalDifference
+                        }), /* @__PURE__ */jsxRuntimeExports.jsx("td", {
+                          className: "py-4 px-4 text-center font-sports font-black text-lg text-white",
+                          children: team.points
+                        }), /* @__PURE__ */jsxRuntimeExports.jsx("td", {
+                          className: "py-4 px-4 text-center hidden sm:table-cell",
+                          children: /* @__PURE__ */jsxRuntimeExports.jsx("div", {
+                            className: "flex items-center justify-center gap-1",
+                            children: team.form.map(function (res, i) {
+                              return /* @__PURE__ */jsxRuntimeExports.jsx("span", {
+                                className: "w-5 h-5 rounded flex items-center justify-center text-xxs font-bold text-white uppercase ".concat(res === "W" ? "bg-emerald-600" : res === "D" ? "bg-amber-600" : "bg-red-600"),
+                                children: getFormBadgeLocalized(res, language)
+                              }, i);
+                            })
+                          })
+                        })]
+                      }, team.teamId);
+                    })
+                  })]
+                })
+              })
+            })]
+          });
+        });
+      }
+    };
+  });
+})();
