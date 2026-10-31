@@ -31,7 +31,6 @@ import {
 } from '../data/mockData';
 import { translations } from '../translations';
 import { ClubImages } from '../assets/images';
-import { calculateStandingsFromMatches } from '../utils/standingsCalculator';
 import { getIdbItem, setIdbItem, createThumbnail } from '../utils/idb';
 
 export type PageRoute = 'home' | 'fixtures' | 'standings' | 'news' | 'membership' | 'shop' | 'about' | 'contact' | 'admin';
@@ -206,6 +205,7 @@ export const VALID_EPL_18_TEAM_IDS = new Set<string>([
 
 try {
   if (typeof window !== 'undefined') {
+    localStorage.removeItem('halaba_official_epl_standings_v16_18_teams');
     localStorage.removeItem('halaba_official_epl_standings_v12_real_table');
     localStorage.removeItem('halaba_official_epl_standings_v7_canonical');
     localStorage.removeItem('halaba_official_epl_standings_v3');
@@ -250,7 +250,7 @@ const STORAGE_KEYS = {
   LANG: 'halaba_lang',
   CLUB: 'halaba_club_info_epl_26_27',
   MATCHES: 'halaba_matches_epl_2026_27_v18',
-  STANDINGS: 'halaba_official_epl_standings_v16_18_teams',
+  STANDINGS: 'halaba_official_epl_standings_v19_sportsdb',
   NEWS: 'halaba_news_epl_2026_27',
   PLAYERS: 'halaba_players',
   STAFF: 'halaba_staff',
@@ -383,8 +383,13 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
-  // Background auto-sync of Halaba fixtures from TheSportsDB
+  // Background auto-sync of Halaba fixtures from TheSportsDB (runs once per app open session)
   useEffect(() => {
+    const sessionKey = 'halaba_sportsdb_app_session_synced';
+    if (typeof window !== 'undefined' && sessionStorage.getItem(sessionKey)) {
+      return;
+    }
+
     const fetchHalabaFixturesFromSportsDB = async () => {
       try {
         const res = await fetch('/api/fixtures/sportsdb');
@@ -468,17 +473,6 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.warn('LocalStorage error caching matches:', e);
         }
         localStorage.setItem('hcfc_firestore_matches_seeded', 'true');
-
-        // Automatically sync standings from matches
-        const autoComputed = calculateStandingsFromMatches(liveMatches, initialStandings);
-        setStandings((prev) => {
-          const hasLaggingTeam = prev.some((t) => t.played < 3);
-          if (hasLaggingTeam) {
-            localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(autoComputed));
-            return autoComputed;
-          }
-          return prev;
-        });
       }
     }, (error) => {
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -500,20 +494,12 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setMatches(updated);
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(updated));
 
-    // Automatically recalculate standings from the updated matches
-    const updatedStandings = calculateStandingsFromMatches(updated, standings);
-    setStandings(updatedStandings);
-    localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(updatedStandings));
-
     try {
       await setDoc(doc(db, 'matches', matchId), {
         ...newMatch,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
-      for (const st of updatedStandings) {
-        await setDoc(doc(db, 'standings', st.teamId), { ...st, updatedAt: serverTimestamp() }, { merge: true });
-      }
     } catch (error) {
       console.error('Firestore add match error:', error);
       handleFirestoreError(error, OperationType.CREATE, `matches/${matchId}`);
@@ -524,11 +510,6 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = matches.map((m) => (m.id === id ? { ...m, ...updates } : m));
     setMatches(updated);
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(updated));
-
-    // Automatically recalculate standings whenever a match result or score updates
-    const updatedStandings = calculateStandingsFromMatches(updated, standings);
-    setStandings(updatedStandings);
-    localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(updatedStandings));
 
     try {
       const cleanUpdates: Record<string, any> = {};
@@ -541,10 +522,6 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...cleanUpdates,
         updatedAt: serverTimestamp(),
       }, { merge: true });
-
-      for (const st of updatedStandings) {
-        await setDoc(doc(db, 'standings', st.teamId), { ...st, updatedAt: serverTimestamp() }, { merge: true });
-      }
     } catch (error) {
       console.error('Firestore update match error:', error);
       handleFirestoreError(error, OperationType.UPDATE, `matches/${id}`);
@@ -556,10 +533,6 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setMatches(updated);
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(updated));
 
-    const updatedStandings = calculateStandingsFromMatches(updated, standings);
-    setStandings(updatedStandings);
-    localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(updatedStandings));
-
     try {
       await deleteDoc(doc(db, 'matches', id));
     } catch (error) {
@@ -568,13 +541,20 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Standings State & Real-Time Firebase Firestore Integration
+  // Standings State & Real-Time TheSportsDB / Firestore Integration
+  const isCorruptedStandings = (list: any[]): boolean => {
+    if (!Array.isArray(list) || list.length < 18) return true;
+    const teamsWithZero = list.filter((t: any) => Number(t.played) === 0).length;
+    if (list[0]?.teamId === 'halaba' && Number(list[0]?.points) === 8 && teamsWithZero > 10) return true;
+    return false;
+  };
+
   const [standings, setStandings] = useState<StandingTeam[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.STANDINGS);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= 18) {
+        if (Array.isArray(parsed) && parsed.length >= 18 && !isCorruptedStandings(parsed)) {
           const hasHalaba = parsed.some((t) => t.isHalaba || t.teamId === 'halaba');
           const hasCbe = parsed.some((t) => t.teamId === 'cbe_sa');
           if (hasHalaba && hasCbe) {
@@ -665,7 +645,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       list.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
       const reordered = list.slice(0, 18).map((t, idx) => ({ ...t, position: idx + 1 }));
 
-      if (reordered.length > 0) {
+      if (reordered.length > 0 && !isCorruptedStandings(reordered)) {
         setStandings(reordered);
         localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(reordered));
       }
@@ -723,19 +703,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const recalculateStandingsFromMatches = async () => {
-    const computed = calculateStandingsFromMatches(matches, standings);
-    setStandings(computed);
-    localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(computed));
-    try {
-      for (const item of computed) {
-        await setDoc(doc(db, 'standings', item.teamId), {
-          ...item,
-          updatedAt: serverTimestamp(),
-        }, { merge: true });
-      }
-    } catch (error) {
-      console.warn('Firestore recalculate standings warning:', error);
-    }
+    await syncNow();
   };
 
 
@@ -1707,7 +1675,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Live Auto-Sync & Simulation Engine
-  const [isAutoSyncEnabled, setIsAutoSyncEnabled] = useState(true);
+  const [isAutoSyncEnabled, setIsAutoSyncEnabled] = useState(false);
   const [autoSyncInterval, setAutoSyncIntervalState] = useState(30);
   const [secondsUntilNextSync, setSecondsUntilNextSync] = useState(30);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -2001,21 +1969,22 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await syncNow();
   };
 
+  // Automatically update standing table and results/fixtures from SportsDB ONLY when the app opens,
+  // then uses that cache until the app is closed and reopened (persisting in sessionStorage per session).
   useEffect(() => {
-    if (!isAutoSyncEnabled) return;
+    const sessionKey = 'halaba_sportsdb_app_session_synced';
+    const alreadySyncedThisSession = typeof window !== 'undefined' && sessionStorage.getItem(sessionKey) === 'true';
 
-    const timer = setInterval(() => {
-      setSecondsUntilNextSync((prev) => {
-        if (prev <= 1) {
-          setLastSyncTime(new Date());
-          return autoSyncInterval;
+    if (!alreadySyncedThisSession) {
+      syncNow().then(() => {
+        try {
+          sessionStorage.setItem(sessionKey, 'true');
+        } catch {
+          // ignore
         }
-        return prev - 1;
       });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isAutoSyncEnabled, autoSyncInterval]);
+    }
+  }, []);
 
   // Sponsors & Partner Posters State with Real-Time Firebase Firestore Integration
   const [sponsors, setSponsors] = useState<Sponsor[]>(() => {

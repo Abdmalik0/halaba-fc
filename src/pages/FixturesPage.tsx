@@ -8,10 +8,7 @@ import {
   MapPin,
   ChevronRight,
   Filter,
-  Zap,
-  RefreshCw,
-  Flame,
-  Shield
+  Flame
 } from 'lucide-react';
 import {
   getLocalizedTeamName,
@@ -31,10 +28,6 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
     t,
     language,
     matches,
-    openDossier,
-    simulateLiveMatchAction,
-    syncNow,
-    isSyncing,
     isOnline,
   } = useClub();
 
@@ -103,25 +96,6 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
             </p>
           </div>
         </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={openDossier}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-amber-300 border border-amber-500/30 text-xs font-bold font-sports uppercase tracking-wider transition-all"
-          >
-            <Shield className="w-4 h-4 text-amber-300" />
-            <span>{t.clubDossier}</span>
-          </button>
-
-          <button
-            onClick={simulateLiveMatchAction}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl btn-secondary-amber text-white font-sports font-bold text-xs uppercase tracking-wider shadow-md transition-all active:scale-95"
-            title="Simulate live kickoff or goal action"
-          >
-            <Zap className="w-3.5 h-3.5 text-amber-200" />
-            <span>{t.simulateLiveAction}</span>
-          </button>
-        </div>
       </div>
 
       {/* Page Header */}
@@ -139,14 +113,6 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={syncNow}
-              disabled={isSyncing}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-xs font-semibold text-white transition-all disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>{isSyncing ? t.syncingStatus : t.syncNowBtn}</span>
-            </button>
             <span className="px-3 py-1.5 rounded-lg bg-neutral-800 border border-neutral-700 text-xs font-semibold text-neutral-300">
               {filteredMatches.length} {t.matchesShown}
             </span>

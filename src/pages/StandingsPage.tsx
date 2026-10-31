@@ -1,16 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useClub } from '../context/ClubContext';
 import { HalabaCrest } from '../components/HalabaCrest';
 import { EthiopianClubLogo } from '../components/EthiopianClubLogo';
-import { Trophy, Filter, ShieldCheck, RefreshCw, Calculator, CheckCircle2 } from 'lucide-react';
+import { Trophy, Filter, RefreshCw } from 'lucide-react';
 import { getLocalizedTeamName, getFormBadgeLocalized } from '../utils/localization';
 import { formatTeamName } from '../utils/formatTeamName';
 
 export const StandingsPage: React.FC = () => {
-  const { t, language, standings, isSyncing, syncNow, resetStandings, recalculateStandingsFromMatches, isOnline } = useClub();
+  const { t, language, standings, isSyncing, syncNow, isOnline } = useClub();
   const [competition, setCompetition] = useState('ETHIOPIAN_PREMIER_LEAGUE');
-  const [recalculating, setRecalculating] = useState(false);
-  const [recalcSuccess, setRecalcSuccess] = useState(false);
 
   const halabaStanding = standings.find((s) => s.isHalaba) || standings[0];
   const halabaName = halabaStanding ? getLocalizedTeamName(halabaStanding.teamId, halabaStanding.teamName, language) : '';
@@ -38,39 +36,14 @@ export const StandingsPage: React.FC = () => {
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-800/80 text-emerald-400 text-xxs font-bold">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  {language === 'am' ? 'የቀጥታ ግንኙነት ነቅቷል' : 'Live Cloud Connected'}
+                  {language === 'am' ? 'የቀጥታ ግንኙነት ነቅቷል • TheSportsDB' : 'Live Connected • TheSportsDB'}
                 </span>
               )}
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
-            {/* Auto Recalculate Table from Match Results Button */}
-            <button
-              onClick={async () => {
-                setRecalculating(true);
-                await recalculateStandingsFromMatches();
-                setRecalculating(false);
-                setRecalcSuccess(true);
-                setTimeout(() => setRecalcSuccess(false), 3000);
-              }}
-              disabled={recalculating}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl btn-donate-emerald font-sports font-bold text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-60"
-              title="Recalculate all 18 club points and goal differences from finished match fixtures"
-            >
-              {recalcSuccess ? (
-                <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-              ) : (
-                <Calculator className={`w-3.5 h-3.5 ${recalculating ? 'animate-spin' : ''}`} />
-              )}
-              <span>
-                {recalcSuccess
-                  ? (language === 'am' ? 'ተዘምኗል!' : 'Updated!')
-                  : (language === 'am' ? 'ከውጤቶች አድስ' : 'Update from Match Results')}
-              </span>
-            </button>
-
-            {/* Live Sync Button */}
+            {/* Live SportsDB Sync Button */}
             <button
               onClick={syncNow}
               disabled={isSyncing}
@@ -79,19 +52,6 @@ export const StandingsPage: React.FC = () => {
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
               <span>{isSyncing ? t.syncingStatus : t.syncTheSportsDb}</span>
-            </button>
-
-            {/* Hard Reset Button */}
-            <button
-              onClick={async () => {
-                await resetStandings();
-                await syncNow();
-              }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white font-sports font-bold text-xs uppercase tracking-wider border border-neutral-700 transition-all active:scale-95"
-              title="Clear all local caches and re-seed official 18-club Premier League table"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{t.resetTable}</span>
             </button>
 
             {/* Competition Selector */}

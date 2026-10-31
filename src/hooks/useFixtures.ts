@@ -173,9 +173,12 @@ export function useFixtures(): UseFixturesResult {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Initial background fetch upon mounting if online
+    // Initial background fetch upon mounting if online and not yet synced this session
     if (typeof navigator !== 'undefined' && navigator.onLine) {
-      fetchFreshData();
+      const sessionKey = 'halaba_sportsdb_app_session_synced';
+      if (!sessionStorage.getItem(sessionKey)) {
+        fetchFreshData();
+      }
     }
 
     // Subscribe to Firestore updates
