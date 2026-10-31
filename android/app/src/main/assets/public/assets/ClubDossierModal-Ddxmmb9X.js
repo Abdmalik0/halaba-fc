@@ -1,5 +1,5 @@
 import { j as jsxRuntimeExports, T as Trophy, X, S as Shield, A as Award, l as CircleCheck, C as Calendar } from "./vendor-react-BqvxpxOH.js";
-import { u as useClub, H as HalabaCrest, a as getLocalizedTeamName, b as getLocalizedVenue, c as getLocalizedRound } from "./index-DaWmYZcG.js";
+import { u as useClub, H as HalabaCrest, a as getLocalizedTeamName, b as getLocalizedVenue, c as getLocalizedRound } from "./index-DiH8PYFB.js";
 import "./vendor-capacitor-CxZwZfQO.js";
 import "./vendor-firebase-BFy01gyE.js";
 const ClubDossierModal = ({ isOpen, onClose }) => {

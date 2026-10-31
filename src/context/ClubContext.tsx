@@ -182,8 +182,31 @@ interface ClubContextType {
 
 const ClubContext = createContext<ClubContextType | undefined>(undefined);
 
+// The exact 18 official clubs of the Ethiopian Premier League
+export const VALID_EPL_18_TEAM_IDS = new Set<string>([
+  'cbe_sa',
+  'bahirdar',
+  'defence',
+  'negelle',
+  'halaba',
+  'adama',
+  'insurance',
+  'shaggar',
+  'electric',
+  'bunna',
+  'fasil',
+  'saintgeorge',
+  'hawassa',
+  'wolaitta',
+  'welwalo',
+  'hosaena',
+  'sidama',
+  'gamochencha',
+]);
+
 try {
   if (typeof window !== 'undefined') {
+    localStorage.removeItem('halaba_official_epl_standings_v12_real_table');
     localStorage.removeItem('halaba_official_epl_standings_v7_canonical');
     localStorage.removeItem('halaba_official_epl_standings_v3');
     localStorage.removeItem('halaba_official_epl_standings_v2');
@@ -212,7 +235,8 @@ export const normalizeEplTeamId = (rawId?: string, rawName?: string): string => 
   if (str.includes('defence') || str.includes('mekelakeya') || str.includes('mechal') || rawId === '143767') return 'defence';
   if (str.includes('welwalo')) return 'welwalo';
   if (str.includes('dicha') || str.includes('wolaitta')) return 'wolaitta';
-  if (str.includes('hosaena') || str.includes('hossana')) return 'hosaena';
+  // Normalize both Hossana and Hadiya to the single canonical hosaena team
+  if (str.includes('hosaena') || str.includes('hossana') || str.includes('hadiya')) return 'hosaena';
   if (str.includes('diredawa') || str.includes('dire dawa')) return 'diredawa';
   if (str.includes('chencha') || str.includes('gamo')) return 'gamochencha';
   if (str.includes('sidama')) return 'sidama';
@@ -226,7 +250,7 @@ const STORAGE_KEYS = {
   LANG: 'halaba_lang',
   CLUB: 'halaba_club_info_epl_26_27',
   MATCHES: 'halaba_matches_epl_2026_27_v18',
-  STANDINGS: 'halaba_official_epl_standings_v12_real_table',
+  STANDINGS: 'halaba_official_epl_standings_v16_18_teams',
   NEWS: 'halaba_news_epl_2026_27',
   PLAYERS: 'halaba_players',
   STAFF: 'halaba_staff',
@@ -546,12 +570,23 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const canonicalMap = new Map<string, StandingTeam>();
 
       snapshot.docs.forEach((docSnap) => {
+        // Permanently purge diredawa and duplicate hadiya docs from Firestore
+        if (docSnap.id === 'diredawa' || docSnap.id === 'hadiya') {
+          deleteDoc(doc(db, 'standings', docSnap.id)).catch(() => {});
+          return;
+        }
+
         const data = docSnap.data();
         const canonicalId = normalizeEplTeamId(docSnap.id, data.teamName || data.teamId);
 
         // Delete obsolete, non-canonical or duplicate doc IDs from Firestore
         if (docSnap.id !== canonicalId) {
           deleteDoc(doc(db, 'standings', docSnap.id)).catch(() => {});
+        }
+
+        // Only accept valid 18 EPL teams (diredawa is not in the league)
+        if (!VALID_EPL_18_TEAM_IDS.has(canonicalId)) {
+          return;
         }
 
         const teamItem: StandingTeam = {
@@ -573,6 +608,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ? 'Negele Arsi FC'
             : canonicalId === 'hawassa'
             ? 'Hawassa Kenema SC'
+            : canonicalId === 'hosaena'
+            ? 'Hadiya Hossana'
             : (data.teamName || 'Team'),
           played: Number(data.played) || 0,
           won: Number(data.won) || 0,
@@ -592,18 +629,19 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
 
-      // Guarantee all 18 Ethiopian Premier League clubs are present
+      // Guarantee all 18 official Ethiopian Premier League clubs are present
       initialStandings.forEach((initT) => {
-        if (!canonicalMap.has(initT.teamId)) {
+        if (!canonicalMap.has(initT.teamId) && VALID_EPL_18_TEAM_IDS.has(initT.teamId)) {
           canonicalMap.set(initT.teamId, { ...initT });
         }
       });
 
-      const list = Array.from(canonicalMap.values());
+      const list = Array.from(canonicalMap.values())
+        .filter((t) => VALID_EPL_18_TEAM_IDS.has(t.teamId) && t.teamId !== 'diredawa');
       list.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
-      const reordered = list.map((t, idx) => ({ ...t, position: idx + 1 }));
+      const reordered = list.slice(0, 18).map((t, idx) => ({ ...t, position: idx + 1 }));
 
-      if (reordered.length >= 18) {
+      if (reordered.length > 0) {
         setStandings(reordered);
         localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(reordered));
       }
@@ -834,7 +872,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
     }, (error) => {
-      console.error("Firebase real-time news error:", error);
+      if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+      console.debug('Firebase real-time news notice (offline):', error);
       handleFirestoreError(error, OperationType.LIST, 'news');
     });
 
@@ -953,7 +992,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('hcfc_firestore_players_seeded', 'true');
       }
     }, (error) => {
-      console.error('Firebase real-time players error:', error);
+      if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+      console.debug('Firebase real-time players notice (offline):', error);
       handleFirestoreError(error, OperationType.LIST, 'players');
     });
     return () => unsubscribe();
@@ -993,7 +1033,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('hcfc_firestore_staff_seeded', 'true');
       }
     }, (error) => {
-      console.error('Firebase real-time staff error:', error);
+      if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+      console.debug('Firebase real-time staff notice (offline):', error);
       handleFirestoreError(error, OperationType.LIST, 'staff');
     });
     return () => unsubscribe();
@@ -1126,7 +1167,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('hcfc_firestore_memberships_seeded', 'true');
       }
     }, (error) => {
-      console.error('Firebase real-time memberships error:', error);
+      if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+      console.debug('Firebase real-time memberships notice (offline):', error);
       handleFirestoreError(error, OperationType.LIST, 'memberships');
     });
     return () => unsubscribe();
@@ -1368,7 +1410,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       localStorage.setItem('hcfc_firestore_products_seeded', 'true');
     }, (error) => {
-      console.error('Firebase real-time products sync error:', error);
+      if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+      console.debug('Firebase real-time products sync notice (offline):', error);
       setProductsSyncError(error.message);
       handleFirestoreError(error, OperationType.LIST, 'products');
     });
@@ -1659,9 +1702,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
               });
             });
 
-            const list = Array.from(canonicalMap.values());
+            const list = Array.from(canonicalMap.values())
+              .filter((t) => VALID_EPL_18_TEAM_IDS.has(t.teamId) && t.teamId !== 'diredawa');
             list.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
-            freshStandings = list.map((st, i) => ({ ...st, position: i + 1 }));
+            freshStandings = list.slice(0, 18).map((st, i) => ({ ...st, position: i + 1 }));
           }
         }
       } catch (err) {
@@ -1681,6 +1725,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (data?.table && Array.isArray(data.table) && data.table.length > 0) {
               data.table.forEach((item: any) => {
                 const canonicalId = normalizeEplTeamId(item.idTeam, item.strTeam);
+                if (canonicalId === 'diredawa') return; // Dire Dawa is not in the league
                 const isHalaba = canonicalId === 'halaba';
                 const formArr = (item.strForm || 'DWD').split('').filter((c: string) => ['W', 'D', 'L'].includes(c));
                 const existing = canonicalMap.get(canonicalId);
@@ -1698,6 +1743,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     ? 'Adama Kenema SC'
                     : canonicalId === 'electric'
                     ? 'Ethio Electric'
+                    : canonicalId === 'hosaena'
+                    ? 'Hadiya Hossana'
                     : (item.strTeam || existing?.teamName || 'Team'),
                   played: parseInt(item.intPlayed, 10) || existing?.played || 0,
                   won: parseInt(item.intWin, 10) || existing?.won || 0,
@@ -1714,9 +1761,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
               });
             }
 
-            const mergedList = Array.from(canonicalMap.values());
+            const mergedList = Array.from(canonicalMap.values())
+              .filter((t) => VALID_EPL_18_TEAM_IDS.has(t.teamId) && t.teamId !== 'diredawa');
             mergedList.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
-            freshStandings = mergedList.map((st, i) => ({ ...st, position: i + 1 }));
+            freshStandings = mergedList.slice(0, 18).map((st, i) => ({ ...st, position: i + 1 }));
           }
         } catch (err) {
           console.warn('Direct SportsDB fetch failed:', err);
@@ -1961,7 +2009,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       },
       (error) => {
-        console.error('Firebase real-time sponsors sync error:', error);
+        if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+        console.debug('Firebase real-time sponsors sync notice (offline):', error);
         setIsSponsorsLoading(false);
         setSponsorsSyncError(error.message);
         handleFirestoreError(error, OperationType.LIST, 'sponsors');

@@ -177,7 +177,10 @@ export const StandingsPage: React.FC = () => {
 
       {/* Standings Table Card */}
       <div className="bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl overflow-hidden max-w-full">
-        <div className="overflow-x-auto max-w-full rounded-xl">
+        <div 
+          className="overflow-x-auto max-w-full rounded-xl touch-pan-y touch-pan-x overscroll-x-contain"
+          style={{ overscrollBehaviorY: 'auto', touchAction: 'pan-y pan-x' }}
+        >
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead>
               <tr className="bg-neutral-950 border-b border-neutral-800 text-xs uppercase font-sports font-bold tracking-wider text-neutral-400">

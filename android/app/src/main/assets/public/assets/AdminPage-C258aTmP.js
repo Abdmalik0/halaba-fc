@@ -1,5 +1,5 @@
 import { r as reactExports, j as jsxRuntimeExports, l as CircleCheck, A as Award, v as RefreshCw, a2 as Plus, a3 as Database, k as LoaderCircle, d as ShieldCheck, a4 as Eye, a5 as EyeOff, E as ExternalLink, a6 as ArrowUp, a7 as ArrowDown, a8 as SquarePen, a9 as Trash2, X, aa as Link, ab as Upload, ac as Image$1, i as Sparkles, ad as Check, L as Lock, w as TriangleAlert, f as Mail, ae as LogOut, af as Users, a as ShoppingBag, N as Newspaper, C as Calendar, T as Trophy, Z as Zap, ag as Settings, D as Download, B as Search, H as Heart, z as Calculator, ah as Minus, p as Pause, o as Play } from "./vendor-react-BqvxpxOH.js";
-import { u as useClub, N as NetVibeSvgEmblem, H as HalabaCrest, C as ClubImages } from "./index-DaWmYZcG.js";
+import { u as useClub, N as NetVibeSvgEmblem, H as HalabaCrest, C as ClubImages } from "./index-DiH8PYFB.js";
 import "./vendor-capacitor-CxZwZfQO.js";
 import "./vendor-firebase-BFy01gyE.js";
 const compressPosterImage = (file, maxDim = 1200) => {

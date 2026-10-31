@@ -1,5 +1,5 @@
 import { r as reactExports, j as jsxRuntimeExports, a0 as History, F as Flame, a1 as Target, S as Shield, T as Trophy, e as MapPin } from "./vendor-react-BqvxpxOH.js";
-import { u as useClub, H as HalabaCrest, C as ClubImages, h as getLocalizedPosition, i as getLocalizedPersonName, j as getLocalizedRole, k as getLocalizedDepartment } from "./index-DaWmYZcG.js";
+import { u as useClub, H as HalabaCrest, C as ClubImages, h as getLocalizedPosition, i as getLocalizedPersonName, j as getLocalizedRole, k as getLocalizedDepartment } from "./index-DiH8PYFB.js";
 import "./vendor-capacitor-CxZwZfQO.js";
 import "./vendor-firebase-BFy01gyE.js";
 const AboutPage = () => {

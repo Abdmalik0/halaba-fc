@@ -1,6 +1,6 @@
 ;
 (function () {
-  System.register(['./vendor-react-legacy-0mKvI6Bt.js', './index-legacy-yoxQ1ABl.js', './vendor-capacitor-legacy-DBOunZTQ.js', './vendor-firebase-legacy-BbBCOsOA.js'], function (exports, module) {
+  System.register(['./vendor-react-legacy-0mKvI6Bt.js', './index-legacy-DokB_SSn.js', './vendor-capacitor-legacy-DBOunZTQ.js', './vendor-firebase-legacy-BbBCOsOA.js'], function (exports, module) {
     'use strict';
 
     var jsxRuntimeExports, Trophy, X, Shield, Award, CircleCheck, Calendar, useClub, HalabaCrest, getLocalizedTeamName, getLocalizedVenue, getLocalizedRound;

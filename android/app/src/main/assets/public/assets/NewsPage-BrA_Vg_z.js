@@ -1,5 +1,5 @@
 import { r as reactExports, j as jsxRuntimeExports, N as Newspaper, B as Search, s as ChevronRight } from "./vendor-react-BqvxpxOH.js";
-import { u as useClub, C as ClubImages, e as getLocalizedCategory } from "./index-DaWmYZcG.js";
+import { u as useClub, C as ClubImages, e as getLocalizedCategory } from "./index-DiH8PYFB.js";
 import "./vendor-capacitor-CxZwZfQO.js";
 import "./vendor-firebase-BFy01gyE.js";
 const NewsPage = ({ onOpenArticleModal }) => {

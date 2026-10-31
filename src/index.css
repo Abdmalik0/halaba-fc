@@ -204,11 +204,21 @@ body {
   position: relative;
 }
 
-/* Ensure smooth touch inertial scrolling in modal dialogs and scrollable cards */
-.overflow-y-auto,
-.overflow-x-auto {
+/* Ensure smooth touch inertial scrolling in modal dialogs */
+.overflow-y-auto {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+}
+
+/* Horizontal scroll containers (e.g. League Standings Table):
+   Must permit seamless vertical page scrolling (overscroll-behavior-y: auto)
+   and enable vertical pan gesture delegation (touch-action: pan-y pan-x)
+   so swiping vertically over the table scrolls the page smoothly! */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto !important;
+  touch-action: pan-y pan-x !important;
 }
 
 /* Allow text selection inside forms, inputs, and editable zones */

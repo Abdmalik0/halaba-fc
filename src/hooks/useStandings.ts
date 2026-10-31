@@ -3,7 +3,7 @@ import { StandingTeam } from '../types';
 import { db } from '../firebase';
 import { collection, getDocs, onSnapshot } from 'firebase/firestore';
 
-const STANDINGS_CACHE_KEY = 'halaba_official_epl_standings_v12_real_table';
+const STANDINGS_CACHE_KEY = 'halaba_official_epl_standings_v16_18_teams';
 
 export interface UseStandingsResult {
   standings: StandingTeam[];
@@ -114,10 +114,11 @@ export function useStandings(): UseStandingsResult {
           }
         });
 
-        remoteStandings.sort(
+        const filtered = remoteStandings.filter((t) => t.teamId !== 'diredawa');
+        filtered.sort(
           (a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor
         );
-        const reordered = remoteStandings.map((t, idx) => ({ ...t, position: idx + 1 }));
+        const reordered = filtered.slice(0, 18).map((t, idx) => ({ ...t, position: idx + 1 }));
 
         // Update state and overwrite localStorage cache with fresh payload
         setStandings(reordered);
@@ -197,10 +198,11 @@ export function useStandings(): UseStandingsResult {
               }
             });
 
-            list.sort(
+            const filtered = list.filter((t) => t.teamId !== 'diredawa');
+            filtered.sort(
               (a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor
             );
-            const reordered = list.map((t, idx) => ({ ...t, position: idx + 1 }));
+            const reordered = filtered.slice(0, 18).map((t, idx) => ({ ...t, position: idx + 1 }));
 
             setStandings(reordered);
             setIsCached(false);

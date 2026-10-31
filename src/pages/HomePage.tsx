@@ -438,7 +438,10 @@ export const HomePage: React.FC<HomePageProps> = ({
             </button>
           </div>
 
-          <div className="mt-4 overflow-x-auto max-w-full rounded-xl">
+          <div 
+            className="mt-4 overflow-x-auto max-w-full rounded-xl touch-pan-y touch-pan-x overscroll-x-contain"
+            style={{ overscrollBehaviorY: 'auto', touchAction: 'pan-y pan-x' }}
+          >
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b border-neutral-800 text-xs font-bold uppercase text-neutral-400">

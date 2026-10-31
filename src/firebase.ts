@@ -8,7 +8,28 @@ import {
 import { getAuth } from "firebase/auth";
 
 // Suppress non-critical Firestore offline/network transport warnings
-setLogLevel('error');
+try {
+  setLogLevel('silent');
+} catch {
+  // ignore
+}
+
+// In offline / preview environments without active Firestore backend, gracefully downgrade timeout notice to debug
+if (typeof window !== 'undefined') {
+  const originalConsoleError = console.error;
+  console.error = (...args: any[]) => {
+    const firstArg = typeof args[0] === 'string' ? args[0] : '';
+    if (
+      firstArg.includes('Could not reach Cloud Firestore backend') ||
+      firstArg.includes('@firebase/firestore') ||
+      firstArg.includes("Backend didn't respond within 10 seconds")
+    ) {
+      console.debug('[Firestore Offline Notice]:', ...args);
+      return;
+    }
+    originalConsoleError.apply(console, args);
+  };
+}
 
 // Halaba FC Firebase configuration
 const firebaseConfig = {

@@ -1,5 +1,5 @@
 import { r as reactExports, j as jsxRuntimeExports, i as Sparkles, d as ShieldCheck, ai as Truck, H as Heart, aj as CirclePlus, a as ShoppingBag } from "./vendor-react-BqvxpxOH.js";
-import { u as useClub, l as getLocalizedShopCategory, H as HalabaCrest } from "./index-DaWmYZcG.js";
+import { u as useClub, l as getLocalizedShopCategory, H as HalabaCrest } from "./index-DiH8PYFB.js";
 import "./vendor-capacitor-CxZwZfQO.js";
 import "./vendor-firebase-BFy01gyE.js";
 const ShopPage = () => {

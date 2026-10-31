@@ -1,5 +1,5 @@
 import { r as reactExports, j as jsxRuntimeExports, T as Trophy, l as CircleCheck, z as Calculator, v as RefreshCw, d as ShieldCheck, y as Filter } from "./vendor-react-BqvxpxOH.js";
-import { u as useClub, a as getLocalizedTeamName, H as HalabaCrest, f as formatTeamName, E as EthiopianClubLogo, d as getFormBadgeLocalized } from "./index-DaWmYZcG.js";
+import { u as useClub, a as getLocalizedTeamName, H as HalabaCrest, f as formatTeamName, E as EthiopianClubLogo, d as getFormBadgeLocalized } from "./index-DiH8PYFB.js";
 import "./vendor-capacitor-CxZwZfQO.js";
 import "./vendor-firebase-BFy01gyE.js";
 const StandingsPage = () => {
@@ -169,74 +169,81 @@ const StandingsPage = () => {
         ] })
       ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl overflow-hidden max-w-full", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "overflow-x-auto max-w-full rounded-xl", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "w-full text-left text-sm whitespace-nowrap", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { className: "bg-neutral-950 border-b border-neutral-800 text-xs uppercase font-sports font-bold tracking-wider text-neutral-400", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-3 sm:px-4 text-center w-10 sm:w-12", children: t.pos }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-3 sm:px-4 min-w-[150px]", children: t.club }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-2.5 sm:px-3 text-center w-10", children: t.played }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-2.5 sm:px-3 text-center w-10", children: t.won }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-2.5 sm:px-3 text-center w-10", children: t.drawn }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-2.5 sm:px-3 text-center w-10", children: t.lost }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-2.5 sm:px-3 text-center w-10 hidden md:table-cell", children: t.gf }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-2.5 sm:px-3 text-center w-10 hidden md:table-cell", children: t.ga }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-2.5 sm:px-3 text-center w-12", children: t.gd }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-3 sm:px-4 text-center font-black w-12", children: t.pts }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-3 sm:px-4 text-center hidden sm:table-cell w-24", children: t.form })
-      ] }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { className: "divide-y divide-neutral-800/80", children: standings.map((team) => {
-        const isLeader = team.position === 1;
-        const isConfed = team.position === 2;
-        const isRelegation = team.position >= 16;
-        const localizedName = getLocalizedTeamName(team.teamId, team.teamName, language);
-        const shortName = formatTeamName(team.teamId, localizedName, language);
-        return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "tr",
-          {
-            className: "transition-colors ".concat(team.isHalaba ? "standings-halaba-row border-l-4 border-l-amber-500 font-bold" : "hover:bg-neutral-800/40"),
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3.5 px-3 sm:px-4 text-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "span",
-                {
-                  className: "inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-bold ".concat(isLeader ? "standings-pos-leader font-black shadow-md" : isConfed ? "bg-emerald-950 text-emerald-400 border border-emerald-800" : isRelegation ? "bg-red-950/60 text-red-400 border border-red-900" : "text-neutral-400 bg-neutral-950/50"),
-                  children: team.position
-                }
-              ) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3.5 px-3 sm:px-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5 sm:gap-3 min-w-0", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(EthiopianClubLogo, { teamId: team.teamId, teamName: localizedName, size: 32, badgeUrl: team.badgeUrl, className: "shrink-0 flex-shrink-0" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 truncate", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-neutral-900 border border-neutral-800 rounded-2xl shadow-xl overflow-hidden max-w-full", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "div",
+      {
+        className: "overflow-x-auto max-w-full rounded-xl touch-pan-y touch-pan-x overscroll-x-contain",
+        style: { overscrollBehaviorY: "auto", touchAction: "pan-y pan-x" },
+        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "w-full text-left text-sm whitespace-nowrap", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { className: "bg-neutral-950 border-b border-neutral-800 text-xs uppercase font-sports font-bold tracking-wider text-neutral-400", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-3 sm:px-4 text-center w-10 sm:w-12", children: t.pos }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-3 sm:px-4 min-w-[150px]", children: t.club }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-2.5 sm:px-3 text-center w-10", children: t.played }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-2.5 sm:px-3 text-center w-10", children: t.won }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-2.5 sm:px-3 text-center w-10", children: t.drawn }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-2.5 sm:px-3 text-center w-10", children: t.lost }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-2.5 sm:px-3 text-center w-10 hidden md:table-cell", children: t.gf }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-2.5 sm:px-3 text-center w-10 hidden md:table-cell", children: t.ga }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-2.5 sm:px-3 text-center w-12", children: t.gd }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-3 sm:px-4 text-center font-black w-12", children: t.pts }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3.5 px-3 sm:px-4 text-center hidden sm:table-cell w-24", children: t.form })
+          ] }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { className: "divide-y divide-neutral-800/80", children: standings.map((team) => {
+            const isLeader = team.position === 1;
+            const isConfed = team.position === 2;
+            const isRelegation = team.position >= 16;
+            const localizedName = getLocalizedTeamName(team.teamId, team.teamName, language);
+            const shortName = formatTeamName(team.teamId, localizedName, language);
+            return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "tr",
+              {
+                className: "transition-colors ".concat(team.isHalaba ? "standings-halaba-row border-l-4 border-l-amber-500 font-bold" : "hover:bg-neutral-800/40"),
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3.5 px-3 sm:px-4 text-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
                     "span",
                     {
-                      className: "font-sports text-sm sm:text-base tracking-wide truncate max-w-[140px] sm:max-w-none block ".concat(team.isHalaba ? "text-red-400 font-black text-base sm:text-lg" : "text-neutral-200"),
-                      title: localizedName,
-                      children: shortName
+                      className: "inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-bold ".concat(isLeader ? "standings-pos-leader font-black shadow-md" : isConfed ? "bg-emerald-950 text-emerald-400 border border-emerald-800" : isRelegation ? "bg-red-950/60 text-red-400 border border-red-900" : "text-neutral-400 bg-neutral-950/50"),
+                      children: team.position
                     }
-                  ),
-                  team.isHalaba && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xxs uppercase tracking-wider text-emerald-400 font-sans truncate", children: t.officialClub })
-                ] })
-              ] }) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-3 text-center text-neutral-300", children: team.played }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-3 text-center text-emerald-400 font-semibold", children: team.won }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-3 text-center text-amber-300", children: team.drawn }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-3 text-center text-red-400", children: team.lost }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-3 text-center text-neutral-400 hidden md:table-cell", children: team.goalsFor }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-3 text-center text-neutral-400 hidden md:table-cell", children: team.goalsAgainst }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-3 text-center font-mono", children: team.goalDifference > 0 ? "+".concat(team.goalDifference) : team.goalDifference }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-4 text-center font-sports font-black text-lg text-white", children: team.points }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-4 text-center hidden sm:table-cell", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-center gap-1", children: team.form.map((res, i) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "span",
-                {
-                  className: "w-5 h-5 rounded flex items-center justify-center text-xxs font-bold text-white uppercase ".concat(res === "W" ? "bg-emerald-600" : res === "D" ? "bg-amber-600" : "bg-red-600"),
-                  children: getFormBadgeLocalized(res, language)
-                },
-                i
-              )) }) })
-            ]
-          },
-          team.teamId
-        );
-      }) })
-    ] }) }) })
+                  ) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3.5 px-3 sm:px-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5 sm:gap-3 min-w-0", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(EthiopianClubLogo, { teamId: team.teamId, teamName: localizedName, size: 32, badgeUrl: team.badgeUrl, className: "shrink-0 flex-shrink-0" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 truncate", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "span",
+                        {
+                          className: "font-sports text-sm sm:text-base tracking-wide truncate max-w-[140px] sm:max-w-none block ".concat(team.isHalaba ? "text-red-400 font-black text-base sm:text-lg" : "text-neutral-200"),
+                          title: localizedName,
+                          children: shortName
+                        }
+                      ),
+                      team.isHalaba && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xxs uppercase tracking-wider text-emerald-400 font-sans truncate", children: t.officialClub })
+                    ] })
+                  ] }) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-3 text-center text-neutral-300", children: team.played }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-3 text-center text-emerald-400 font-semibold", children: team.won }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-3 text-center text-amber-300", children: team.drawn }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-3 text-center text-red-400", children: team.lost }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-3 text-center text-neutral-400 hidden md:table-cell", children: team.goalsFor }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-3 text-center text-neutral-400 hidden md:table-cell", children: team.goalsAgainst }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-3 text-center font-mono", children: team.goalDifference > 0 ? "+".concat(team.goalDifference) : team.goalDifference }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-4 text-center font-sports font-black text-lg text-white", children: team.points }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-4 px-4 text-center hidden sm:table-cell", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-center gap-1", children: team.form.map((res, i) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "span",
+                    {
+                      className: "w-5 h-5 rounded flex items-center justify-center text-xxs font-bold text-white uppercase ".concat(res === "W" ? "bg-emerald-600" : res === "D" ? "bg-amber-600" : "bg-red-600"),
+                      children: getFormBadgeLocalized(res, language)
+                    },
+                    i
+                  )) }) })
+                ]
+              },
+              team.teamId
+            );
+          }) })
+        ] })
+      }
+    ) })
   ] });
 };
 export {

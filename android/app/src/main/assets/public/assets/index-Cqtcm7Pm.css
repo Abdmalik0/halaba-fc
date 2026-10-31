@@ -13,6 +13,9 @@
       --tw-rotate-z: initial;
       --tw-skew-x: initial;
       --tw-skew-y: initial;
+      --tw-pan-x: initial;
+      --tw-pan-y: initial;
+      --tw-pinch-zoom: initial;
       --tw-space-y-reverse: 0;
       --tw-space-x-reverse: 0;
       --tw-divide-y-reverse: 0;
@@ -1232,6 +1235,16 @@
     cursor: pointer;
   }
 
+  .touch-pan-x {
+    --tw-pan-x: pan-x;
+    touch-action: var(--tw-pan-x, ) var(--tw-pan-y, ) var(--tw-pinch-zoom, );
+  }
+
+  .touch-pan-y {
+    --tw-pan-y: pan-y;
+    touch-action: var(--tw-pan-x, ) var(--tw-pan-y, ) var(--tw-pinch-zoom, );
+  }
+
   .resize {
     resize: both;
   }
@@ -1524,6 +1537,10 @@
 
   .overflow-y-auto {
     overflow-y: auto;
+  }
+
+  .overscroll-x-contain {
+    overscroll-behavior-x: contain;
   }
 
   .rounded {
@@ -4965,9 +4982,16 @@ body {
   position: relative;
 }
 
-.overflow-y-auto, .overflow-x-auto {
+.overflow-y-auto {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+}
+
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto !important;
+  touch-action: pan-y pan-x !important;
 }
 
 input, textarea, select, [contenteditable="true"], .selectable-text {
@@ -5505,6 +5529,21 @@ input, textarea, select, [contenteditable="true"], .selectable-text {
 }
 
 @property --tw-skew-y {
+  syntax: "*";
+  inherits: false
+}
+
+@property --tw-pan-x {
+  syntax: "*";
+  inherits: false
+}
+
+@property --tw-pan-y {
+  syntax: "*";
+  inherits: false
+}
+
+@property --tw-pinch-zoom {
   syntax: "*";
   inherits: false
 }

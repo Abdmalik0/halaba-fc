@@ -1,5 +1,5 @@
 import { j as jsxRuntimeExports, S as Shield, X, g as Clock, C as Calendar, e as MapPin, ak as User, af as Users } from "./vendor-react-BqvxpxOH.js";
-import { u as useClub, a as getLocalizedTeamName, b as getLocalizedVenue, g as getLocalizedCompetition, E as EthiopianClubLogo, i as getLocalizedPersonName } from "./index-DaWmYZcG.js";
+import { u as useClub, a as getLocalizedTeamName, b as getLocalizedVenue, g as getLocalizedCompetition, E as EthiopianClubLogo, i as getLocalizedPersonName } from "./index-DiH8PYFB.js";
 import "./vendor-capacitor-CxZwZfQO.js";
 import "./vendor-firebase-BFy01gyE.js";
 const MatchDetailsModal = ({ match, onClose }) => {

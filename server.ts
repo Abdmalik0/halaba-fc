@@ -47,9 +47,31 @@ interface PendingTransaction {
 // In-memory registry of transactions
 const pendingTransactions = new Map<string, PendingTransaction>();
 
+// Parse command-line flags (--port, -p, --host)
+const cliArgs = process.argv.slice(2);
+let cliPort: number | undefined;
+let cliHost: string | undefined;
+for (let i = 0; i < cliArgs.length; i++) {
+  if (cliArgs[i] === '--port' || cliArgs[i] === '-p') {
+    cliPort = parseInt(cliArgs[i + 1], 10);
+  }
+  if (cliArgs[i] === '--host') {
+    cliHost = cliArgs[i + 1];
+  }
+}
+
+// Global safety guards to prevent dev server crash
+process.on('uncaughtException', (err) => {
+  console.error('[Server Uncaught Exception]:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[Server Unhandled Rejection]:', reason);
+});
+
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  const PORT = cliPort || (process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
+  const HOST = cliHost || process.env.HOST || '0.0.0.0';
 
   app.use(cors());
   app.use(express.json({ limit: '10mb' }));
@@ -698,7 +720,7 @@ async function startServer() {
         if (s.includes('defence') || s.includes('mekelakeya') || s.includes('mechal') || id === '143767') return 'defence';
         if (s.includes('welwalo')) return 'welwalo';
         if (s.includes('dicha') || s.includes('wolaitta')) return 'wolaitta';
-        if (s.includes('hosaena') || s.includes('hossana')) return 'hosaena';
+        if (s.includes('hosaena') || s.includes('hossana') || s.includes('hadiya')) return 'hosaena';
         if (s.includes('diredawa') || s.includes('dire dawa')) return 'diredawa';
         if (s.includes('chencha') || s.includes('gamo')) return 'gamochencha';
         if (s.includes('sidama')) return 'sidama';
@@ -731,7 +753,7 @@ async function startServer() {
 
       const standingsMap = new Map<string, any>();
 
-      // First populate with baseline 18 Ethiopian Premier League clubs
+      // Populate with baseline 18 Ethiopian Premier League clubs
       baseFallbackTeams.forEach((fb) => {
         standingsMap.set(fb.teamId, { ...fb });
       });
@@ -740,6 +762,7 @@ async function startServer() {
       if (data && Array.isArray(data.table) && data.table.length > 0) {
         data.table.forEach((item: any) => {
           const canonicalId = normalizeEplId(item.strTeam, item.idTeam);
+          if (canonicalId === 'diredawa') return; // Dire Dawa is not in the league
           const isHalaba = canonicalId === 'halaba';
           const formLetters = (item.strForm || 'DWD')
             .split('')
@@ -750,7 +773,7 @@ async function startServer() {
           standingsMap.set(canonicalId, {
             ...existing,
             teamId: canonicalId,
-            teamName: canonicalId === 'cbe_sa' ? 'Ethiopia Nigd Bank (CBE SA)' : canonicalId === 'halaba' ? 'Halaba Ketema (በርበሬዎቹ)' : canonicalId === 'insurance' ? 'Ethiopian Medhin (Insurance)' : canonicalId === 'adama' ? 'Adama Kenema SC' : canonicalId === 'electric' ? 'Ethio Electric' : item.strTeam,
+            teamName: canonicalId === 'cbe_sa' ? 'Ethiopia Nigd Bank (CBE SA)' : canonicalId === 'halaba' ? 'Halaba Ketema (በርበሬዎቹ)' : canonicalId === 'insurance' ? 'Ethiopian Medhin (Insurance)' : canonicalId === 'adama' ? 'Adama Kenema SC' : canonicalId === 'electric' ? 'Ethio Electric' : canonicalId === 'hosaena' ? 'Hadiya Hossana' : item.strTeam,
             played: parseInt(item.intPlayed, 10) || existing.played || 0,
             won: parseInt(item.intWin, 10) || existing.won || 0,
             drawn: parseInt(item.intDraw, 10) || existing.drawn || 0,
@@ -766,9 +789,10 @@ async function startServer() {
         });
       }
 
-      const list = Array.from(standingsMap.values());
+      const list = Array.from(standingsMap.values())
+        .filter((t) => t.teamId !== 'diredawa');
       list.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
-      const rankedStandings = list.map((item, idx) => ({
+      const rankedStandings = list.slice(0, 18).map((item, idx) => ({
         ...item,
         position: idx + 1,
       }));
@@ -799,19 +823,32 @@ async function startServer() {
       res.sendFile(path.join(__dirname, 'dist', 'index.html'));
     });
   } else {
+    // Disable HMR in middleware mode to avoid conflicting WebSocket servers and crashes in dev environment
     const vite = await createViteServer({
-      server: { middlewareMode: true, host: '0.0.0.0', port: PORT },
+      server: {
+        middlewareMode: true,
+        host: HOST,
+        port: PORT,
+        hmr: false,
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`⚽ Halaba City FC Server listening on http://0.0.0.0:${PORT}`);
+  const server = app.listen(PORT, HOST, () => {
+    console.log(`⚽ Halaba City FC Server listening on http://${HOST}:${PORT}`);
+  });
+
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.warn(`[Server Notice] Port ${PORT} already in use. Retrying or keeping running...`);
+    } else {
+      console.error('[Server Listen Error]:', err);
+    }
   });
 }
 
 startServer().catch((err) => {
-  console.error('Failed to start server:', err);
-  process.exit(1);
+  console.error('[Failed to start server]:', err);
 });

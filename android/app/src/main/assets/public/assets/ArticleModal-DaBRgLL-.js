@@ -1,5 +1,5 @@
 import { r as reactExports, j as jsxRuntimeExports, al as Tag, m as Share2, X, C as Calendar, ak as User, g as Clock } from "./vendor-react-BqvxpxOH.js";
-import { u as useClub, e as getLocalizedCategory } from "./index-DaWmYZcG.js";
+import { u as useClub, e as getLocalizedCategory } from "./index-DiH8PYFB.js";
 import "./vendor-capacitor-CxZwZfQO.js";
 import "./vendor-firebase-BFy01gyE.js";
 const ArticleModal = ({ article, onClose }) => {

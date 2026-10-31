@@ -1,4 +1,4 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./FixturesPage-stVDyZZq.js","./vendor-react-BqvxpxOH.js","./vendor-capacitor-CxZwZfQO.js","./vendor-firebase-BFy01gyE.js","./StandingsPage-CwjjKt0X.js","./NewsPage-_Y95ptkS.js","./MembershipPage-CCNHAf1c.js","./AboutPage-BP3ow_G6.js","./ContactPage-t5cZvpbF.js","./AdminPage-DBWMeHdF.js","./ShopPage-i3jqH34S.js","./MatchDetailsModal-BEy2yFTC.js","./ArticleModal-BBYi0KiL.js","./ClubDossierModal-BQrobqMy.js","./DonationModal-CL5mMJUG.js","./JerseyCheckoutModal-B6-aT9JK.js"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./FixturesPage-n95ubG0g.js","./vendor-react-BqvxpxOH.js","./vendor-capacitor-CxZwZfQO.js","./vendor-firebase-BFy01gyE.js","./StandingsPage-QTtwkEpD.js","./NewsPage-BrA_Vg_z.js","./MembershipPage-wFDcJYnd.js","./AboutPage-BloePY2N.js","./ContactPage-CnaRjo6n.js","./AdminPage-C258aTmP.js","./ShopPage-Cr4NBP5x.js","./MatchDetailsModal-CcTfIDf5.js","./ArticleModal-DaBRgLL-.js","./ClubDossierModal-Ddxmmb9X.js","./DonationModal-DmuAqy8x.js","./JerseyCheckoutModal-dpTT4sHg.js"])))=>i.map(i=>d[i]);
 function __vite_legacy_guard() {
   import.meta.url;
   import("_").catch(() => 1);
@@ -169,7 +169,21 @@ if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
     };
   };
 }
-setLogLevel("error");
+try {
+  setLogLevel("silent");
+} catch (e) {
+}
+if (typeof window !== "undefined") {
+  const originalConsoleError = console.error;
+  console.error = (...args) => {
+    const firstArg = typeof args[0] === "string" ? args[0] : "";
+    if (firstArg.includes("Could not reach Cloud Firestore backend") || firstArg.includes("@firebase/firestore") || firstArg.includes("Backend didn't respond within 10 seconds")) {
+      console.debug("[Firestore Offline Notice]:", ...args);
+      return;
+    }
+    originalConsoleError.apply(console, args);
+  };
+}
 const firebaseConfig = {
   apiKey: "AIzaSyD1swjfbgCpvt0NI0uwTlaAwV2AAjo-69o",
   authDomain: "halabafc.firebaseapp.com",
@@ -2883,8 +2897,29 @@ function createThumbnail(dataUrl, maxWidth = 360, quality = 0.55) {
   });
 }
 const ClubContext = reactExports.createContext(void 0);
+const VALID_EPL_18_TEAM_IDS = /* @__PURE__ */ new Set([
+  "cbe_sa",
+  "bahirdar",
+  "defence",
+  "negelle",
+  "halaba",
+  "adama",
+  "insurance",
+  "shaggar",
+  "electric",
+  "bunna",
+  "fasil",
+  "saintgeorge",
+  "hawassa",
+  "wolaitta",
+  "welwalo",
+  "hosaena",
+  "sidama",
+  "gamochencha"
+]);
 try {
   if (typeof window !== "undefined") {
+    localStorage.removeItem("halaba_official_epl_standings_v12_real_table");
     localStorage.removeItem("halaba_official_epl_standings_v7_canonical");
     localStorage.removeItem("halaba_official_epl_standings_v3");
     localStorage.removeItem("halaba_official_epl_standings_v2");
@@ -2911,7 +2946,7 @@ const normalizeEplTeamId = (rawId, rawName) => {
   if (str.includes("defence") || str.includes("mekelakeya") || str.includes("mechal") || rawId === "143767") return "defence";
   if (str.includes("welwalo")) return "welwalo";
   if (str.includes("dicha") || str.includes("wolaitta")) return "wolaitta";
-  if (str.includes("hosaena") || str.includes("hossana")) return "hosaena";
+  if (str.includes("hosaena") || str.includes("hossana") || str.includes("hadiya")) return "hosaena";
   if (str.includes("diredawa") || str.includes("dire dawa")) return "diredawa";
   if (str.includes("chencha") || str.includes("gamo")) return "gamochencha";
   if (str.includes("sidama")) return "sidama";
@@ -2924,7 +2959,7 @@ const STORAGE_KEYS = {
   LANG: "halaba_lang",
   CLUB: "halaba_club_info_epl_26_27",
   MATCHES: "halaba_matches_epl_2026_27_v18",
-  STANDINGS: "halaba_official_epl_standings_v12_real_table",
+  STANDINGS: "halaba_official_epl_standings_v16_18_teams",
   NEWS: "halaba_news_epl_2026_27",
   PLAYERS: "halaba_players",
   STAFF: "halaba_staff",
@@ -3199,16 +3234,24 @@ const ClubProvider = ({ children }) => {
     const unsubscribe = onSnapshot(standingsRef, async (snapshot) => {
       const canonicalMap = /* @__PURE__ */ new Map();
       snapshot.docs.forEach((docSnap) => {
+        if (docSnap.id === "diredawa" || docSnap.id === "hadiya") {
+          deleteDoc(doc(db, "standings", docSnap.id)).catch(() => {
+          });
+          return;
+        }
         const data = docSnap.data();
         const canonicalId = normalizeEplTeamId(docSnap.id, data.teamName || data.teamId);
         if (docSnap.id !== canonicalId) {
           deleteDoc(doc(db, "standings", docSnap.id)).catch(() => {
           });
         }
+        if (!VALID_EPL_18_TEAM_IDS.has(canonicalId)) {
+          return;
+        }
         const teamItem = {
           position: data.position || 1,
           teamId: canonicalId,
-          teamName: canonicalId === "cbe_sa" ? "Ethiopia Nigd Bank (CBE SA)" : canonicalId === "halaba" ? "Halaba Ketema (በርበሬዎቹ)" : canonicalId === "insurance" ? "Ethiopian Medhin (Insurance)" : canonicalId === "adama" ? "Adama Kenema SC" : canonicalId === "electric" ? "Ethio Electric" : canonicalId === "shaggar" ? "Shaggar City FC" : canonicalId === "negelle" ? "Negele Arsi FC" : canonicalId === "hawassa" ? "Hawassa Kenema SC" : data.teamName || "Team",
+          teamName: canonicalId === "cbe_sa" ? "Ethiopia Nigd Bank (CBE SA)" : canonicalId === "halaba" ? "Halaba Ketema (በርበሬዎቹ)" : canonicalId === "insurance" ? "Ethiopian Medhin (Insurance)" : canonicalId === "adama" ? "Adama Kenema SC" : canonicalId === "electric" ? "Ethio Electric" : canonicalId === "shaggar" ? "Shaggar City FC" : canonicalId === "negelle" ? "Negele Arsi FC" : canonicalId === "hawassa" ? "Hawassa Kenema SC" : canonicalId === "hosaena" ? "Hadiya Hossana" : data.teamName || "Team",
           played: Number(data.played) || 0,
           won: Number(data.won) || 0,
           drawn: Number(data.drawn) || 0,
@@ -3226,14 +3269,14 @@ const ClubProvider = ({ children }) => {
         }
       });
       initialStandings.forEach((initT) => {
-        if (!canonicalMap.has(initT.teamId)) {
+        if (!canonicalMap.has(initT.teamId) && VALID_EPL_18_TEAM_IDS.has(initT.teamId)) {
           canonicalMap.set(initT.teamId, { ...initT });
         }
       });
-      const list = Array.from(canonicalMap.values());
+      const list = Array.from(canonicalMap.values()).filter((t2) => VALID_EPL_18_TEAM_IDS.has(t2.teamId) && t2.teamId !== "diredawa");
       list.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
-      const reordered = list.map((t2, idx) => ({ ...t2, position: idx + 1 }));
-      if (reordered.length >= 18) {
+      const reordered = list.slice(0, 18).map((t2, idx) => ({ ...t2, position: idx + 1 }));
+      if (reordered.length > 0) {
         setStandings(reordered);
         localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(reordered));
       }
@@ -3424,7 +3467,8 @@ const ClubProvider = ({ children }) => {
         });
       }
     }, (error) => {
-      console.error("Firebase real-time news error:", error);
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
+      console.debug("Firebase real-time news notice (offline):", error);
       handleFirestoreError(error, OperationType.LIST, "news");
     });
     return () => unsubscribe();
@@ -3530,7 +3574,8 @@ const ClubProvider = ({ children }) => {
         localStorage.setItem("hcfc_firestore_players_seeded", "true");
       }
     }, (error) => {
-      console.error("Firebase real-time players error:", error);
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
+      console.debug("Firebase real-time players notice (offline):", error);
       handleFirestoreError(error, OperationType.LIST, "players");
     });
     return () => unsubscribe();
@@ -3569,7 +3614,8 @@ const ClubProvider = ({ children }) => {
         localStorage.setItem("hcfc_firestore_staff_seeded", "true");
       }
     }, (error) => {
-      console.error("Firebase real-time staff error:", error);
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
+      console.debug("Firebase real-time staff notice (offline):", error);
       handleFirestoreError(error, OperationType.LIST, "staff");
     });
     return () => unsubscribe();
@@ -3693,7 +3739,8 @@ const ClubProvider = ({ children }) => {
         localStorage.setItem("hcfc_firestore_memberships_seeded", "true");
       }
     }, (error) => {
-      console.error("Firebase real-time memberships error:", error);
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
+      console.debug("Firebase real-time memberships notice (offline):", error);
       handleFirestoreError(error, OperationType.LIST, "memberships");
     });
     return () => unsubscribe();
@@ -3889,7 +3936,8 @@ const ClubProvider = ({ children }) => {
       }
       localStorage.setItem("hcfc_firestore_products_seeded", "true");
     }, (error) => {
-      console.error("Firebase real-time products sync error:", error);
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
+      console.debug("Firebase real-time products sync notice (offline):", error);
       setProductsSyncError(error.message);
       handleFirestoreError(error, OperationType.LIST, "products");
     });
@@ -4132,9 +4180,9 @@ const ClubProvider = ({ children }) => {
                 badgeUrl: t2.badgeUrl || (existing == null ? void 0 : existing.badgeUrl)
               });
             });
-            const list = Array.from(canonicalMap.values());
+            const list = Array.from(canonicalMap.values()).filter((t2) => VALID_EPL_18_TEAM_IDS.has(t2.teamId) && t2.teamId !== "diredawa");
             list.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
-            freshStandings = list.map((st, i) => ({ ...st, position: i + 1 }));
+            freshStandings = list.slice(0, 18).map((st, i) => ({ ...st, position: i + 1 }));
           }
         }
       } catch (err) {
@@ -4150,13 +4198,14 @@ const ClubProvider = ({ children }) => {
             if ((data == null ? void 0 : data.table) && Array.isArray(data.table) && data.table.length > 0) {
               data.table.forEach((item) => {
                 const canonicalId = normalizeEplTeamId(item.idTeam, item.strTeam);
+                if (canonicalId === "diredawa") return;
                 const isHalaba = canonicalId === "halaba";
                 const formArr = (item.strForm || "DWD").split("").filter((c) => ["W", "D", "L"].includes(c));
                 const existing = canonicalMap.get(canonicalId);
                 canonicalMap.set(canonicalId, {
                   position: parseInt(item.intRank, 10) || 1,
                   teamId: canonicalId,
-                  teamName: canonicalId === "cbe_sa" ? "Ethiopia Nigd Bank (CBE SA)" : canonicalId === "halaba" ? "Halaba Ketema (በርበሬዎቹ)" : canonicalId === "insurance" ? "Ethiopian Medhin (Insurance)" : canonicalId === "adama" ? "Adama Kenema SC" : canonicalId === "electric" ? "Ethio Electric" : item.strTeam || (existing == null ? void 0 : existing.teamName) || "Team",
+                  teamName: canonicalId === "cbe_sa" ? "Ethiopia Nigd Bank (CBE SA)" : canonicalId === "halaba" ? "Halaba Ketema (በርበሬዎቹ)" : canonicalId === "insurance" ? "Ethiopian Medhin (Insurance)" : canonicalId === "adama" ? "Adama Kenema SC" : canonicalId === "electric" ? "Ethio Electric" : canonicalId === "hosaena" ? "Hadiya Hossana" : item.strTeam || (existing == null ? void 0 : existing.teamName) || "Team",
                   played: parseInt(item.intPlayed, 10) || (existing == null ? void 0 : existing.played) || 0,
                   won: parseInt(item.intWin, 10) || (existing == null ? void 0 : existing.won) || 0,
                   drawn: parseInt(item.intDraw, 10) || (existing == null ? void 0 : existing.drawn) || 0,
@@ -4171,9 +4220,9 @@ const ClubProvider = ({ children }) => {
                 });
               });
             }
-            const mergedList = Array.from(canonicalMap.values());
+            const mergedList = Array.from(canonicalMap.values()).filter((t2) => VALID_EPL_18_TEAM_IDS.has(t2.teamId) && t2.teamId !== "diredawa");
             mergedList.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
-            freshStandings = mergedList.map((st, i) => ({ ...st, position: i + 1 }));
+            freshStandings = mergedList.slice(0, 18).map((st, i) => ({ ...st, position: i + 1 }));
           }
         } catch (err) {
           console.warn("Direct SportsDB fetch failed:", err);
@@ -4384,7 +4433,8 @@ const ClubProvider = ({ children }) => {
         }
       },
       (error) => {
-        console.error("Firebase real-time sponsors sync error:", error);
+        if (typeof navigator !== "undefined" && !navigator.onLine) return;
+        console.debug("Firebase real-time sponsors sync notice (offline):", error);
         setIsSponsorsLoading(false);
         setSponsorsSyncError(error.message);
         handleFirestoreError(error, OperationType.LIST, "sponsors");
@@ -7106,55 +7156,62 @@ const HomePage = ({
           }
         )
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-4 overflow-x-auto max-w-full rounded-xl", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "w-full text-left text-sm whitespace-nowrap", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { className: "border-b border-neutral-800 text-xs font-bold uppercase text-neutral-400", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3 px-3 text-center w-10", children: t.pos }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3 px-3 min-w-[140px]", children: t.club }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3 px-2 text-center w-10", children: t.played }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3 px-2 text-center w-10", children: t.won }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3 px-2 text-center w-10", children: t.drawn }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3 px-2 text-center w-10", children: t.lost }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3 px-2 text-center w-12 hidden sm:table-cell", children: t.gd }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3 px-3 text-right font-black w-12", children: t.pts })
-        ] }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { className: "divide-y divide-neutral-800/60", children: topStandings.map((team) => {
-          const localizedTeam = getLocalizedTeamName(team.teamId, team.teamName, language);
-          const shortName = formatTeamName(team.teamId, localizedTeam, language);
-          return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "tr",
-            {
-              className: "transition-colors ".concat(team.isHalaba ? "bg-red-950/40 border-l-4 border-l-red-500 font-semibold" : "hover:bg-neutral-800/30"),
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-3 text-center font-bold", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "span",
-                  {
-                    className: "inline-block w-6 text-center text-xs py-0.5 rounded ".concat(team.position <= 2 ? "bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold" : "text-neutral-400"),
-                    children: team.position
-                  }
-                ) }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-3", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5 min-w-0", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(EthiopianClubLogo, { teamId: team.teamId, teamName: localizedTeam, size: 28, badgeUrl: team.badgeUrl, className: "shrink-0 flex-shrink-0" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "span",
-                    {
-                      className: "font-sports text-sm sm:text-base tracking-wide truncate max-w-[130px] sm:max-w-none block ".concat(team.isHalaba ? "text-red-300 font-black" : "text-neutral-200"),
-                      title: localizedTeam,
-                      children: shortName
-                    }
-                  )
-                ] }) }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-2 text-center text-neutral-400", children: team.played }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-2 text-center text-neutral-400", children: team.won }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-2 text-center text-neutral-400", children: team.drawn }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-2 text-center text-neutral-400", children: team.lost }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-2 text-center text-neutral-400 hidden sm:table-cell", children: team.goalDifference > 0 ? "+".concat(team.goalDifference) : team.goalDifference }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-3 text-right font-sports font-black text-lg text-white", children: team.points })
-              ]
-            },
-            team.teamId
-          );
-        }) })
-      ] }) })
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "div",
+        {
+          className: "mt-4 overflow-x-auto max-w-full rounded-xl touch-pan-y touch-pan-x overscroll-x-contain",
+          style: { overscrollBehaviorY: "auto", touchAction: "pan-y pan-x" },
+          children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: "w-full text-left text-sm whitespace-nowrap", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { className: "border-b border-neutral-800 text-xs font-bold uppercase text-neutral-400", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3 px-3 text-center w-10", children: t.pos }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3 px-3 min-w-[140px]", children: t.club }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3 px-2 text-center w-10", children: t.played }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3 px-2 text-center w-10", children: t.won }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3 px-2 text-center w-10", children: t.drawn }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3 px-2 text-center w-10", children: t.lost }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3 px-2 text-center w-12 hidden sm:table-cell", children: t.gd }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("th", { className: "py-3 px-3 text-right font-black w-12", children: t.pts })
+            ] }) }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("tbody", { className: "divide-y divide-neutral-800/60", children: topStandings.map((team) => {
+              const localizedTeam = getLocalizedTeamName(team.teamId, team.teamName, language);
+              const shortName = formatTeamName(team.teamId, localizedTeam, language);
+              return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "tr",
+                {
+                  className: "transition-colors ".concat(team.isHalaba ? "bg-red-950/40 border-l-4 border-l-red-500 font-semibold" : "hover:bg-neutral-800/30"),
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-3 text-center font-bold", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "span",
+                      {
+                        className: "inline-block w-6 text-center text-xs py-0.5 rounded ".concat(team.position <= 2 ? "bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold" : "text-neutral-400"),
+                        children: team.position
+                      }
+                    ) }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-3", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2.5 min-w-0", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(EthiopianClubLogo, { teamId: team.teamId, teamName: localizedTeam, size: 28, badgeUrl: team.badgeUrl, className: "shrink-0 flex-shrink-0" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "span",
+                        {
+                          className: "font-sports text-sm sm:text-base tracking-wide truncate max-w-[130px] sm:max-w-none block ".concat(team.isHalaba ? "text-red-300 font-black" : "text-neutral-200"),
+                          title: localizedTeam,
+                          children: shortName
+                        }
+                      )
+                    ] }) }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-2 text-center text-neutral-400", children: team.played }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-2 text-center text-neutral-400", children: team.won }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-2 text-center text-neutral-400", children: team.drawn }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-2 text-center text-neutral-400", children: team.lost }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-2 text-center text-neutral-400 hidden sm:table-cell", children: team.goalDifference > 0 ? "+".concat(team.goalDifference) : team.goalDifference }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("td", { className: "py-3 px-3 text-right font-sports font-black text-lg text-white", children: team.points })
+                  ]
+                },
+                team.teamId
+              );
+            }) })
+          ] })
+        }
+      )
     ] }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8", children: [
@@ -7602,19 +7659,19 @@ const PageFallbackLoader = () => {
     ] })
   ] });
 };
-const FixturesPage = reactExports.lazy(() => __vitePreload(() => import("./FixturesPage-stVDyZZq.js"), true ? __vite__mapDeps([0,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.FixturesPage })));
-const StandingsPage = reactExports.lazy(() => __vitePreload(() => import("./StandingsPage-CwjjKt0X.js"), true ? __vite__mapDeps([4,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.StandingsPage })));
-const NewsPage = reactExports.lazy(() => __vitePreload(() => import("./NewsPage-_Y95ptkS.js"), true ? __vite__mapDeps([5,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.NewsPage })));
-const MembershipPage = reactExports.lazy(() => __vitePreload(() => import("./MembershipPage-CCNHAf1c.js"), true ? __vite__mapDeps([6,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.MembershipPage })));
-const AboutPage = reactExports.lazy(() => __vitePreload(() => import("./AboutPage-BP3ow_G6.js"), true ? __vite__mapDeps([7,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.AboutPage })));
-const ContactPage = reactExports.lazy(() => __vitePreload(() => import("./ContactPage-t5cZvpbF.js"), true ? __vite__mapDeps([8,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.ContactPage })));
-const AdminPage = reactExports.lazy(() => __vitePreload(() => import("./AdminPage-DBWMeHdF.js"), true ? __vite__mapDeps([9,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.AdminPage })));
-const ShopPage = reactExports.lazy(() => __vitePreload(() => import("./ShopPage-i3jqH34S.js"), true ? __vite__mapDeps([10,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.ShopPage })));
-const MatchDetailsModal = reactExports.lazy(() => __vitePreload(() => import("./MatchDetailsModal-BEy2yFTC.js"), true ? __vite__mapDeps([11,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.MatchDetailsModal })));
-const ArticleModal = reactExports.lazy(() => __vitePreload(() => import("./ArticleModal-BBYi0KiL.js"), true ? __vite__mapDeps([12,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.ArticleModal })));
-const ClubDossierModal = reactExports.lazy(() => __vitePreload(() => import("./ClubDossierModal-BQrobqMy.js"), true ? __vite__mapDeps([13,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.ClubDossierModal })));
-const DonationModal = reactExports.lazy(() => __vitePreload(() => import("./DonationModal-CL5mMJUG.js"), true ? __vite__mapDeps([14,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.DonationModal })));
-const JerseyCheckoutModal = reactExports.lazy(() => __vitePreload(() => import("./JerseyCheckoutModal-B6-aT9JK.js"), true ? __vite__mapDeps([15,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.JerseyCheckoutModal })));
+const FixturesPage = reactExports.lazy(() => __vitePreload(() => import("./FixturesPage-n95ubG0g.js"), true ? __vite__mapDeps([0,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.FixturesPage })));
+const StandingsPage = reactExports.lazy(() => __vitePreload(() => import("./StandingsPage-QTtwkEpD.js"), true ? __vite__mapDeps([4,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.StandingsPage })));
+const NewsPage = reactExports.lazy(() => __vitePreload(() => import("./NewsPage-BrA_Vg_z.js"), true ? __vite__mapDeps([5,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.NewsPage })));
+const MembershipPage = reactExports.lazy(() => __vitePreload(() => import("./MembershipPage-wFDcJYnd.js"), true ? __vite__mapDeps([6,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.MembershipPage })));
+const AboutPage = reactExports.lazy(() => __vitePreload(() => import("./AboutPage-BloePY2N.js"), true ? __vite__mapDeps([7,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.AboutPage })));
+const ContactPage = reactExports.lazy(() => __vitePreload(() => import("./ContactPage-CnaRjo6n.js"), true ? __vite__mapDeps([8,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.ContactPage })));
+const AdminPage = reactExports.lazy(() => __vitePreload(() => import("./AdminPage-C258aTmP.js"), true ? __vite__mapDeps([9,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.AdminPage })));
+const ShopPage = reactExports.lazy(() => __vitePreload(() => import("./ShopPage-Cr4NBP5x.js"), true ? __vite__mapDeps([10,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.ShopPage })));
+const MatchDetailsModal = reactExports.lazy(() => __vitePreload(() => import("./MatchDetailsModal-CcTfIDf5.js"), true ? __vite__mapDeps([11,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.MatchDetailsModal })));
+const ArticleModal = reactExports.lazy(() => __vitePreload(() => import("./ArticleModal-DaBRgLL-.js"), true ? __vite__mapDeps([12,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.ArticleModal })));
+const ClubDossierModal = reactExports.lazy(() => __vitePreload(() => import("./ClubDossierModal-Ddxmmb9X.js"), true ? __vite__mapDeps([13,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.ClubDossierModal })));
+const DonationModal = reactExports.lazy(() => __vitePreload(() => import("./DonationModal-DmuAqy8x.js"), true ? __vite__mapDeps([14,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.DonationModal })));
+const JerseyCheckoutModal = reactExports.lazy(() => __vitePreload(() => import("./JerseyCheckoutModal-dpTT4sHg.js"), true ? __vite__mapDeps([15,1,2,3]) : void 0, import.meta.url).then((m) => ({ default: m.JerseyCheckoutModal })));
 const AppStoreInstallCard = reactExports.lazy(() => __vitePreload(() => Promise.resolve().then(() => AppStoreInstallCard$2), true ? void 0 : void 0, import.meta.url).then((m) => ({ default: m.AppStoreInstallCard })));
 const MainApp = () => {
   const { currentPage, matches, news, isDossierOpen, closeDossier } = useClub();
