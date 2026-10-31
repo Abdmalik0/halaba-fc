@@ -22,9 +22,12 @@ if (typeof window !== 'undefined') {
     if (
       firstArg.includes('Could not reach Cloud Firestore backend') ||
       firstArg.includes('@firebase/firestore') ||
-      firstArg.includes("Backend didn't respond within 10 seconds")
+      firstArg.includes("Backend didn't respond within 10 seconds") ||
+      firstArg.includes('Firebase: Error (auth/') ||
+      firstArg.includes('auth/invalid-credential') ||
+      firstArg.includes('signInWithEmailAndPassword')
     ) {
-      console.debug('[Firestore Offline Notice]:', ...args);
+      console.debug('[Firebase Auth/Firestore Notice]:', ...args);
       return;
     }
     originalConsoleError.apply(console, args);

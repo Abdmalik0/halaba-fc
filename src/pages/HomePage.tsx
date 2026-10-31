@@ -67,17 +67,14 @@ export const HomePage: React.FC<HomePageProps> = ({
     .filter((m) => (m.status === 'UPCOMING' || m.status === 'LIVE') && isHalabaMatch(m))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  const nextMatch =
-    upcomingHalabaMatches[0] ||
-    matches.find((m) => (m.status === 'UPCOMING' || m.status === 'LIVE')) ||
-    null;
+  const nextMatch = upcomingHalabaMatches[0] || null;
 
   // Find latest finished match of Halaba City FC (strictly FINISHED, sorted by date descending)
   const finishedHalabaMatches = matches
     .filter((m) => m.status === 'FINISHED' && isHalabaMatch(m))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const latestResult = finishedHalabaMatches[0] || matches.find((m) => m.status === 'FINISHED') || null;
+  const latestResult = finishedHalabaMatches[0] || null;
   // Latest 3 news items
   const recentNews = news.slice(0, 3);
   // Top 5 standings

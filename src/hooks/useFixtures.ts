@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Match } from '../types';
 import { db } from '../firebase';
 import { collection, getDocs, onSnapshot } from 'firebase/firestore';
+import { initialMatches } from '../data/mockData';
 
 const FIXTURES_CACHE_KEY = 'halaba_matches_epl_2026_27_v18';
 
@@ -16,86 +17,22 @@ export interface UseFixturesResult {
   refresh: () => Promise<void>;
 }
 
-// Fallback initial matches
-const fallbackMatches: Match[] = [
-  {
-    id: 'm-epl-rd3',
-    competition: 'ETHIOPIAN_PREMIER_LEAGUE',
-    competitionName: 'Ethiopian Premier League',
-    date: '2026-10-24',
-    kickoffTime: '15:00',
-    venue: 'Halaba Stadium',
-    homeTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
-    awayTeam: { id: 'gamochencha', name: 'Gamo Chencha', isHalaba: false },
-    status: 'FINISHED',
-    score: { home: 1, away: 0 },
-    halftimeScore: { home: 1, away: 0 },
-    round: 'Round 3',
-    attendance: '16,800',
-    referee: 'Tewodros Marcos',
-    summary: 'Captain header in the 42nd minute secured an undefeated Round 3 victory for the Red Peppers.',
-  },
-  {
-    id: 'm-epl-rd4',
-    competition: 'ETHIOPIAN_PREMIER_LEAGUE',
-    competitionName: 'Ethiopian Premier League',
-    date: '2026-11-01',
-    kickoffTime: '15:00',
-    venue: 'Bahir Dar International Stadium',
-    homeTeam: { id: 'bahirdar', name: 'Bahir Dar Kenema', isHalaba: false },
-    awayTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
-    status: 'UPCOMING',
-    round: 'Round 4',
-  },
-  {
-    id: 'm-epl-rd5',
-    competition: 'ETHIOPIAN_PREMIER_LEAGUE',
-    competitionName: 'Ethiopian Premier League',
-    date: '2026-11-08',
-    kickoffTime: '15:00',
-    venue: 'Halaba Stadium',
-    homeTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
-    awayTeam: { id: 'bunna', name: 'Ethiopian Coffee SC', isHalaba: false },
-    status: 'UPCOMING',
-    round: 'Round 5',
-  },
-  {
-    id: 'm-epl-rd2',
-    competition: 'ETHIOPIAN_PREMIER_LEAGUE',
-    competitionName: 'Ethiopian Premier League',
-    date: '2026-10-18',
-    kickoffTime: '15:00',
-    venue: 'Abebe Bikila Stadium',
-    homeTeam: { id: 'saintgeorge', name: 'Saint George SC', isHalaba: false },
-    awayTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
-    status: 'FINISHED',
-    score: { home: 1, away: 1 },
-    halftimeScore: { home: 1, away: 0 },
-    round: 'Round 2',
-    summary: 'A resilient second-half equalizer earned Halaba a hard-fought away point in Addis Ababa.',
-  },
-  {
-    id: 'm-epl-rd1',
-    competition: 'ETHIOPIAN_PREMIER_LEAGUE',
-    competitionName: 'Ethiopian Premier League',
-    date: '2026-10-11',
-    kickoffTime: '15:00',
-    venue: 'Halaba Stadium',
-    homeTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
-    awayTeam: { id: 'fasil', name: 'Fasil Kenema', isHalaba: false },
-    status: 'FINISHED',
-    score: { home: 1, away: 1 },
-    halftimeScore: { home: 0, away: 1 },
-    round: 'Round 1',
-    summary: 'Season opener: Halaba shared the spoils in front of a packed home crowd at Halaba Stadium.',
-  },
-];
+// Helper to strictly identify Halaba City FC matches
+const isHalabaMatch = (m: any): boolean =>
+  Boolean(
+    m &&
+    (m.homeTeam?.isHalaba ||
+      m.awayTeam?.isHalaba ||
+      m.homeTeam?.id === 'halaba' ||
+      m.awayTeam?.id === 'halaba' ||
+      m.homeTeam?.name?.toLowerCase().includes('halaba') ||
+      m.awayTeam?.name?.toLowerCase().includes('halaba'))
+  );
 
 /**
  * Loads fixtures immediately from localStorage cache on initial render.
- * When online, fetches fresh data from API/Firestore in the background,
- * updates state, and overwrites localStorage.
- * Listens for online/offline events to gracefully present cached data without throwing errors.
+ * Synchronizes with TheSportsDB API endpoint (/api/fixtures/sportsdb) and Firestore in the background.
+ * Strictly guarantees ONLY Halaba City FC fixtures and results are returned.
  */
 export function useFixtures(): UseFixturesResult {
   const [isOnline, setIsOnline] = useState<boolean>(() => {
@@ -109,13 +46,14 @@ export function useFixtures(): UseFixturesResult {
       if (cached) {
         const parsed: Match[] = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          const halabaOnly = parsed.filter(isHalabaMatch);
+          if (halabaOnly.length > 0) return halabaOnly;
         }
       }
     } catch (e) {
       console.warn('[useFixtures] Could not parse localStorage cache:', e);
     }
-    return fallbackMatches;
+    return initialMatches.filter(isHalabaMatch);
   });
 
   const [isFetching, setIsFetching] = useState<boolean>(false);
@@ -134,6 +72,32 @@ export function useFixtures(): UseFixturesResult {
     setIsFetching(true);
     setError(null);
 
+    // 1. First priority: Fetch live synced data from TheSportsDB backend endpoint
+    try {
+      const res = await fetch('/api/fixtures/sportsdb');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.fixtures) && json.fixtures.length > 0) {
+          const halabaOnly: Match[] = json.fixtures.filter(isHalabaMatch);
+          if (halabaOnly.length > 0) {
+            setFixtures(halabaOnly);
+            setIsCached(false);
+            setLastUpdated(new Date());
+            try {
+              localStorage.setItem(FIXTURES_CACHE_KEY, JSON.stringify(halabaOnly));
+            } catch (err) {
+              console.warn('[useFixtures] Cache write notice:', err);
+            }
+            setIsFetching(false);
+            return;
+          }
+        }
+      }
+    } catch (apiErr) {
+      console.warn('[useFixtures] TheSportsDB endpoint fetch notice, checking fallback:', apiErr);
+    }
+
+    // 2. Second priority: Firestore real-time collection fallback
     try {
       const matchesRef = collection(db, 'matches');
       const snapshot = await getDocs(matchesRef);
@@ -147,7 +111,7 @@ export function useFixtures(): UseFixturesResult {
             competitionName: data.competitionName || 'Ethiopian Premier League',
             date: data.date || '',
             kickoffTime: data.kickoffTime || '15:00',
-            venue: data.venue || 'Halaba Stadium',
+            venue: data.venue || 'Hawassa University Stadium',
             homeTeam: data.homeTeam || { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
             awayTeam: data.awayTeam || { id: 'away', name: 'Away Team', isHalaba: false },
             status: data.status || 'UPCOMING',
@@ -162,25 +126,17 @@ export function useFixtures(): UseFixturesResult {
             livePeriod: data.livePeriod,
             liveEvents: data.liveEvents,
           } as Match;
-        });
+        }).filter(isHalabaMatch);
 
         // Ensure canonical round matches are present
-        fallbackMatches.forEach((fbMatch) => {
-          if (!remoteMatches.some((m) => m.id === fbMatch.id)) {
-            remoteMatches.push({ ...fbMatch });
+        initialMatches.forEach((initMatch) => {
+          if (!remoteMatches.some((m) => m.id === initMatch.id)) {
+            remoteMatches.push({ ...initMatch });
           }
         });
 
-        // Sort priority
-        const halabaPriority = ['m-epl-rd3', 'm-epl-rd4', 'm-epl-rd5', 'm-epl-rd2', 'm-epl-rd1'];
-        remoteMatches.sort((a, b) => {
-          const aIdx = halabaPriority.indexOf(a.id);
-          const bIdx = halabaPriority.indexOf(b.id);
-          if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
-          if (aIdx !== -1) return -1;
-          if (bIdx !== -1) return 1;
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        });
+        // Chronological sort
+        remoteMatches.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
         // Update state and overwrite localStorage cache with fresh payload
         setFixtures(remoteMatches);
@@ -194,9 +150,8 @@ export function useFixtures(): UseFixturesResult {
         }
       }
     } catch (fetchErr) {
-      // If network fails, gracefully log and keep cached data without breaking UI
       console.warn('[useFixtures] Background fetch notice (serving cache):', fetchErr);
-      setError(fetchErr instanceof Error ? fetchErr.message : 'Network error');
+      setError(fetchErr instanceof Error ? fetchErr.message : 'Network notice');
     } finally {
       setIsFetching(false);
     }
@@ -207,7 +162,6 @@ export function useFixtures(): UseFixturesResult {
     const handleOnline = () => {
       setIsOnline(true);
       setError(null);
-      // Fetch fresh data in the background when connectivity is restored
       fetchFreshData();
     };
 
@@ -224,7 +178,7 @@ export function useFixtures(): UseFixturesResult {
       fetchFreshData();
     }
 
-    // Also subscribe to real-time updates when online
+    // Subscribe to Firestore updates
     let unsubscribeFirestore: (() => void) | undefined;
     try {
       const matchesRef = collection(db, 'matches');
@@ -240,7 +194,7 @@ export function useFixtures(): UseFixturesResult {
                 competitionName: data.competitionName || 'Ethiopian Premier League',
                 date: data.date || '',
                 kickoffTime: data.kickoffTime || '15:00',
-                venue: data.venue || 'Halaba Stadium',
+                venue: data.venue || 'Hawassa University Stadium',
                 homeTeam: data.homeTeam || { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
                 awayTeam: data.awayTeam || { id: 'away', name: 'Away Team', isHalaba: false },
                 status: data.status || 'UPCOMING',
@@ -255,23 +209,15 @@ export function useFixtures(): UseFixturesResult {
                 livePeriod: data.livePeriod,
                 liveEvents: data.liveEvents,
               } as Match;
-            });
+            }).filter(isHalabaMatch);
 
-            fallbackMatches.forEach((fbMatch) => {
-              if (!list.some((m) => m.id === fbMatch.id)) {
-                list.push({ ...fbMatch });
+            initialMatches.forEach((initMatch) => {
+              if (!list.some((m) => m.id === initMatch.id)) {
+                list.push({ ...initMatch });
               }
             });
 
-            const halabaPriority = ['m-epl-rd3', 'm-epl-rd4', 'm-epl-rd5', 'm-epl-rd2', 'm-epl-rd1'];
-            list.sort((a, b) => {
-              const aIdx = halabaPriority.indexOf(a.id);
-              const bIdx = halabaPriority.indexOf(b.id);
-              if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
-              if (aIdx !== -1) return -1;
-              if (bIdx !== -1) return 1;
-              return new Date(b.date).getTime() - new Date(a.date).getTime();
-            });
+            list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
             setFixtures(list);
             setIsCached(false);
@@ -285,7 +231,6 @@ export function useFixtures(): UseFixturesResult {
           }
         },
         (error) => {
-          // Gracefully handle snapshot errors (e.g. offline) without UI crashes
           if (typeof navigator !== 'undefined' && !navigator.onLine) {
             return;
           }

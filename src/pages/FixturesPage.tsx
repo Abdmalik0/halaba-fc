@@ -41,11 +41,26 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
   const [activeTab, setActiveTab] = useState<'ALL' | 'UPCOMING' | 'RESULTS'>('ALL');
   const [selectedComp, setSelectedComp] = useState<string>('ALL');
 
-  // Competitions list
-  const competitionList = Array.from(new Set(matches.map((m) => m.competition)));
+  // Helper to strictly identify Halaba City FC matches
+  const isHalabaMatch = (m: any): boolean =>
+    Boolean(
+      m &&
+      (m.homeTeam?.isHalaba ||
+        m.awayTeam?.isHalaba ||
+        m.homeTeam?.id === 'halaba' ||
+        m.awayTeam?.id === 'halaba' ||
+        m.homeTeam?.name?.toLowerCase().includes('halaba') ||
+        m.awayTeam?.name?.toLowerCase().includes('halaba'))
+    );
 
-  // Filter matches
-  const filteredMatches = matches.filter((m) => {
+  // Strictly Halaba City FC matches only
+  const halabaMatches = matches.filter(isHalabaMatch);
+
+  // Competitions list
+  const competitionList = Array.from(new Set(halabaMatches.map((m) => m.competition)));
+
+  // Filter matches - strictly Halaba City FC only
+  const filteredMatches = halabaMatches.filter((m) => {
     if (activeTab === 'UPCOMING' && m.status !== 'UPCOMING') return false;
     if (activeTab === 'RESULTS' && m.status !== 'FINISHED') return false;
     if (selectedComp !== 'ALL' && m.competition !== selectedComp) return false;
