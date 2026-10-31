@@ -81,6 +81,24 @@ export function useStandings(): UseStandingsResult {
     setError(null);
 
     try {
+      // 1. First priority: Fetch from backend proxy (TheSportsDB) to consume ZERO Firestore reads
+      const res = await fetch('/api/standings/sportsdb');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.standings) && json.standings.length > 0) {
+          setStandings(json.standings);
+          setIsCached(false);
+          setLastUpdated(new Date());
+          try {
+            localStorage.setItem(STANDINGS_CACHE_KEY, JSON.stringify(json.standings));
+          } catch (storageErr) {
+            console.warn('[useStandings] localStorage write quota warning:', storageErr);
+          }
+          return;
+        }
+      }
+
+      // 2. Second priority: Firestore fallback only if backend proxy is unavailable
       const standingsRef = collection(db, 'standings');
       const snapshot = await getDocs(standingsRef);
 
@@ -107,7 +125,6 @@ export function useStandings(): UseStandingsResult {
           };
         });
 
-        // Ensure all 18 clubs are accounted for
         fallbackStandings.forEach((fallbackTeam) => {
           if (!remoteStandings.some((t) => t.teamId === fallbackTeam.teamId)) {
             remoteStandings.push({ ...fallbackTeam });
@@ -120,7 +137,6 @@ export function useStandings(): UseStandingsResult {
         );
         const reordered = filtered.slice(0, 18).map((t, idx) => ({ ...t, position: idx + 1 }));
 
-        // Update state and overwrite localStorage cache with fresh payload
         setStandings(reordered);
         setIsCached(false);
         setLastUpdated(new Date());

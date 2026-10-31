@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, addDoc, setDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, addDoc, setDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, User } from 'firebase/auth';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import {
@@ -342,6 +342,114 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // Admin Auth using Firebase Authentication
+  const [adminUser, setAdminUser] = useState<User | null>(null);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
+    return localStorage.getItem(STORAGE_KEYS.ADMIN_AUTH) === 'true';
+  });
+  const [adminUsername, setAdminUsername] = useState<string | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setAdminUser(user);
+        setIsAdminLoggedIn(true);
+        setAdminUsername(user.displayName || user.email || 'Admin');
+        localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
+      } else {
+        setAdminUser(null);
+        setIsAdminLoggedIn(false);
+        setAdminUsername(null);
+        localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
+      }
+      setIsAuthChecking(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const loginAdmin = async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
+    const cleanEmail = email.trim();
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, pass);
+      const user = userCredential.user;
+      setAdminUser(user);
+      setIsAdminLoggedIn(true);
+      setAdminUsername(user.displayName || user.email || 'Admin');
+      localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
+      return { success: true };
+    } catch (error: any) {
+      const code = error?.code || '';
+      console.warn("Firebase signInWithEmailAndPassword note:", code || error?.message);
+
+      if (code === 'auth/invalid-credential' || code === 'auth/user-not-found') {
+        try {
+          const newCredential = await createUserWithEmailAndPassword(auth, cleanEmail, pass);
+          const newUser = newCredential.user;
+          setAdminUser(newUser);
+          setIsAdminLoggedIn(true);
+          setAdminUsername(newUser.displayName || newUser.email || 'Admin');
+          localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
+          return { success: true };
+        } catch (createErr: any) {
+          const createCode = createErr?.code || '';
+          if (createCode === 'auth/email-already-in-use') {
+            return {
+              success: false,
+              error: 'Invalid password. Please check your credentials.',
+            };
+          }
+          if (createCode === 'auth/weak-password') {
+            return {
+              success: false,
+              error: 'Password must be at least 6 characters.',
+            };
+          }
+          console.warn("Firebase createUser fallback notice:", createCode || createErr?.message);
+        }
+      }
+
+      const isClubAdminEmail = cleanEmail.toLowerCase() === 'admin@halabafc.et' ||
+                               cleanEmail.toLowerCase() === 'halabacityfc@gmail.com';
+      if (isClubAdminEmail && (pass === 'admin123' || pass === 'halaba2026' || pass === 'Admin123!' || pass === 'admin' || pass.length >= 6)) {
+        setIsAdminLoggedIn(true);
+        setAdminUsername(cleanEmail);
+        localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
+        return { success: true };
+      }
+
+      let errorMsg = 'Invalid email or password.';
+      if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+        errorMsg = 'Invalid email or password. Please verify your administrator credentials.';
+      } else if (code === 'auth/invalid-email') {
+        errorMsg = 'Please enter a valid email address.';
+      } else if (code === 'auth/user-disabled') {
+        errorMsg = 'This administrator account has been disabled.';
+      } else if (code === 'auth/too-many-requests') {
+        errorMsg = 'Too many failed login attempts. Access temporarily restricted. Please try again later.';
+      } else if (code === 'auth/network-request-failed') {
+        errorMsg = 'Network error. Please check your internet connection.';
+      } else if (error?.message) {
+        errorMsg = error.message;
+      }
+      return { success: false, error: errorMsg };
+    }
+  };
+
+  const logoutAdmin = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.warn("Firebase signOut notice:", error);
+    } finally {
+      setAdminUser(null);
+      setIsAdminLoggedIn(false);
+      setAdminUsername(null);
+      localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
+    }
+  };
+
   // Club Info
   const [clubInfo, setClubInfo] = useState<ClubInfo>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.CLUB);
@@ -571,17 +679,19 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const canonicalMap = new Map<string, StandingTeam>();
 
       snapshot.docs.forEach((docSnap) => {
-        // Permanently purge diredawa and duplicate hadiya docs from Firestore
-        if (docSnap.id === 'diredawa' || docSnap.id === 'hadiya') {
-          deleteDoc(doc(db, 'standings', docSnap.id)).catch(() => {});
-          return;
+        // Permanently purge diredawa and duplicate hadiya docs from Firestore (admin only)
+        if (isAdminLoggedIn) {
+          if (docSnap.id === 'diredawa' || docSnap.id === 'hadiya') {
+            deleteDoc(doc(db, 'standings', docSnap.id)).catch(() => {});
+            return;
+          }
         }
 
         const data = docSnap.data();
         const canonicalId = normalizeEplTeamId(docSnap.id, data.teamName || data.teamId);
 
-        // Delete obsolete, non-canonical or duplicate doc IDs from Firestore
-        if (docSnap.id !== canonicalId) {
+        // Delete obsolete, non-canonical or duplicate doc IDs from Firestore (admin only)
+        if (isAdminLoggedIn && docSnap.id !== canonicalId) {
           deleteDoc(doc(db, 'standings', docSnap.id)).catch(() => {});
         }
 
@@ -792,7 +902,12 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    const q = query(collection(db, "news"), orderBy("createdAt", "desc"));
+    // Limit news reads to prevent downloading unbounded document archives
+    const q = query(
+      collection(db, "news"),
+      orderBy("createdAt", "desc"),
+      limit(isAdminLoggedIn ? 50 : 12)
+    );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (snapshot.empty) {
@@ -867,7 +982,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [isAdminLoggedIn]);
 
   const addNewsArticle = async (art: Omit<NewsArticle, 'id'>) => {
     const newId = `news-${Date.now()}`;
@@ -942,18 +1057,26 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   useEffect(() => {
+    // Only subscribe to players if on About or Admin page, or if admin is logged in
+    // This saves 16 document reads on all other page views (home, fixtures, standings, etc.)
+    if (currentPage !== 'about' && currentPage !== 'admin' && !isAdminLoggedIn) {
+      return;
+    }
+
     const playersRef = collection(db, 'players');
     const unsubscribe = onSnapshot(playersRef, async (snapshot) => {
       if (snapshot.empty) {
-        const seeded = localStorage.getItem('hcfc_firestore_players_seeded');
-        if (!seeded) {
-          try {
-            for (const p of initialPlayers) {
-              await setDoc(doc(db, 'players', p.id), { ...p, updatedAt: serverTimestamp() });
+        if (isAdminLoggedIn) {
+          const seeded = localStorage.getItem('hcfc_firestore_players_seeded');
+          if (!seeded) {
+            try {
+              for (const p of initialPlayers) {
+                await setDoc(doc(db, 'players', p.id), { ...p, updatedAt: serverTimestamp() });
+              }
+              localStorage.setItem('hcfc_firestore_players_seeded', 'true');
+            } catch (err) {
+              console.warn('Could not seed players:', err);
             }
-            localStorage.setItem('hcfc_firestore_players_seeded', 'true');
-          } catch (err) {
-            console.warn('Could not seed players:', err);
           }
         }
         return;
@@ -986,21 +1109,29 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       handleFirestoreError(error, OperationType.LIST, 'players');
     });
     return () => unsubscribe();
-  }, []);
+  }, [currentPage, isAdminLoggedIn]);
 
   useEffect(() => {
+    // Only subscribe to staff if on About or Admin page, or if admin is logged in
+    // This saves 6 document reads on all other page views
+    if (currentPage !== 'about' && currentPage !== 'admin' && !isAdminLoggedIn) {
+      return;
+    }
+
     const staffRef = collection(db, 'staff');
     const unsubscribe = onSnapshot(staffRef, async (snapshot) => {
       if (snapshot.empty) {
-        const seeded = localStorage.getItem('hcfc_firestore_staff_seeded');
-        if (!seeded) {
-          try {
-            for (const s of initialStaff) {
-              await setDoc(doc(db, 'staff', s.id), { ...s, updatedAt: serverTimestamp() });
+        if (isAdminLoggedIn) {
+          const seeded = localStorage.getItem('hcfc_firestore_staff_seeded');
+          if (!seeded) {
+            try {
+              for (const s of initialStaff) {
+                await setDoc(doc(db, 'staff', s.id), { ...s, updatedAt: serverTimestamp() });
+              }
+              localStorage.setItem('hcfc_firestore_staff_seeded', 'true');
+            } catch (err) {
+              console.warn('Could not seed staff:', err);
             }
-            localStorage.setItem('hcfc_firestore_staff_seeded', 'true');
-          } catch (err) {
-            console.warn('Could not seed staff:', err);
           }
         }
         return;
@@ -1027,7 +1158,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       handleFirestoreError(error, OperationType.LIST, 'staff');
     });
     return () => unsubscribe();
-  }, []);
+  }, [currentPage, isAdminLoggedIn]);
 
   const addPlayer = async (p: Omit<Player, 'id'>) => {
     const id = `p-${Date.now()}`;
@@ -1112,18 +1243,27 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   useEffect(() => {
+    // Supporter membership records are admin-only data.
+    // Ordinary visitors never need to listen to all membership records.
+    // This saves hundreds to thousands of reads per user session.
+    if (!isAdminLoggedIn && currentPage !== 'admin') {
+      return;
+    }
+
     const membershipsRef = collection(db, 'memberships');
     const unsubscribe = onSnapshot(membershipsRef, async (snapshot) => {
       if (snapshot.empty) {
-        const seeded = localStorage.getItem('hcfc_firestore_memberships_seeded');
-        if (!seeded) {
-          try {
-            for (const m of initialMemberships) {
-              await setDoc(doc(db, 'memberships', m.id), { ...m, updatedAt: serverTimestamp() });
+        if (isAdminLoggedIn) {
+          const seeded = localStorage.getItem('hcfc_firestore_memberships_seeded');
+          if (!seeded) {
+            try {
+              for (const m of initialMemberships) {
+                await setDoc(doc(db, 'memberships', m.id), { ...m, updatedAt: serverTimestamp() });
+              }
+              localStorage.setItem('hcfc_firestore_memberships_seeded', 'true');
+            } catch (err) {
+              console.warn('Could not seed memberships:', err);
             }
-            localStorage.setItem('hcfc_firestore_memberships_seeded', 'true');
-          } catch (err) {
-            console.warn('Could not seed memberships:', err);
           }
         }
         return;
@@ -1161,7 +1301,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       handleFirestoreError(error, OperationType.LIST, 'memberships');
     });
     return () => unsubscribe();
-  }, []);
+  }, [isAdminLoggedIn, currentPage]);
 
   const submitMembership = async (data: {
     fullName: string;
@@ -1328,26 +1468,31 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProductsSyncError(null);
 
       if (snapshot.empty) {
-        const hasSeeded = localStorage.getItem('hcfc_firestore_products_seeded');
-        if (!hasSeeded) {
-          try {
-            for (const item of initialShopItems) {
-              await setDoc(doc(db, 'products', item.id), {
-                name: item.name,
-                description: item.description,
-                price: item.price,
-                imageUrl: item.imageUrl,
-                availableSizes: item.availableSizes,
-                category: item.category || 'JERSEY',
-                inStock: item.inStock !== undefined ? item.inStock : true,
-                featured: item.featured !== undefined ? item.featured : false,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              });
+        if (isAdminLoggedIn) {
+          const hasSeeded = localStorage.getItem('hcfc_firestore_products_seeded');
+          if (!hasSeeded) {
+            try {
+              for (const item of initialShopItems) {
+                await setDoc(doc(db, 'products', item.id), {
+                  name: item.name,
+                  description: item.description,
+                  price: item.price,
+                  imageUrl: item.imageUrl,
+                  availableSizes: item.availableSizes,
+                  category: item.category || 'JERSEY',
+                  inStock: item.inStock !== undefined ? item.inStock : true,
+                  featured: item.featured !== undefined ? item.featured : false,
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                });
+              }
+              localStorage.setItem('hcfc_firestore_products_seeded', 'true');
+            } catch (seedErr) {
+              console.warn('Could not auto-seed default products to Firestore:', seedErr);
             }
-            localStorage.setItem('hcfc_firestore_products_seeded', 'true');
-          } catch (seedErr) {
-            console.warn('Could not auto-seed default products to Firestore:', seedErr);
+          } else {
+            setShopItems(initialShopItems);
+            localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(initialShopItems));
           }
         } else {
           setShopItems(initialShopItems);
@@ -1550,116 +1695,6 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const openDonationModal = () => setIsDonationModalOpen(true);
   const closeDonationModal = () => setIsDonationModalOpen(false);
 
-  // Admin Auth using Firebase Authentication
-  const [adminUser, setAdminUser] = useState<User | null>(null);
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
-    return localStorage.getItem(STORAGE_KEYS.ADMIN_AUTH) === 'true';
-  });
-  const [adminUsername, setAdminUsername] = useState<string | null>(null);
-  const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setAdminUser(user);
-        setIsAdminLoggedIn(true);
-        setAdminUsername(user.displayName || user.email || 'Admin');
-        localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
-      } else {
-        setAdminUser(null);
-        setIsAdminLoggedIn(false);
-        setAdminUsername(null);
-        localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
-      }
-      setIsAuthChecking(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const loginAdmin = async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
-    const cleanEmail = email.trim();
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, pass);
-      const user = userCredential.user;
-      setAdminUser(user);
-      setIsAdminLoggedIn(true);
-      setAdminUsername(user.displayName || user.email || 'Admin');
-      localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
-      return { success: true };
-    } catch (error: any) {
-      const code = error?.code || '';
-      console.warn("Firebase signInWithEmailAndPassword note:", code || error?.message);
-
-      // If credential fails because the user does not exist yet in Firebase, attempt automatic account onboarding
-      if (code === 'auth/invalid-credential' || code === 'auth/user-not-found') {
-        try {
-          const newCredential = await createUserWithEmailAndPassword(auth, cleanEmail, pass);
-          const newUser = newCredential.user;
-          setAdminUser(newUser);
-          setIsAdminLoggedIn(true);
-          setAdminUsername(newUser.displayName || newUser.email || 'Admin');
-          localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
-          return { success: true };
-        } catch (createErr: any) {
-          const createCode = createErr?.code || '';
-          if (createCode === 'auth/email-already-in-use') {
-            return {
-              success: false,
-              error: 'Invalid password. Please check your credentials.',
-            };
-          }
-          if (createCode === 'auth/weak-password') {
-            return {
-              success: false,
-              error: 'Password must be at least 6 characters.',
-            };
-          }
-          console.warn("Firebase createUser fallback notice:", createCode || createErr?.message);
-        }
-      }
-
-      // Preview / offline fallback for authorized club administrative email
-      const isClubAdminEmail = cleanEmail.toLowerCase() === 'admin@halabafc.et' ||
-                               cleanEmail.toLowerCase() === 'halabacityfc@gmail.com';
-      if (isClubAdminEmail && (pass === 'admin123' || pass === 'halaba2026' || pass === 'Admin123!' || pass === 'admin' || pass.length >= 6)) {
-        setIsAdminLoggedIn(true);
-        setAdminUsername(cleanEmail);
-        localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
-        return { success: true };
-      }
-
-      let errorMsg = 'Invalid email or password.';
-      if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
-        errorMsg = 'Invalid email or password. Please verify your administrator credentials.';
-      } else if (code === 'auth/invalid-email') {
-        errorMsg = 'Please enter a valid email address.';
-      } else if (code === 'auth/user-disabled') {
-        errorMsg = 'This administrator account has been disabled.';
-      } else if (code === 'auth/too-many-requests') {
-        errorMsg = 'Too many failed login attempts. Access temporarily restricted. Please try again later.';
-      } else if (code === 'auth/network-request-failed') {
-        errorMsg = 'Network error. Please check your internet connection.';
-      } else if (error?.message) {
-        errorMsg = error.message;
-      }
-      return { success: false, error: errorMsg };
-    }
-  };
-
-  const logoutAdmin = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.warn("Firebase signOut notice:", error);
-    } finally {
-      setAdminUser(null);
-      setIsAdminLoggedIn(false);
-      setAdminUsername(null);
-      localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
-    }
-  };
-
   // Club Dossier Modal
   const [isDossierOpen, setIsDossierOpen] = useState(false);
   const openDossier = () => setIsDossierOpen(true);
@@ -1809,16 +1844,19 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setStandings(freshStandings);
       localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(freshStandings));
 
-      // Overwrite Firestore collection so all devices receive the latest data
-      try {
-        for (const item of freshStandings) {
-          await setDoc(doc(db, 'standings', item.teamId), {
-            ...item,
-            updatedAt: serverTimestamp(),
-          }, { merge: true });
+      // Overwrite Firestore collection only if user is admin
+      // This prevents every ordinary visitor from generating 18 document writes and broadcasting reads to all clients
+      if (isAdminLoggedIn) {
+        try {
+          for (const item of freshStandings) {
+            await setDoc(doc(db, 'standings', item.teamId), {
+              ...item,
+              updatedAt: serverTimestamp(),
+            }, { merge: true });
+          }
+        } catch (fsErr) {
+          console.warn('Firestore write warning:', fsErr);
         }
-      } catch (fsErr) {
-        console.warn('Firestore write warning:', fsErr);
       }
 
       // 3. Synchronize official Halaba City FC fixtures and results from TheSportsDB
@@ -2010,29 +2048,31 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsSponsorsLoading(false);
         setSponsorsSyncError(null);
 
-        // If Firestore collection is empty, seed initial official sponsors so they persist in Firebase Cloud
+        // If Firestore collection is empty, only seed initial official sponsors if admin is logged in
         if (snapshot.empty) {
-          console.info('[Firebase Firestore] Initializing sponsors collection in Cloud Firestore...');
-          try {
-            for (const initSponsor of initialSponsors) {
-              await setDoc(doc(db, 'sponsors', initSponsor.id), {
-                name: initSponsor.name,
-                nameAm: initSponsor.nameAm || '',
-                nameOm: initSponsor.nameOm || '',
-                tier: initSponsor.tier,
-                tierAm: initSponsor.tierAm || '',
-                imageUrl: initSponsor.imageUrl,
-                websiteUrl: initSponsor.websiteUrl || '',
-                description: initSponsor.description || '',
-                descriptionAm: initSponsor.descriptionAm || '',
-                active: initSponsor.active,
-                order: initSponsor.order,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-              });
+          if (isAdminLoggedIn) {
+            console.info('[Firebase Firestore] Initializing sponsors collection in Cloud Firestore...');
+            try {
+              for (const initSponsor of initialSponsors) {
+                await setDoc(doc(db, 'sponsors', initSponsor.id), {
+                  name: initSponsor.name,
+                  nameAm: initSponsor.nameAm || '',
+                  nameOm: initSponsor.nameOm || '',
+                  tier: initSponsor.tier,
+                  tierAm: initSponsor.tierAm || '',
+                  imageUrl: initSponsor.imageUrl,
+                  websiteUrl: initSponsor.websiteUrl || '',
+                  description: initSponsor.description || '',
+                  descriptionAm: initSponsor.descriptionAm || '',
+                  active: initSponsor.active,
+                  order: initSponsor.order,
+                  createdAt: serverTimestamp(),
+                  updatedAt: serverTimestamp(),
+                });
+              }
+            } catch (seedErr) {
+              console.warn('[Firebase Firestore] Could not auto-seed sponsors:', seedErr);
             }
-          } catch (seedErr) {
-            console.warn('[Firebase Firestore] Could not auto-seed sponsors:', seedErr);
           }
           return;
         }
