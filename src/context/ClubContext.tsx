@@ -20,7 +20,6 @@ import {
 } from '../types';
 import {
   initialClubInfo,
-  initialMatches,
   initialStandings,
   initialNews,
   initialPlayers,
@@ -370,16 +369,16 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Matches State & Real-Time TheSportsDB / Firestore Integration
   const [matches, setMatches] = useState<Match[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.MATCHES);
-    if (!saved) return initialMatches.filter(isHalabaMatch);
+    if (!saved) return [];
     try {
       const parsed: Match[] = JSON.parse(saved);
       const halabaOnly = parsed.filter(isHalabaMatch);
       if (halabaOnly.length > 0) {
         return halabaOnly;
       }
-      return initialMatches.filter(isHalabaMatch);
+      return [];
     } catch {
-      return initialMatches.filter(isHalabaMatch);
+      return [];
     }
   });
 
@@ -398,11 +397,25 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (json.success && Array.isArray(json.fixtures) && json.fixtures.length > 0) {
             const halabaOnly: Match[] = json.fixtures.filter(isHalabaMatch);
             if (halabaOnly.length > 0) {
+              halabaOnly.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
               setMatches(halabaOnly);
               try {
                 localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(halabaOnly));
               } catch (e) {
                 console.warn('LocalStorage error caching matches:', e);
+              }
+
+              // Synchronize official fixtures into Firestore without overwriting custom admin fields
+              for (const fm of halabaOnly) {
+                try {
+                  await setDoc(doc(db, 'matches', fm.id), { ...fm, updatedAt: serverTimestamp() }, { merge: true });
+                } catch {
+                  // Ignore background network/permission notice
+                }
+              }
+
+              if (typeof window !== 'undefined') {
+                sessionStorage.setItem(sessionKey, 'true');
               }
             }
           }
@@ -416,19 +429,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const matchesRef = collection(db, 'matches');
-    const unsubscribe = onSnapshot(matchesRef, async (snapshot) => {
+    const unsubscribe = onSnapshot(matchesRef, (snapshot) => {
       if (snapshot.empty) {
-        const seeded = localStorage.getItem('hcfc_firestore_matches_seeded');
-        if (!seeded) {
-          try {
-            for (const m of initialMatches.filter(isHalabaMatch)) {
-              await setDoc(doc(db, 'matches', m.id), { ...m, updatedAt: serverTimestamp() });
-            }
-            localStorage.setItem('hcfc_firestore_matches_seeded', 'true');
-          } catch (err) {
-            console.warn('Could not seed matches:', err);
-          }
-        }
+        // Do not automatically seed sample fixtures into an empty Firestore collection.
+        // Preserve any valid existing cache in state and localStorage.
         return;
       }
       const liveMatches: Match[] = snapshot.docs.map((docSnap) => {
@@ -456,23 +460,16 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } as Match;
       }).filter(isHalabaMatch);
 
-      // Guarantee all official Halaba league fixtures are present
-      initialMatches.filter(isHalabaMatch).forEach((initM) => {
-        if (!liveMatches.some((m) => m.id === initM.id)) {
-          liveMatches.push({ ...initM });
-        }
-      });
+      // Sort fixtures strictly by actual match date chronologically
+      liveMatches.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       if (liveMatches.length > 0) {
-        liveMatches.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
         setMatches(liveMatches);
         try {
           localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(liveMatches));
         } catch (e) {
           console.warn('LocalStorage error caching matches:', e);
         }
-        localStorage.setItem('hcfc_firestore_matches_seeded', 'true');
       }
     }, (error) => {
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -2205,7 +2202,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resetAllDataToDefault = () => {
     localStorage.clear();
-    setMatches(initialMatches);
+    setMatches([]);
     setStandings(initialStandings);
     setNews(initialNews);
     setPlayers(initialPlayers);

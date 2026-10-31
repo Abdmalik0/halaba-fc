@@ -52,12 +52,42 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
   // Competitions list
   const competitionList = Array.from(new Set(halabaMatches.map((m) => m.competition)));
 
+  // Helper to parse match date/time timestamp robustly
+  const getMatchTimestamp = (m: { date?: string; kickoffTime?: string }): number => {
+    if (!m?.date) return 0;
+    if (m.date.includes('T')) {
+      const parsed = new Date(m.date).getTime();
+      if (!isNaN(parsed)) return parsed;
+    }
+    const time = m.kickoffTime ? `T${m.kickoffTime.slice(0, 5)}:00` : 'T00:00:00';
+    const parsedWithTime = new Date(`${m.date}${time}`).getTime();
+    if (!isNaN(parsedWithTime)) return parsedWithTime;
+    const fallback = new Date(m.date).getTime();
+    return isNaN(fallback) ? 0 : fallback;
+  };
+
   // Filter matches - strictly Halaba City FC only
   const filteredMatches = halabaMatches.filter((m) => {
     if (activeTab === 'UPCOMING' && m.status !== 'UPCOMING') return false;
     if (activeTab === 'RESULTS' && m.status !== 'FINISHED') return false;
     if (selectedComp !== 'ALL' && m.competition !== selectedComp) return false;
     return true;
+  });
+
+  // Sort fixtures using actual match dates:
+  // - Upcoming fixtures: chronological order (earliest / soonest upcoming first)
+  // - Previous fixtures / Results: appropriate order (most recent finished match first)
+  // - All fixtures: chronological order by date
+  const sortedMatches = [...filteredMatches].sort((a, b) => {
+    const timeA = getMatchTimestamp(a);
+    const timeB = getMatchTimestamp(b);
+    if (activeTab === 'RESULTS') {
+      return timeB - timeA;
+    }
+    if (activeTab === 'UPCOMING') {
+      return timeA - timeB;
+    }
+    return timeA - timeB;
   });
 
   return (
@@ -114,7 +144,7 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
 
           <div className="flex items-center gap-2">
             <span className="px-3 py-1.5 rounded-lg bg-neutral-800 border border-neutral-700 text-xs font-semibold text-neutral-300">
-              {filteredMatches.length} {t.matchesShown}
+              {sortedMatches.length} {t.matchesShown}
             </span>
           </div>
         </div>
@@ -175,13 +205,13 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
       </div>
 
       {/* Match Cards List */}
-      {filteredMatches.length === 0 ? (
+      {sortedMatches.length === 0 ? (
         <div className="text-center py-16 bg-neutral-900/40 rounded-2xl border border-neutral-800">
           <p className="text-neutral-400 text-base">{t.noMatchesFound}</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredMatches.map((match) => {
+          {sortedMatches.map((match) => {
             const isCompleted = match.status === 'FINISHED';
             const isLive = match.status === 'LIVE';
             const homeName = getLocalizedTeamName(match.homeTeam?.id, match.homeTeam?.name, language);

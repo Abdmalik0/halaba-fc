@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { Match } from '../types';
 import { db } from '../firebase';
 import { collection, getDocs, onSnapshot } from 'firebase/firestore';
-import { initialMatches } from '../data/mockData';
 
 const FIXTURES_CACHE_KEY = 'halaba_matches_epl_2026_27_v18';
 
@@ -53,7 +52,7 @@ export function useFixtures(): UseFixturesResult {
     } catch (e) {
       console.warn('[useFixtures] Could not parse localStorage cache:', e);
     }
-    return initialMatches.filter(isHalabaMatch);
+    return [];
   });
 
   const [isFetching, setIsFetching] = useState<boolean>(false);
@@ -128,14 +127,7 @@ export function useFixtures(): UseFixturesResult {
           } as Match;
         }).filter(isHalabaMatch);
 
-        // Ensure canonical round matches are present
-        initialMatches.forEach((initMatch) => {
-          if (!remoteMatches.some((m) => m.id === initMatch.id)) {
-            remoteMatches.push({ ...initMatch });
-          }
-        });
-
-        // Chronological sort
+        // Chronological sort by actual match date
         remoteMatches.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
         // Update state and overwrite localStorage cache with fresh payload
@@ -213,12 +205,6 @@ export function useFixtures(): UseFixturesResult {
                 liveEvents: data.liveEvents,
               } as Match;
             }).filter(isHalabaMatch);
-
-            initialMatches.forEach((initMatch) => {
-              if (!list.some((m) => m.id === initMatch.id)) {
-                list.push({ ...initMatch });
-              }
-            });
 
             list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
