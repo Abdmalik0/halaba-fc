@@ -91,10 +91,10 @@ export const StandingsPage: React.FC = () => {
                   {language === 'am'
                     ? halabaStanding.position === 1
                       ? 'ሀላባ ከተማ (በርበሬዎቹ) የኢትዮጵያ ፕሪሚየር ሊግን ይመራል'
-                      : `ሀላባ ከተማ (በርበሬዎቹ) በደረጃ #${halabaStanding.position} ላይ ይገኛል (5 ነጥብ • ያለመሸነፍ ጉዞ)`
+                      : `ሀላባ ከተማ (በርበሬዎቹ) በደረጃ #${halabaStanding.position} ላይ ይገኛል (${halabaStanding.points} ነጥብ • ${halabaStanding.played} ጨዋታዎች)`
                     : halabaStanding.position === 1
                     ? 'Halaba Ketema (Berberewochu) leads the Ethiopian Premier League'
-                    : `Halaba Ketema (Berberewochu) stands in position #${halabaStanding.position} (5 Pts • Undefeated Campaign)`}
+                    : `Halaba Ketema (Berberewochu) stands in position #${halabaStanding.position} (${halabaStanding.points} Pts • ${halabaStanding.played} Matches)`}
                 </h3>
               </div>
             </div>

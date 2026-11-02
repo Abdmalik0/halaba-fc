@@ -31,7 +31,7 @@ const JerseyCheckoutModal = lazy(() => import('./components/JerseyCheckoutModal'
 const AppStoreInstallCard = lazy(() => import('./components/pwa/AppStoreInstallCard').then((m) => ({ default: m.AppStoreInstallCard })));
 
 const MainApp: React.FC = () => {
-  const { currentPage, matches, news, isDossierOpen, closeDossier } = useClub();
+  const { currentPage, matches, news, isDossierOpen, closeDossier, isDonationModalOpen, isCheckoutModalOpen } = useClub();
   const { isInstalled, isInstallModalOpen, openInstallModal, closeInstallModal } = usePWAInstall();
 
   // Modals state
@@ -125,8 +125,8 @@ const MainApp: React.FC = () => {
             onClose={closeDossier}
           />
         )}
-        <DonationModal />
-        <JerseyCheckoutModal />
+        {isDonationModalOpen && <DonationModal />}
+        {isCheckoutModalOpen && <JerseyCheckoutModal />}
       </Suspense>
     </div>
   );

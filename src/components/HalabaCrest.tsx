@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import halabaLogoPng from '../assets/images/halaba-city-fc-logo.png';
+import halabaLogoWebp from '../assets/images/halaba-city-fc-logo.webp';
 
 interface HalabaCrestProps {
   className?: string;
@@ -31,14 +32,17 @@ export const HalabaCrest: React.FC<HalabaCrestProps> = ({
       )}
       
       {!hasError ? (
-        <img
-          src={halabaLogoPng}
-          alt="HALABA City FC official crest"
-          className="w-full h-full object-contain relative z-10 drop-shadow-md transition-opacity duration-200"
-          loading="eager"
-          decoding="async"
-          onError={() => setHasError(true)}
-        />
+        <picture className="w-full h-full relative z-10 flex items-center justify-center">
+          <source srcSet={halabaLogoWebp} type="image/webp" />
+          <img
+            src={halabaLogoPng}
+            alt="HALABA City FC official crest"
+            className="w-full h-full object-contain drop-shadow-md transition-opacity duration-200"
+            loading="eager"
+            decoding="async"
+            onError={() => setHasError(true)}
+          />
+        </picture>
       ) : (
         /* Zero-latency Vector SVG Crest Fallback if PNG fails */
         <svg

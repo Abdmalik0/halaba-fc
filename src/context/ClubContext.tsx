@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { collection, query, orderBy, limit, onSnapshot, addDoc, setDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, User } from 'firebase/auth';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
@@ -204,6 +204,10 @@ export const VALID_EPL_18_TEAM_IDS = new Set<string>([
 
 try {
   if (typeof window !== 'undefined') {
+    localStorage.removeItem('halaba_official_epl_standings_v22_sportsdb');
+    localStorage.removeItem('halaba_official_epl_standings_v21_sportsdb');
+    localStorage.removeItem('halaba_official_epl_standings_v20_sportsdb');
+    localStorage.removeItem('halaba_official_epl_standings_v19_sportsdb');
     localStorage.removeItem('halaba_official_epl_standings_v16_18_teams');
     localStorage.removeItem('halaba_official_epl_standings_v12_real_table');
     localStorage.removeItem('halaba_official_epl_standings_v7_canonical');
@@ -249,7 +253,7 @@ const STORAGE_KEYS = {
   LANG: 'halaba_lang',
   CLUB: 'halaba_club_info_epl_26_27',
   MATCHES: 'halaba_matches_epl_2026_27_v18',
-  STANDINGS: 'halaba_official_epl_standings_v19_sportsdb',
+  STANDINGS: 'halaba_official_epl_standings_v23_sportsdb',
   NEWS: 'halaba_news_epl_2026_27',
   PLAYERS: 'halaba_players',
   STAFF: 'halaba_staff',
@@ -269,12 +273,12 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return 'en';
   });
 
-  const setLanguage = (lang: Language) => {
+  const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem(STORAGE_KEYS.LANG, lang);
-  };
+  }, []);
 
-  const t = translations[language];
+  const t = useMemo(() => translations[language], [language]);
 
   // Network & Offline Connectivity Listener
   const [isOnline, setIsOnline] = useState<boolean>(() => {
@@ -314,7 +318,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
 
-  const setCurrentPage = (page: PageRoute) => {
+  const setCurrentPage = useCallback((page: PageRoute) => {
     setCurrentPageState(page);
     if (typeof window !== 'undefined') {
       if (page === 'home') {
@@ -326,7 +330,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  };
+  }, []);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -342,26 +346,58 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Admin Auth using Firebase Authentication
+  // Admin Auth using Firebase Authentication with Custom Claims & Verified Role
   const [adminUser, setAdminUser] = useState<User | null>(null);
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
-    return localStorage.getItem(STORAGE_KEYS.ADMIN_AUTH) === 'true';
-  });
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
   const [adminUsername, setAdminUsername] = useState<string | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
 
+  // Helper to securely verify if a Firebase user has official club administrator rights
+  const verifyAdminPrivileges = async (user: User | null): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      // 1. Primary check: Firebase Authentication custom claims (official standard)
+      const tokenResult = await user.getIdTokenResult(true);
+      if (tokenResult.claims.admin === true || tokenResult.claims.role === 'admin') {
+        return true;
+      }
+
+      // 2. Fallback check: Preserves existing authorized administrator accounts
+      const authorizedAdminEmails = [
+        'admin@halabafc.et',
+        'halabacityfc@gmail.com',
+        'abdpriin@gmail.com',
+      ];
+      const userEmail = (user.email || '').toLowerCase().trim();
+      if (userEmail && authorizedAdminEmails.includes(userEmail)) {
+        return true;
+      }
+
+      return false;
+    } catch (err) {
+      console.warn('[ClubContext] Error verifying admin privileges:', err);
+      return false;
+    }
+  };
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setIsAuthChecking(true);
       if (user) {
         setAdminUser(user);
-        setIsAdminLoggedIn(true);
-        setAdminUsername(user.displayName || user.email || 'Admin');
-        localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
+        const hasAdminRole = await verifyAdminPrivileges(user);
+        if (hasAdminRole) {
+          setIsAdminLoggedIn(true);
+          setAdminUsername(user.displayName || user.email || 'Admin');
+        } else {
+          // Normal authenticated user (not an administrator)
+          setIsAdminLoggedIn(false);
+          setAdminUsername(null);
+        }
       } else {
         setAdminUser(null);
         setIsAdminLoggedIn(false);
         setAdminUsername(null);
-        localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
       }
       setIsAuthChecking(false);
     });
@@ -371,53 +407,34 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginAdmin = async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
     const cleanEmail = email.trim();
+    if (!cleanEmail || !pass) {
+      return { success: false, error: 'Please enter both email and password.' };
+    }
+
     try {
       const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, pass);
       const user = userCredential.user;
+      const hasAdminRole = await verifyAdminPrivileges(user);
+
+      if (!hasAdminRole) {
+        // Authenticated with Firebase, but lacks administrator privileges!
+        // Prevent unauthorized dashboard access and alert the user
+        setAdminUser(user);
+        setIsAdminLoggedIn(false);
+        setAdminUsername(null);
+        return {
+          success: false,
+          error: 'Access denied: This Firebase account does not have administrator privileges.',
+        };
+      }
+
       setAdminUser(user);
       setIsAdminLoggedIn(true);
       setAdminUsername(user.displayName || user.email || 'Admin');
-      localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
       return { success: true };
     } catch (error: any) {
       const code = error?.code || '';
-      console.warn("Firebase signInWithEmailAndPassword note:", code || error?.message);
-
-      if (code === 'auth/invalid-credential' || code === 'auth/user-not-found') {
-        try {
-          const newCredential = await createUserWithEmailAndPassword(auth, cleanEmail, pass);
-          const newUser = newCredential.user;
-          setAdminUser(newUser);
-          setIsAdminLoggedIn(true);
-          setAdminUsername(newUser.displayName || newUser.email || 'Admin');
-          localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
-          return { success: true };
-        } catch (createErr: any) {
-          const createCode = createErr?.code || '';
-          if (createCode === 'auth/email-already-in-use') {
-            return {
-              success: false,
-              error: 'Invalid password. Please check your credentials.',
-            };
-          }
-          if (createCode === 'auth/weak-password') {
-            return {
-              success: false,
-              error: 'Password must be at least 6 characters.',
-            };
-          }
-          console.warn("Firebase createUser fallback notice:", createCode || createErr?.message);
-        }
-      }
-
-      const isClubAdminEmail = cleanEmail.toLowerCase() === 'admin@halabafc.et' ||
-                               cleanEmail.toLowerCase() === 'halabacityfc@gmail.com';
-      if (isClubAdminEmail && (pass === 'admin123' || pass === 'halaba2026' || pass === 'Admin123!' || pass === 'admin' || pass.length >= 6)) {
-        setIsAdminLoggedIn(true);
-        setAdminUsername(cleanEmail);
-        localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
-        return { success: true };
-      }
+      console.warn("Firebase signInWithEmailAndPassword notice:", code || error?.message);
 
       let errorMsg = 'Invalid email or password.';
       if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
@@ -590,6 +607,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 
   const addMatch = async (matchData: Omit<Match, 'id'>) => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized addMatch attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     const matchId = `match-${Date.now()}`;
     const newMatch: Match = {
       ...matchData,
@@ -612,6 +633,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateMatch = async (id: string, updates: Partial<Match>) => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized updateMatch attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     const updated = matches.map((m) => (m.id === id ? { ...m, ...updates } : m));
     setMatches(updated);
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(updated));
@@ -634,6 +659,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteMatch = async (id: string) => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized deleteMatch attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     const updated = matches.filter((m) => m.id !== id);
     setMatches(updated);
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(updated));
@@ -651,6 +680,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!Array.isArray(list) || list.length < 18) return true;
     const teamsWithZero = list.filter((t: any) => Number(t.played) === 0).length;
     if (list[0]?.teamId === 'halaba' && Number(list[0]?.points) === 8 && teamsWithZero > 10) return true;
+    const halabaTeam = list.find((t: any) => t.teamId === 'halaba' || t.isHalaba);
+    if (halabaTeam && Number(halabaTeam.played) < 5) return true;
     return false;
   };
 
@@ -767,6 +798,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const updateStanding = async (teamId: string, updates: Partial<StandingTeam>) => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized updateStanding attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     const updated = standings.map((item) => {
       if (item.teamId === teamId) {
         const next = { ...item, ...updates };
@@ -794,6 +829,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetStandings = async () => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized resetStandings attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     localStorage.removeItem(STORAGE_KEYS.STANDINGS);
     setStandings(initialStandings);
     localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(initialStandings));
@@ -985,6 +1024,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isAdminLoggedIn]);
 
   const addNewsArticle = async (art: Omit<NewsArticle, 'id'>) => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized addNewsArticle attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     const newId = `news-${Date.now()}`;
     const newArticle: NewsArticle = {
       ...art,
@@ -1015,6 +1058,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateNewsArticle = async (id: string, updates: Partial<NewsArticle>) => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized updateNewsArticle attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     const updated = news.map((n) => (n.id === id ? { ...n, ...updates } : n));
     setNews(updated);
     setIdbItem('halaba_news_full_cache_v2', updated);
@@ -1030,6 +1077,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteNewsArticle = async (id: string) => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized deleteNewsArticle attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     try {
       await deleteDoc(doc(db, "news", id));
     } catch (error) {
@@ -1161,6 +1212,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [currentPage, isAdminLoggedIn]);
 
   const addPlayer = async (p: Omit<Player, 'id'>) => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized addPlayer attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     const id = `p-${Date.now()}`;
     const newP: Player = { ...p, id };
     const updated = [...players, newP];
@@ -1175,6 +1230,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updatePlayer = async (id: string, updates: Partial<Player>) => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized updatePlayer attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     const updated = players.map((p) => (p.id === id ? { ...p, ...updates } : p));
     setPlayers(updated);
     localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(updated));
@@ -1187,6 +1246,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deletePlayer = async (id: string) => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized deletePlayer attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     const updated = players.filter((p) => p.id !== id);
     setPlayers(updated);
     localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(updated));
@@ -1199,6 +1262,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addStaff = async (s: Omit<StaffMember, 'id'>) => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized addStaff attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     const id = `s-${Date.now()}`;
     const newS: StaffMember = { ...s, id };
     const updated = [...staff, newS];
@@ -1213,6 +1280,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateStaff = async (id: string, updates: Partial<StaffMember>) => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized updateStaff attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     const updated = staff.map((s) => (s.id === id ? { ...s, ...updates } : s));
     setStaff(updated);
     localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(updated));
@@ -1225,6 +1296,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteStaff = async (id: string) => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized deleteStaff attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     const updated = staff.filter((s) => s.id !== id);
     setStaff(updated);
     localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(updated));
@@ -1245,8 +1320,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Supporter membership records are admin-only data.
     // Ordinary visitors never need to listen to all membership records.
-    // This saves hundreds to thousands of reads per user session.
-    if (!isAdminLoggedIn && currentPage !== 'admin') {
+    // This saves hundreds to thousands of reads per user session and prevents unauthorized read errors.
+    if (!isAdminLoggedIn) {
       return;
     }
 
@@ -1301,7 +1376,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       handleFirestoreError(error, OperationType.LIST, 'memberships');
     });
     return () => unsubscribe();
-  }, [isAdminLoggedIn, currentPage]);
+  }, [isAdminLoggedIn]);
 
   const submitMembership = async (data: {
     fullName: string;
@@ -1319,6 +1394,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const referenceNumber = `HCFC-2026-M${randNum}`;
     const id = `mem-${Date.now()}`;
 
+    // Security: Only administrators can pre-approve applications. Public submissions start as PENDING.
     const newApplication: MembershipApplication = {
       id,
       referenceNumber,
@@ -1331,10 +1407,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       membershipType: data.membershipType,
       preferredLanguage: data.preferredLanguage,
       registeredAt: new Date().toISOString(),
-      status: 'APPROVED',
+      status: isAdminLoggedIn ? 'APPROVED' : 'PENDING',
       amountPaid: data.amountPaid,
       tx_ref: data.tx_ref,
-      paymentStatus: 'PAID',
+      paymentStatus: isAdminLoggedIn ? 'PAID' : 'PENDING',
       paymentDate: new Date().toISOString(),
     };
 
@@ -1384,10 +1460,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       membershipType: data.membershipType,
       preferredLanguage: data.preferredLanguage,
       registeredAt: new Date().toISOString(),
-      status: 'APPROVED',
+      status: isAdminLoggedIn ? 'APPROVED' : 'PENDING',
       amountPaid: data.amountPaid,
       tx_ref: data.tx_ref,
-      paymentStatus: 'PAID',
+      paymentStatus: isAdminLoggedIn ? 'PAID' : 'PENDING',
       paymentDate: new Date().toISOString(),
     };
 
@@ -1410,6 +1486,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateMembershipStatus = async (id: string, status: 'APPROVED' | 'PENDING' | 'REJECTED') => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized membership update blocked');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     const updated = memberships.map((m) => (m.id === id ? { ...m, status } : m));
     setMemberships(updated);
     localStorage.setItem(STORAGE_KEYS.MEMBERSHIPS, JSON.stringify(updated));
@@ -1425,6 +1505,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteMembership = async (id: string) => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized membership delete blocked');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     const updated = memberships.filter((m) => m.id !== id);
     setMemberships(updated);
     localStorage.setItem(STORAGE_KEYS.MEMBERSHIPS, JSON.stringify(updated));
@@ -1554,6 +1638,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const addShopItem = async (item: Omit<ShopItem, 'id'>) => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized addShopItem attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     try {
       const docRef = await addDoc(collection(db, 'products'), {
         name: item.name,
@@ -1588,6 +1676,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateShopItem = async (id: string, updates: Partial<ShopItem>) => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized updateShopItem attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     try {
       const productRef = doc(db, 'products', id);
       await setDoc(productRef, {
@@ -1608,6 +1700,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteShopItem = async (id: string) => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized deleteShopItem attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     try {
       const productRef = doc(db, 'products', id);
       await deleteDoc(productRef);
@@ -1625,6 +1721,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetShopItems = async () => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized resetShopItems attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     try {
       for (const item of initialShopItems) {
         await setDoc(doc(db, 'products', item.id), {
@@ -1660,6 +1760,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateShopOrderStatus = (id: string, status: 'PENDING' | 'PAID' | 'DELIVERED') => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized updateShopOrderStatus attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     const updated = shopOrders.map((o) => (o.id === id || o.orderNumber === id ? { ...o, status } : o));
     setShopOrders(updated);
     localStorage.setItem(STORAGE_KEYS.SHOP_ORDERS, JSON.stringify(updated));
@@ -1669,15 +1773,15 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [checkoutItem, setCheckoutItem] = useState<ShopItem | null>(null);
 
-  const openCheckoutModal = (item: ShopItem) => {
+  const openCheckoutModal = useCallback((item: ShopItem) => {
     setCheckoutItem(item);
     setIsCheckoutModalOpen(true);
-  };
+  }, []);
 
-  const closeCheckoutModal = () => {
+  const closeCheckoutModal = useCallback(() => {
     setIsCheckoutModalOpen(false);
     setCheckoutItem(null);
-  };
+  }, []);
 
   // Supporter Donations State
   const [donations, setDonations] = useState<DonationRecord[]>(() => {
@@ -1692,19 +1796,19 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
-  const openDonationModal = () => setIsDonationModalOpen(true);
-  const closeDonationModal = () => setIsDonationModalOpen(false);
+  const openDonationModal = useCallback(() => setIsDonationModalOpen(true), []);
+  const closeDonationModal = useCallback(() => setIsDonationModalOpen(false), []);
 
   // Club Dossier Modal
   const [isDossierOpen, setIsDossierOpen] = useState(false);
-  const openDossier = () => setIsDossierOpen(true);
-  const closeDossier = () => setIsDossierOpen(false);
+  const openDossier = useCallback(() => setIsDossierOpen(true), []);
+  const closeDossier = useCallback(() => setIsDossierOpen(false), []);
 
   // Live Notifications
   const [liveNotifications, setLiveNotifications] = useState<LiveNotification[]>([]);
-  const dismissNotification = (id: string) => {
+  const dismissNotification = useCallback((id: string) => {
     setLiveNotifications((prev) => prev.filter((n) => n.id !== id));
-  };
+  }, []);
 
   // Live Auto-Sync & Simulation Engine
   const [isAutoSyncEnabled, setIsAutoSyncEnabled] = useState(false);
@@ -1713,11 +1817,11 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date>(() => new Date());
 
-  const toggleAutoSync = () => setIsAutoSyncEnabled((prev) => !prev);
-  const setAutoSyncInterval = (interval: number) => {
+  const toggleAutoSync = useCallback(() => setIsAutoSyncEnabled((prev) => !prev), []);
+  const setAutoSyncInterval = useCallback((interval: number) => {
     setAutoSyncIntervalState(interval);
     setSecondsUntilNextSync(interval);
-  };
+  }, []);
 
   const syncNow = async () => {
     setIsSyncing(true);
@@ -2007,7 +2111,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Automatically update standing table and results/fixtures from SportsDB ONLY when the app opens,
   // then uses that cache until the app is closed and reopened (persisting in sessionStorage per session).
   useEffect(() => {
-    const sessionKey = 'halaba_sportsdb_app_session_synced';
+    const sessionKey = 'halaba_sportsdb_app_session_synced_v23';
     const alreadySyncedThisSession = typeof window !== 'undefined' && sessionStorage.getItem(sessionKey) === 'true';
 
     if (!alreadySyncedThisSession) {
@@ -2119,6 +2223,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const addSponsor = async (sponsorData: Omit<Sponsor, 'id'>): Promise<string> => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized addSponsor attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     try {
       const docRef = await addDoc(collection(db, 'sponsors'), {
         name: sponsorData.name,
@@ -2168,6 +2276,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateSponsor = async (id: string, updates: Partial<Sponsor>): Promise<void> => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized updateSponsor attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     try {
       const sponsorRef = doc(db, 'sponsors', id);
       await setDoc(sponsorRef, {
@@ -2192,6 +2304,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteSponsor = async (id: string): Promise<void> => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized deleteSponsor attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     try {
       const sponsorRef = doc(db, 'sponsors', id);
       await deleteDoc(sponsorRef);
@@ -2213,6 +2329,10 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetSponsors = async (): Promise<void> => {
+    if (!isAdminLoggedIn) {
+      console.warn('Unauthorized resetSponsors attempted');
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
     try {
       for (const initS of initialSponsors) {
         await setDoc(doc(db, 'sponsors', initS.id), {
@@ -2256,96 +2376,143 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAdminLoggedIn(false);
   };
 
+  const contextValue = useMemo(() => ({
+    language,
+    setLanguage,
+    t,
+    currentPage,
+    setCurrentPage,
+    selectedArticleId,
+    setSelectedArticleId,
+    selectedMatchId,
+    setSelectedMatchId,
+    isDossierOpen,
+    openDossier,
+    closeDossier,
+    liveNotifications,
+    dismissNotification,
+    isAutoSyncEnabled,
+    toggleAutoSync,
+    autoSyncInterval,
+    setAutoSyncInterval,
+    secondsUntilNextSync,
+    isSyncing,
+    lastSyncTime,
+    syncNow,
+    simulateLiveMatchAction,
+    advanceLeagueMatchday,
+    clubInfo,
+    updateClubInfo,
+    matches,
+    addMatch,
+    updateMatch,
+    deleteMatch,
+    standings,
+    updateStanding,
+    resetStandings,
+    recalculateStandingsFromMatches,
+    news,
+    addNewsArticle,
+    updateNewsArticle,
+    deleteNewsArticle,
+    players,
+    staff,
+    addPlayer,
+    updatePlayer,
+    deletePlayer,
+    addStaff,
+    updateStaff,
+    deleteStaff,
+    memberships,
+    submitMembership,
+    recordVerifiedMembership,
+    updateMembershipStatus,
+    deleteMembership,
+    shopItems,
+    addShopItem,
+    updateShopItem,
+    deleteShopItem,
+    resetShopItems,
+    isProductsLoading,
+    productsSyncError,
+    shopOrders,
+    recordShopOrder,
+    updateShopOrderStatus,
+    isCheckoutModalOpen,
+    checkoutItem,
+    openCheckoutModal,
+    closeCheckoutModal,
+    donations,
+    recordDonation,
+    isDonationModalOpen,
+    openDonationModal,
+    closeDonationModal,
+    isAdminLoggedIn,
+    adminUsername,
+    adminUser,
+    isAuthChecking,
+    loginAdmin,
+    logoutAdmin,
+    sponsors,
+    addSponsor,
+    updateSponsor,
+    deleteSponsor,
+    resetSponsors,
+    isSponsorsLoading,
+    sponsorsSyncError,
+    isOnline,
+    resetAllDataToDefault,
+  }), [
+    language,
+    setLanguage,
+    t,
+    currentPage,
+    setCurrentPage,
+    selectedArticleId,
+    selectedMatchId,
+    isDossierOpen,
+    openDossier,
+    closeDossier,
+    liveNotifications,
+    dismissNotification,
+    isAutoSyncEnabled,
+    toggleAutoSync,
+    autoSyncInterval,
+    setAutoSyncInterval,
+    secondsUntilNextSync,
+    isSyncing,
+    lastSyncTime,
+    clubInfo,
+    matches,
+    standings,
+    news,
+    players,
+    staff,
+    memberships,
+    shopItems,
+    isProductsLoading,
+    productsSyncError,
+    shopOrders,
+    isCheckoutModalOpen,
+    checkoutItem,
+    openCheckoutModal,
+    closeCheckoutModal,
+    donations,
+    isDonationModalOpen,
+    openDonationModal,
+    closeDonationModal,
+    isAdminLoggedIn,
+    adminUsername,
+    adminUser,
+    isAuthChecking,
+    sponsors,
+    isSponsorsLoading,
+    sponsorsSyncError,
+    isOnline,
+  ]);
+
   return (
-    <ClubContext.Provider
-      value={{
-        language,
-        setLanguage,
-        t,
-        currentPage,
-        setCurrentPage,
-        selectedArticleId,
-        setSelectedArticleId,
-        selectedMatchId,
-        setSelectedMatchId,
-        isDossierOpen,
-        openDossier,
-        closeDossier,
-        liveNotifications,
-        dismissNotification,
-        isAutoSyncEnabled,
-        toggleAutoSync,
-        autoSyncInterval,
-        setAutoSyncInterval,
-        secondsUntilNextSync,
-        isSyncing,
-        lastSyncTime,
-        syncNow,
-        simulateLiveMatchAction,
-        advanceLeagueMatchday,
-        clubInfo,
-        updateClubInfo,
-        matches,
-        addMatch,
-        updateMatch,
-        deleteMatch,
-        standings,
-        updateStanding,
-        resetStandings,
-        recalculateStandingsFromMatches,
-        news,
-        addNewsArticle,
-        updateNewsArticle,
-        deleteNewsArticle,
-        players,
-        staff,
-        addPlayer,
-        updatePlayer,
-        deletePlayer,
-        addStaff,
-        updateStaff,
-        deleteStaff,
-        memberships,
-        submitMembership,
-        recordVerifiedMembership,
-        updateMembershipStatus,
-        deleteMembership,
-        shopItems,
-        addShopItem,
-        updateShopItem,
-        deleteShopItem,
-        resetShopItems,
-        isProductsLoading,
-        productsSyncError,
-        shopOrders,
-        recordShopOrder,
-        updateShopOrderStatus,
-        isCheckoutModalOpen,
-        checkoutItem,
-        openCheckoutModal,
-        closeCheckoutModal,
-        donations,
-        recordDonation,
-        isDonationModalOpen,
-        openDonationModal,
-        closeDonationModal,
-        isAdminLoggedIn,
-        adminUsername,
-        adminUser,
-        isAuthChecking,
-        loginAdmin,
-        logoutAdmin,
-        sponsors,
-        addSponsor,
-        updateSponsor,
-        deleteSponsor,
-        resetSponsors,
-        isSponsorsLoading,
-        sponsorsSyncError,
-        isOnline,
-        resetAllDataToDefault,
-      }}
-    >
+    <ClubContext.Provider value={contextValue}>
       {children}
     </ClubContext.Provider>
   );

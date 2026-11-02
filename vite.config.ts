@@ -147,6 +147,9 @@ export default defineConfig(() => {
         },
       }),
     ],
+    optimizeDeps: {
+      include: ['firebase/app', 'firebase/firestore', 'firebase/auth'],
+    },
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),

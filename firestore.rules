@@ -2,8 +2,160 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // =========================================================================
+    // HELPER FUNCTIONS & ROLE VERIFICATION
+    // =========================================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Comprehensive administrator check:
+    // 1. Firebase Authentication custom claims (Primary & most secure standard)
+    // 2. Verified record in /admins/{uid} collection
+    // 3. Fallback check for the club's authorized administrator accounts
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == 'admin' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email != null && (
+          request.auth.token.email in [
+            'admin@halabafc.et',
+            'halabacityfc@gmail.com',
+            'abdpriin@gmail.com'
+          ]
+        ))
+      );
+    }
+
+    // =========================================================================
+    // PUBLIC READ-ONLY COLLECTIONS (ADMIN-ONLY WRITES)
+    // =========================================================================
+
+    // Official Matches, Fixtures & Results
+    match /matches/{matchId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Official League Standings Table
+    match /standings/{teamId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Club News & Press Releases
+    match /news/{newsId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Official Merchandise & Products
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Official Partners & Sponsors
+    match /sponsors/{sponsorId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Senior Squad Players
+    match /players/{playerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Coaching & Technical Staff
+    match /staff/{staffId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Club Information & History
+    match /clubInfo/{infoId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /club/{clubId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // =========================================================================
+    // PROTECTED ADMINISTRATIVE & PRIVATE COLLECTIONS
+    // =========================================================================
+
+    // Authorized Admins Registry (Read-only for self/admin, write-only via Admin SDK)
+    match /admins/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if false;
+    }
+
+    // Membership Applications
+    // - Public visitors can submit applications (status MUST be PENDING, paymentStatus cannot be pre-approved)
+    // - Visitors CANNOT read other visitors' applications
+    // - Only authorized administrators can view all applications, approve, update, or delete records
+    match /memberships/{membershipId} {
+      allow read: if isAdmin() || (
+        isAuthenticated() &&
+        resource.data.email != null &&
+        resource.data.email == request.auth.token.email
+      );
+
+      allow create: if (
+        isAdmin() ||
+        (
+          request.resource.data.fullName is string &&
+          request.resource.data.fullName.size() > 0 &&
+          request.resource.data.phone is string &&
+          request.resource.data.phone.size() > 0 &&
+          request.resource.data.membershipType is string &&
+          // Enforce non-admin constraints: must start as PENDING
+          request.resource.data.status == 'PENDING' &&
+          // Cannot self-verify payments: paymentStatus cannot be PAID or SUCCESS
+          (!('paymentStatus' in request.resource.data) ||
+           request.resource.data.paymentStatus in ['PENDING', 'UNPAID'])
+        )
+      );
+
+      allow update, delete: if isAdmin();
+    }
+
+    // Official Shop Orders
+    // - Visitors can place orders with PENDING status
+    // - Only administrators can inspect customer orders or modify delivery status
+    match /shopOrders/{orderId} {
+      allow read: if isAdmin();
+      allow create: if request.resource.data.status == 'PENDING';
+      allow update, delete: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow read: if isAdmin();
+      allow create: if request.resource.data.status == 'PENDING';
+      allow update, delete: if isAdmin();
+    }
+
+    // Supporter Donations Ledger
+    // - Visitors can submit donations
+    // - Only administrators can read the private transaction ledger
+    match /donations/{donationId} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // DENY ALL OTHER ACCESS BY DEFAULT
+    // =========================================================================
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

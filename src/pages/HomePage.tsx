@@ -16,9 +16,12 @@ import {
   Sparkles,
   Smartphone
 } from 'lucide-react';
-import { AppStoreInstallCard } from '../components/pwa/AppStoreInstallCard';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { SponsorAutoSlider } from '../components/SponsorAutoSlider';
+
+const AppStoreInstallCard = React.lazy(() =>
+  import('../components/pwa/AppStoreInstallCard').then((m) => ({ default: m.AppStoreInstallCard }))
+);
 import {
   getLocalizedTeamName,
   getLocalizedVenue,
@@ -422,8 +425,8 @@ export const HomePage: React.FC<HomePageProps> = ({
               </h2>
               <p className="text-xs text-neutral-400 mt-1">
                 {language === 'am'
-                  ? `የኢትዮጵያ ፕሪሚየር ሊግ (ከፍተኛ ዲቪዚዮን) • የ2026/27 የውድድር ዘመን (ሀላባ ከተማ በ${halabaStanding?.position || 4}ኛ ደረጃ • ${halabaStanding?.points || 5} ነጥብ)`
-                  : `Ethiopian Premier League (Top Tier) • 2026/27 Season (Halaba Ketema in #${halabaStanding?.position || 4} • ${halabaStanding?.points || 5} Pts)`}
+                  ? `የኢትዮጵያ ፕሪሚየር ሊግ (ከፍተኛ ዲቪዚዮን) • የ2026/27 የውድድር ዘመን (ሀላባ ከተማ በ${halabaStanding?.position || 5}ኛ ደረጃ • ${halabaStanding?.points || 8} ነጥብ)`
+                  : `Ethiopian Premier League (Top Tier) • 2026/27 Season (Halaba Ketema in #${halabaStanding?.position || 5} • ${halabaStanding?.points || 8} Pts)`}
               </p>
             </div>
             <button
@@ -667,7 +670,9 @@ export const HomePage: React.FC<HomePageProps> = ({
               </p>
             </div>
 
-            <AppStoreInstallCard mode="embedded" />
+            <React.Suspense fallback={null}>
+              <AppStoreInstallCard mode="embedded" />
+            </React.Suspense>
           </div>
         </section>
       )}

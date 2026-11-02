@@ -60,16 +60,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
   return (
     <header className="sticky top-0 z-50 bg-neutral-950/95 backdrop-blur-md border-b border-red-900/30 text-white shadow-xl">
       {/* Top micro bar for Ethiopian identity and quick info */}
-      <div className="bg-gradient-to-r from-red-950 via-neutral-900 to-green-950 text-xs px-4 py-1.5 border-b border-neutral-800/60 hidden sm:flex justify-between items-center text-neutral-300">
-        <div className="flex items-center gap-3">
-          <span className="inline-flex items-center gap-1.5 font-semibold text-red-400">
+      <div className="bg-gradient-to-r from-red-950 via-neutral-900 to-green-950 text-xs px-4 py-1.5 border-b border-neutral-800/60 hidden sm:flex justify-between items-center text-neutral-300 overflow-hidden">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink-0">
+          <span className="inline-flex items-center gap-1.5 font-semibold text-red-400 whitespace-nowrap shrink-0">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             {t.heroNickname}
           </span>
           <span className="text-neutral-500">•</span>
-          <span>{t.homeGroundValue}</span>
+          <span className="whitespace-nowrap truncate">{t.homeGroundValue}</span>
           <span className="text-neutral-500">•</span>
-          <span className="text-amber-400 font-medium">{t.est1966}</span>
+          <span className="text-amber-400 font-medium whitespace-nowrap shrink-0">{t.est1966}</span>
         </div>
 
         <div className="flex items-center gap-3">
@@ -113,18 +113,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
 
       {/* Main Navigation Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-20 gap-2">
           {/* Brand Logo & Name */}
           <button
             onClick={() => handleNavClick('home')}
-            className="flex items-center gap-3 group text-left focus:outline-none"
+            className="flex items-center gap-3 group text-left focus:outline-none shrink-0"
           >
             <HalabaCrest size={52} showGlow />
-            <div className="flex flex-col">
-              <span className="font-extrabold text-xl sm:text-2xl tracking-wider text-white group-hover:text-red-400 transition-colors uppercase font-sports">
+            <div className="flex flex-col shrink-0 min-w-max">
+              <span className="font-extrabold text-xl sm:text-2xl tracking-wider text-white group-hover:text-red-400 transition-colors uppercase font-sports whitespace-nowrap select-none">
                 HALABA CITY FC
               </span>
-              <span className="text-xs font-semibold tracking-wide text-emerald-400 flex items-center gap-1">
+              <span className="text-xs font-semibold tracking-wide text-emerald-400 flex items-center gap-1 whitespace-nowrap select-none">
                 <span>በርበሬዎቹ</span>
                 <span className="text-neutral-400 font-normal">|</span>
                 <span className="text-amber-400">{language === 'am' ? 'ይፋዊ ድረ-ገጽ' : 'Berberewochu'}</span>
@@ -133,14 +133,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
           </button>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center space-x-1">
+          <nav className="hidden xl:flex items-center space-x-1 shrink-0">
             {navItems.map((item) => {
               const isActive = currentPage === item.id;
               return (
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
-                  className={`px-3 py-2 rounded-md text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 ${
+                  className={`px-3 py-2 rounded-md text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                     isActive
                       ? 'bg-red-600 text-white shadow-md shadow-red-900/40'
                       : 'text-neutral-200 hover:text-white hover:bg-neutral-800/80'
@@ -153,12 +153,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
           </nav>
 
           {/* Right Action Controls: Language & Membership */}
-          <div className="hidden sm:flex items-center space-x-3">
+          <div className="hidden sm:flex items-center space-x-2 lg:space-x-2.5 xl:space-x-3 shrink-0">
             {/* Language Dropdown */}
-            <div className="relative">
+            <div className="relative shrink-0">
               <button
                 onClick={() => setLangDropdownOpen(!langDropdownOpen)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-sm font-medium text-neutral-200 transition-colors"
+                className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-md bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-sm font-medium text-neutral-200 transition-colors whitespace-nowrap shrink-0"
                 aria-label="Select language"
               >
                 <Globe className="w-4 h-4 text-emerald-400" />
@@ -197,7 +197,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
             {/* Donate CTA Button */}
             <button
               onClick={openDonationModal}
-              className="px-3.5 py-2 rounded-md btn-donate-emerald font-bold text-sm tracking-wide transition-all active:scale-95 flex items-center gap-1.5 font-sports uppercase"
+              className="px-3 lg:px-3.5 py-2 rounded-md btn-donate-emerald font-bold text-sm tracking-wide transition-all active:scale-95 flex items-center gap-1.5 font-sports uppercase whitespace-nowrap shrink-0"
             >
               <Heart className="w-3.5 h-3.5 fill-emerald-400" />
               <span>{t.navDonate}</span>
@@ -206,7 +206,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
             {/* Become a Member CTA */}
             <button
               onClick={() => handleNavClick('membership')}
-              className="px-4 py-2 rounded-md btn-membership-join font-bold text-sm tracking-wide shadow-md shadow-red-950/60 hover:shadow-red-800/40 transition-all transform active:scale-95 flex items-center gap-1.5 font-sports uppercase"
+              className="px-3.5 lg:px-4 py-2 rounded-md btn-membership-join font-bold text-sm tracking-wide shadow-md shadow-red-950/60 hover:shadow-red-800/40 transition-all transform active:scale-95 flex items-center gap-1.5 font-sports uppercase whitespace-nowrap shrink-0"
             >
               <UserPlus className="w-4 h-4" />
               <span>{t.navJoinBtn}</span>
@@ -214,14 +214,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="flex items-center gap-2 lg:hidden">
+          <div className="flex items-center gap-2 xl:hidden shrink-0">
             {/* Quick Language Toggle on Mobile */}
             <button
               onClick={() => {
                 const nextLang: Record<Language, Language> = { en: 'am', am: 'om', om: 'en' };
                 setLanguage(nextLang[language]);
               }}
-              className="px-2.5 py-1.5 rounded bg-neutral-900 border border-neutral-700 text-xs font-bold text-emerald-400 uppercase flex items-center gap-1"
+              className="px-2.5 py-1.5 rounded bg-neutral-900 border border-neutral-700 text-xs font-bold text-emerald-400 uppercase flex items-center gap-1 shrink-0"
               title="Switch language"
             >
               <Globe className="w-3.5 h-3.5" />
@@ -230,7 +230,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
 
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-md text-neutral-300 hover:text-white hover:bg-neutral-800 focus:outline-none"
+              className="p-2 rounded-md text-neutral-300 hover:text-white hover:bg-neutral-800 focus:outline-none shrink-0"
               aria-label="Toggle Navigation Menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -241,7 +241,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-neutral-950 border-b border-neutral-800 px-4 pt-2 pb-6 space-y-3">
+        <div className="xl:hidden bg-neutral-950 border-b border-neutral-800 px-4 pt-2 pb-6 space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-neutral-800">
             <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
               {t.selectLanguage}

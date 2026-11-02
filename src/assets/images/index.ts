@@ -20,8 +20,10 @@ import jerseyAwayReal from './firestore_prod_jersey-away-2026.jpg';
 import jerseyThirdReal from './firestore_prod_jersey-third-2026.jpg';
 import netvibeLogo from './netvibe-logo.jpeg';
 import clubLogo from './halaba-city-fc-logo.png';
+import clubLogoWebp from './halaba-city-fc-logo.webp';
 
 export const ClubImages = {
+  clubLogoWebp,
   heroStadium,
   heroStadiumWebp,
   heroStadiumMobile,

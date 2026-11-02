@@ -663,6 +663,64 @@ export const AdminPage: React.FC = () => {
     );
   }
 
+  /* UNAUTHORIZED ACCESS GATE FOR NORMAL AUTHENTICATED USERS */
+  if (adminUser && !isAdminLoggedIn) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-16">
+        <div className="bg-neutral-900 border border-red-800/80 rounded-3xl p-8 sm:p-10 shadow-2xl space-y-6 text-center">
+          <div className="flex justify-center">
+            <div className="w-16 h-16 rounded-full bg-red-950/90 text-red-400 border border-red-700/80 flex items-center justify-center shadow-lg shadow-red-950/60">
+              <AlertTriangle className="w-8 h-8 text-red-400" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-950 text-red-400 text-xxs font-bold uppercase tracking-wider">
+              <Lock className="w-3 h-3" />
+              <span>{language === 'am' ? 'ያልተፈቀደ መግቢያ' : 'Unauthorized Access'}</span>
+            </div>
+            <h1 className="font-sports font-black text-2xl sm:text-3xl text-white uppercase tracking-wider">
+              {language === 'am' ? 'የመዳረሻ ፈቃድ የለዎትም' : 'Access Denied'}
+            </h1>
+            <p className="text-neutral-300 text-xs sm:text-sm leading-relaxed">
+              {language === 'am'
+                ? `በአካውንት ${adminUser.email || ''} ገብተዋል፣ ነገር ግን ይህ አካውንት የአስተዳዳሪ ፈቃድ የለውም።`
+                : `You are signed in as ${adminUser.email || 'a normal user'}, but this account does not possess administrator privileges for HALABA City FC.`}
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-neutral-950 border border-neutral-800 text-left space-y-1.5">
+            <div className="text-xxs uppercase tracking-wider text-neutral-400 font-bold">
+              {language === 'am' ? 'የአስተዳዳሪ ማረጋገጫ' : 'Role Verification'}
+            </div>
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              {language === 'am'
+                ? 'የክለቡ ይፋዊ አስተዳዳሪ ከሆኑ እባክዎ በትክክለኛው የአስተዳዳሪ አካውንት ይግቡ ወይም የክለቡን አይቲ ያነጋግሩ።'
+                : 'If you are an authorized club official, please sign out and sign in with your designated administrator account.'}
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="flex-1 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-bold text-xs uppercase tracking-wider font-sports border border-neutral-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>{isLoggingOut ? 'Signing Out...' : 'Sign Out'}</span>
+            </button>
+            <button
+              onClick={() => setCurrentPage('home')}
+              className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs uppercase tracking-wider font-sports shadow-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>{language === 'am' ? 'ወደ ዋና ገጽ ተመለስ' : 'Return Home'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   /* STRICT LOGIN-ONLY GATE USING FIREBASE AUTHENTICATION */
   if (!isAdminLoggedIn) {
     return (
