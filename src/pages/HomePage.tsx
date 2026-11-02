@@ -18,10 +18,7 @@ import {
 } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { SponsorAutoSlider } from '../components/SponsorAutoSlider';
-
-const AppStoreInstallCard = React.lazy(() =>
-  import('../components/pwa/AppStoreInstallCard').then((m) => ({ default: m.AppStoreInstallCard }))
-);
+import { AppStoreInstallCard } from '../components/pwa/AppStoreInstallCard';
 import {
   getLocalizedTeamName,
   getLocalizedVenue,
@@ -670,9 +667,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               </p>
             </div>
 
-            <React.Suspense fallback={null}>
-              <AppStoreInstallCard mode="embedded" />
-            </React.Suspense>
+            <AppStoreInstallCard mode="embedded" />
           </div>
         </section>
       )}

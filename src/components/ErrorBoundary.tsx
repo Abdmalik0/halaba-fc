@@ -26,6 +26,21 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('[ErrorBoundary caught an error]:', error, errorInfo);
+    // Auto-recover once from dynamic import failures caused by deployment or dev server module invalidation
+    if (
+      typeof window !== 'undefined' &&
+      error?.message &&
+      (error.message.includes('dynamically imported module') ||
+        error.message.includes('Loading chunk') ||
+        error.name === 'ChunkLoadError')
+    ) {
+      const reloadKey = 'halaba_chunk_reload_attempt';
+      const lastAttempt = sessionStorage.getItem(reloadKey);
+      if (!lastAttempt || Date.now() - Number(lastAttempt) > 10000) {
+        sessionStorage.setItem(reloadKey, String(Date.now()));
+        window.location.reload();
+      }
+    }
   }
 
   handleReload = () => {

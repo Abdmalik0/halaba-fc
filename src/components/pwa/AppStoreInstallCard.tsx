@@ -402,3 +402,5 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
 
   return content;
 };
+
+export default AppStoreInstallCard;

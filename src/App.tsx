@@ -28,7 +28,7 @@ const ArticleModal = lazy(() => import('./components/ArticleModal').then((m) => 
 const ClubDossierModal = lazy(() => import('./components/ClubDossierModal').then((m) => ({ default: m.ClubDossierModal })));
 const DonationModal = lazy(() => import('./components/DonationModal').then((m) => ({ default: m.DonationModal })));
 const JerseyCheckoutModal = lazy(() => import('./components/JerseyCheckoutModal').then((m) => ({ default: m.JerseyCheckoutModal })));
-const AppStoreInstallCard = lazy(() => import('./components/pwa/AppStoreInstallCard').then((m) => ({ default: m.AppStoreInstallCard })));
+const AppStoreInstallCard = lazy(() => import('./components/pwa/AppStoreInstallCard').then((m) => ({ default: m.default || m.AppStoreInstallCard })));
 
 const MainApp: React.FC = () => {
   const { currentPage, matches, news, isDossierOpen, closeDossier, isDonationModalOpen, isCheckoutModalOpen } = useClub();
