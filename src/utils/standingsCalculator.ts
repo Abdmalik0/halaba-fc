@@ -121,7 +121,7 @@ export function calculateStandingsFromMatches(
     badgeUrl?: string;
   }>();
 
-  // 1. Initialize all 16 canonical clubs
+  // 1. Initialize all 18 canonical clubs
   Object.entries(defaultClubTemplates).forEach(([id, meta]) => {
     const existing = currentStandings.find((s) => s.teamId === id);
     statsMap.set(id, {

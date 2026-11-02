@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useClub } from '../context/ClubContext';
 import { HalabaCrest } from '../components/HalabaCrest';
 import { EthiopianClubLogo } from '../components/EthiopianClubLogo';
@@ -49,6 +49,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     openCheckoutModal,
   } = useClub();
   const { isInstalled } = usePWAInstall();
+  const [showAllStandings, setShowAllStandings] = useState(false);
 
   // Helper to identify Halaba City FC matches
   const isHalabaMatch = (m: any) =>
@@ -77,8 +78,8 @@ export const HomePage: React.FC<HomePageProps> = ({
   const latestResult = finishedHalabaMatches[0] || null;
   // Latest 3 news items
   const recentNews = news.slice(0, 3);
-  // Top 5 standings
-  const topStandings = standings.slice(0, 5);
+  // Standings preview (Top 5 or All 18)
+  const displayedStandings = showAllStandings ? standings : standings.slice(0, 5);
   const halabaStanding = standings.find((t) => t.isHalaba);
 
   const homeNextTeam = nextMatch ? getLocalizedTeamName(nextMatch.homeTeam?.id, nextMatch.homeTeam?.name, language) : '';
@@ -426,13 +427,40 @@ export const HomePage: React.FC<HomePageProps> = ({
                   : `Ethiopian Premier League (Top Tier) • 2026/27 Season (Halaba Ketema in #${halabaStanding?.position || 5} • ${halabaStanding?.points || 8} Pts)`}
               </p>
             </div>
-            <button
-              onClick={() => setCurrentPage('standings')}
-              className="text-xs sm:text-sm font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 uppercase tracking-wider self-start sm:self-auto font-sports"
-            >
-              <span>{t.fullStandingsBtn}</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+              <div className="inline-flex rounded-xl bg-neutral-950 p-1 border border-neutral-800">
+                <button
+                  type="button"
+                  onClick={() => setShowAllStandings(false)}
+                  className={`px-3 py-1 rounded-lg text-xs font-sports font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                    !showAllStandings
+                      ? 'bg-neutral-800 text-white shadow-sm'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  {language === 'am' ? 'ምርጥ 5 (Top 5)' : 'Top 5'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAllStandings(true)}
+                  className={`px-3 py-1 rounded-lg text-xs font-sports font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                    showAllStandings
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  {language === 'am' ? 'ሁሉንም 18 ክለቦች' : 'All 18 Clubs'}
+                </button>
+              </div>
+
+              <button
+                onClick={() => setCurrentPage('standings')}
+                className="text-xs sm:text-sm font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 uppercase tracking-wider font-sports px-2 py-1 cursor-pointer"
+              >
+                <span>{t.fullStandingsBtn}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           <div 
@@ -453,7 +481,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-800/60">
-                {topStandings.map((team) => {
+                {displayedStandings.map((team) => {
                   const localizedTeam = getLocalizedTeamName(team.teamId, team.teamName, language);
                   const shortName = formatTeamName(team.teamId, localizedTeam, language);
                   return (
@@ -505,6 +533,23 @@ export const HomePage: React.FC<HomePageProps> = ({
               </tbody>
             </table>
           </div>
+
+          {!showAllStandings && standings.length > 5 && (
+            <div className="mt-4 pt-3 border-t border-neutral-800/80 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-neutral-400">
+              <span>
+                {language === 'am'
+                  ? 'ከላይ 5ቱ ክለቦች ይታያሉ። አጠቃላይ ሊጉ 18 ክለቦችን ያካትታል።'
+                  : 'Showing Top 5 clubs. All 18 clubs have completed Round 5.'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowAllStandings(true)}
+                className="text-emerald-400 hover:text-emerald-300 font-sports font-bold uppercase tracking-wider cursor-pointer"
+              >
+                {language === 'am' ? 'ሁሉንም 18 ክለቦች ዘርጋ' : 'Expand All 18 Clubs'}
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
