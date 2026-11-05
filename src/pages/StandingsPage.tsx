@@ -45,7 +45,7 @@ export const StandingsPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
             {/* Live SportsDB Sync Button */}
             <button
-              onClick={syncNow}
+              onClick={() => syncNow(true)}
               disabled={isSyncing}
               className="flex items-center gap-2 px-3.5 py-2 rounded-xl btn-secondary-amber font-sports font-bold text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 disabled:opacity-50"
               title="Sync directly with TheSportsDB official data"

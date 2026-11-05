@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { collection, query, orderBy, limit, onSnapshot, addDoc, setDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, User } from 'firebase/auth';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
@@ -65,7 +65,7 @@ interface ClubContextType {
   secondsUntilNextSync: number;
   isSyncing: boolean;
   lastSyncTime: Date;
-  syncNow: () => void;
+  syncNow: (isManual?: boolean) => Promise<void> | void;
   simulateLiveMatchAction: () => void;
   advanceLeagueMatchday: () => void;
 
@@ -530,12 +530,15 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 console.warn('LocalStorage error caching matches:', e);
               }
 
-              // Synchronize official fixtures into Firestore without overwriting custom admin fields
-              for (const fm of halabaOnly) {
-                try {
-                  await setDoc(doc(db, 'matches', fm.id), { ...fm, updatedAt: serverTimestamp() }, { merge: true });
-                } catch {
-                  // Ignore background network/permission notice
+              // Synchronize official fixtures into Firestore only if admin is logged in
+              // This avoids 17 unnecessary document writes and prevents broadcasting read updates to all clients on every visitor app open
+              if (isAdminLoggedIn) {
+                for (const fm of halabaOnly) {
+                  try {
+                    await setDoc(doc(db, 'matches', fm.id), { ...fm, updatedAt: serverTimestamp() }, { merge: true });
+                  } catch {
+                    // Ignore background network/permission notice
+                  }
                 }
               }
 
@@ -849,7 +852,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const recalculateStandingsFromMatches = async () => {
-    await syncNow();
+    await syncNow(true);
   };
 
 
@@ -1107,6 +1110,9 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved ? JSON.parse(saved) : initialStaff;
   });
 
+  const hasLoadedPlayersRef = useRef<boolean>(false);
+  const hasLoadedStaffRef = useRef<boolean>(false);
+
   useEffect(() => {
     // Only subscribe to players if on About or Admin page, or if admin is logged in
     // This saves 16 document reads on all other page views (home, fixtures, standings, etc.)
@@ -1114,8 +1120,14 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
+    // Reuse session data for visitors to prevent re-reading all 16 documents on every page navigation
+    if (!isAdminLoggedIn && hasLoadedPlayersRef.current && players.length > 0) {
+      return;
+    }
+
     const playersRef = collection(db, 'players');
     const unsubscribe = onSnapshot(playersRef, async (snapshot) => {
+      hasLoadedPlayersRef.current = true;
       if (snapshot.empty) {
         if (isAdminLoggedIn) {
           const seeded = localStorage.getItem('hcfc_firestore_players_seeded');
@@ -1160,7 +1172,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       handleFirestoreError(error, OperationType.LIST, 'players');
     });
     return () => unsubscribe();
-  }, [currentPage, isAdminLoggedIn]);
+  }, [currentPage, isAdminLoggedIn, players.length]);
 
   useEffect(() => {
     // Only subscribe to staff if on About or Admin page, or if admin is logged in
@@ -1169,8 +1181,14 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
+    // Reuse session data for visitors to prevent re-reading all 6 documents on every page navigation
+    if (!isAdminLoggedIn && hasLoadedStaffRef.current && staff.length > 0) {
+      return;
+    }
+
     const staffRef = collection(db, 'staff');
     const unsubscribe = onSnapshot(staffRef, async (snapshot) => {
+      hasLoadedStaffRef.current = true;
       if (snapshot.empty) {
         if (isAdminLoggedIn) {
           const seeded = localStorage.getItem('hcfc_firestore_staff_seeded');
@@ -1209,7 +1227,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       handleFirestoreError(error, OperationType.LIST, 'staff');
     });
     return () => unsubscribe();
-  }, [currentPage, isAdminLoggedIn]);
+  }, [currentPage, isAdminLoggedIn, staff.length]);
 
   const addPlayer = async (p: Omit<Player, 'id'>) => {
     if (!isAdminLoggedIn) {
@@ -1543,11 +1561,24 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
   const [isProductsLoading, setIsProductsLoading] = useState<boolean>(false);
   const [productsSyncError, setProductsSyncError] = useState<string | null>(null);
+  const hasLoadedProductsRef = useRef<boolean>(false);
 
   useEffect(() => {
+    // Only subscribe to products if visitor is on Shop or Admin page, or if admin is logged in
+    // This saves document reads on startup for visitors who only view home, fixtures, or standings
+    if (currentPage !== 'shop' && currentPage !== 'admin' && !isAdminLoggedIn) {
+      return;
+    }
+
+    // Reuse session data for visitors to prevent re-reading on every shop page navigation
+    if (!isAdminLoggedIn && hasLoadedProductsRef.current && shopItems.length > 0) {
+      return;
+    }
+
     const productsRef = collection(db, 'products');
 
     const unsubscribe = onSnapshot(productsRef, async (snapshot) => {
+      hasLoadedProductsRef.current = true;
       setIsProductsLoading(false);
       setProductsSyncError(null);
 
@@ -1635,7 +1666,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [currentPage, isAdminLoggedIn, shopItems.length]);
 
   const addShopItem = async (item: Omit<ShopItem, 'id'>) => {
     if (!isAdminLoggedIn) {
@@ -1823,7 +1854,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSecondsUntilNextSync(interval);
   }, []);
 
-  const syncNow = async () => {
+  const syncNow = async (isManual: boolean = false) => {
     setIsSyncing(true);
     let freshStandings: StandingTeam[] | null = null;
     let syncSource = 'TheSportsDB Official EPL Feed';
@@ -1977,11 +2008,14 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
               } catch (e) {
                 console.warn('LocalStorage error caching matches:', e);
               }
-              for (const fm of halabaOnly) {
-                try {
-                  await setDoc(doc(db, 'matches', fm.id), { ...fm, updatedAt: serverTimestamp() }, { merge: true });
-                } catch {
-                  // ignore
+              // Write back to Firestore only if user is logged in as administrator
+              if (isAdminLoggedIn) {
+                for (const fm of halabaOnly) {
+                  try {
+                    await setDoc(doc(db, 'matches', fm.id), { ...fm, updatedAt: serverTimestamp() }, { merge: true });
+                  } catch {
+                    // ignore
+                  }
                 }
               }
             }
@@ -1994,14 +2028,17 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLastSyncTime(new Date());
       setSecondsUntilNextSync(autoSyncInterval);
 
-      const syncNotif: LiveNotification = {
-        id: `sync-${Date.now()}`,
-        type: 'sync',
-        title: 'TheSportsDB Official Feed Synced',
-        message: `Official Ethiopian Premier League table, Halaba City fixtures & results synchronized from ${syncSource}.`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      };
-      setLiveNotifications((prev) => [syncNotif, ...prev.slice(0, 9)]);
+      // Only display the synced notification popup if triggered manually (not on startup)
+      if (isManual) {
+        const syncNotif: LiveNotification = {
+          id: `sync-${Date.now()}`,
+          type: 'sync',
+          title: 'TheSportsDB Official Feed Synced',
+          message: `Official Ethiopian Premier League table, Halaba City fixtures & results synchronized from ${syncSource}.`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        };
+        setLiveNotifications((prev) => [syncNotif, ...prev.slice(0, 9)]);
+      }
     } catch (error: any) {
       console.warn('Notice in syncNow:', error?.message || error);
     } finally {
@@ -2105,7 +2142,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const advanceLeagueMatchday = async () => {
-    await syncNow();
+    await syncNow(true);
   };
 
   // Automatically update standing table and results/fixtures from SportsDB ONLY when the app opens,
@@ -2115,7 +2152,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const alreadySyncedThisSession = typeof window !== 'undefined' && sessionStorage.getItem(sessionKey) === 'true';
 
     if (!alreadySyncedThisSession) {
-      syncNow().then(() => {
+      syncNow(false).then(() => {
         try {
           sessionStorage.setItem(sessionKey, 'true');
         } catch {

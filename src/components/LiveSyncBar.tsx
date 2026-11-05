@@ -105,7 +105,7 @@ export const LiveSyncBar: React.FC = () => {
 
           {/* Manual Sync Now Button */}
           <button
-            onClick={syncNow}
+            onClick={() => syncNow(true)}
             disabled={isSyncing}
             className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white font-semibold transition-all disabled:opacity-60 active:scale-95 cursor-pointer"
             title={language === 'am' ? 'አሁን አድስ' : 'Fetch and recalculate now'}

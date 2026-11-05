@@ -2128,7 +2128,7 @@ export const AdminPage: React.FC = () => {
 
             <div className="flex items-center gap-2">
               <button
-                onClick={syncNow}
+                onClick={() => syncNow(true)}
                 disabled={isSyncing}
                 className="px-4 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-bold uppercase tracking-wider font-sports flex items-center gap-2 transition-all disabled:opacity-60"
               >
