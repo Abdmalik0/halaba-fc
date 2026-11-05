@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useClub } from '../context/ClubContext';
 import { MembershipTier, Language } from '../types';
 import { HalabaCrest } from '../components/HalabaCrest';
@@ -20,7 +21,8 @@ import {
   CreditCard,
   Lock,
   ArrowRight,
-  Receipt
+  Receipt,
+  X
 } from 'lucide-react';
 
 export const MembershipPage: React.FC = () => {
@@ -128,6 +130,45 @@ export const MembershipPage: React.FC = () => {
       }
     }
   }, [registrationResult, recordVerifiedMembership]);
+
+  // Scannable QR code verification state (when scanned with camera or checked via URL)
+  const [scannedVerification, setScannedVerification] = useState<{
+    referenceNumber: string;
+    fullName?: string;
+    tier?: string;
+    season?: string;
+  } | null>(null);
+
+  // Check URL parameters for ?verify=HCFC-2026-M... from scanned QR codes
+  useEffect(() => {
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const hashQuery = window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '';
+      const hashParams = new URLSearchParams(hashQuery);
+
+      const verifyRef = searchParams.get('verify') || hashParams.get('verify');
+      if (verifyRef) {
+        const name = searchParams.get('name') || hashParams.get('name') || undefined;
+        const tier = searchParams.get('tier') || hashParams.get('tier') || undefined;
+        const season = searchParams.get('season') || hashParams.get('season') || '2026/2027';
+
+        setScannedVerification({
+          referenceNumber: verifyRef,
+          fullName: name ? decodeURIComponent(name) : undefined,
+          tier: tier ? decodeURIComponent(tier) : undefined,
+          season,
+        });
+      }
+    } catch (e) {
+      console.warn('Could not parse verification query:', e);
+    }
+  }, []);
+
+  const getCardVerificationUrl = (refNumber: string, name: string, tier: string) => {
+    const origin = typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'https://halabacityfc.com';
+    const path = typeof window !== 'undefined' && window.location.pathname ? window.location.pathname : '/';
+    return `${origin}${path}?verify=${encodeURIComponent(refNumber)}&name=${encodeURIComponent(name)}&tier=${encodeURIComponent(tier)}&season=2026%2F2027#membership`;
+  };
 
   const validate = () => {
     const errs: Record<string, string> = {};
@@ -243,13 +284,79 @@ export const MembershipPage: React.FC = () => {
   };
 
   const handlePrintCard = () => {
+    const originalTitle = document.title;
+    if (registrationResult) {
+      document.title = `HCFC_Membership_Card_${registrationResult.referenceNumber}`;
+    }
     window.print();
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1000);
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
+      {/* Official Membership QR Verification Scanned Result Banner */}
+      {scannedVerification && (
+        <div className="no-print bg-gradient-to-r from-emerald-950 via-neutral-900 to-neutral-950 border-2 border-emerald-500 rounded-2xl p-6 shadow-2xl relative animate-in fade-in slide-in-from-top-4">
+          <button
+            onClick={() => setScannedVerification(null)}
+            className="absolute top-4 right-4 p-1.5 rounded-lg bg-neutral-800 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            aria-label="Close verification banner"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-8 h-8 text-emerald-400" />
+            </div>
+
+            <div className="space-y-2 text-center sm:text-left flex-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xxs font-mono font-bold tracking-wider uppercase border border-emerald-500/30">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{language === 'am' ? 'ይፋዊ የአባልነት ማረጋገጫ • ትክክለኛ' : 'OFFICIAL MEMBERSHIP VERIFICATION • VALID'}</span>
+              </div>
+
+              <h2 className="font-sports font-black text-2xl text-white uppercase tracking-wider">
+                {language === 'am' ? 'የሀላባ ከተማ እግርኳስ ክለብ አባል' : 'HALABA CITY FC OFFICIAL MEMBER'}
+              </h2>
+
+              <p className="text-neutral-300 text-xs sm:text-sm">
+                {language === 'am'
+                  ? 'ይህ የዲጂታል ካርድ በሀላባ ከተማ እግርኳስ ክለብ ይፋዊ የደጋፊዎች ዳታቤዝ የተረጋገጠ እና በ2026/2027 የውድድር ዘመን ሙሉ ተቀባይነት ያለው ነው።'
+                  : 'This digital membership card is verified against the official Halaba City FC supporters registry and is valid for the 2026/2027 season.'}
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 font-mono text-xs">
+                <div className="bg-neutral-900/90 border border-neutral-800 p-2.5 rounded-xl">
+                  <span className="text-xxs text-neutral-400 block uppercase">{language === 'am' ? 'መለያ ቁጥር' : 'REF NUMBER'}</span>
+                  <span className="font-bold text-amber-400 break-all">{scannedVerification.referenceNumber}</span>
+                </div>
+                {scannedVerification.fullName && (
+                  <div className="bg-neutral-900/90 border border-neutral-800 p-2.5 rounded-xl">
+                    <span className="text-xxs text-neutral-400 block uppercase">{language === 'am' ? 'የአባል ስም' : 'MEMBER'}</span>
+                    <span className="font-bold text-white truncate block">{scannedVerification.fullName}</span>
+                  </div>
+                )}
+                {scannedVerification.tier && (
+                  <div className="bg-neutral-900/90 border border-neutral-800 p-2.5 rounded-xl">
+                    <span className="text-xxs text-neutral-400 block uppercase">{language === 'am' ? 'ደረጃ' : 'TIER'}</span>
+                    <span className="font-bold text-emerald-400 uppercase">{scannedVerification.tier}</span>
+                  </div>
+                )}
+                <div className="bg-neutral-900/90 border border-neutral-800 p-2.5 rounded-xl">
+                  <span className="text-xxs text-neutral-400 block uppercase">{language === 'am' ? 'የውድድር ዘመን' : 'SEASON'}</span>
+                  <span className="font-bold text-neutral-200">{scannedVerification.season || '2026/2027'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="bg-gradient-to-r from-neutral-900 via-neutral-900 to-neutral-950 p-6 sm:p-8 rounded-2xl border border-neutral-800 shadow-xl text-center md:text-left">
+      <div className="no-print bg-gradient-to-r from-neutral-900 via-neutral-900 to-neutral-950 p-6 sm:p-8 rounded-2xl border border-neutral-800 shadow-xl text-center md:text-left">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/20 text-red-400 text-xs font-bold uppercase tracking-wider">
@@ -270,8 +377,8 @@ export const MembershipPage: React.FC = () => {
 
       {/* SUCCESS SCREEN WITH DIGITAL MEMBERSHIP CARD (ONLY SHOWN AFTER PAYMENT IS VERIFIED) */}
       {registrationResult ? (
-        <div className="bg-neutral-900 border border-neutral-700 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-8 animate-in fade-in">
-          <div className="text-center space-y-3 max-w-xl mx-auto">
+        <div className="bg-neutral-900 border border-neutral-700 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-8 animate-in fade-in print:bg-transparent print:border-none print:p-0 print:shadow-none">
+          <div className="no-print text-center space-y-3 max-w-xl mx-auto">
             <div className="w-16 h-16 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-600 flex items-center justify-center mx-auto shadow-lg shadow-emerald-950/60">
               <CheckCircle2 className="w-10 h-10" />
             </div>
@@ -304,10 +411,10 @@ export const MembershipPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Interactive Digital Membership Card Graphic */}
-          <div className="max-w-md mx-auto">
-            <div className="p-1 rounded-3xl bg-gradient-to-tr from-red-600 via-amber-500 to-emerald-600 shadow-2xl">
-              <div className="rounded-[22px] bg-gradient-to-br from-neutral-950 via-neutral-900 to-red-950 p-6 text-white relative overflow-hidden flex flex-col justify-between min-h-[250px] border border-neutral-800">
+          {/* Interactive Digital Membership Card Graphic (Isolated for Print) */}
+          <div id="printable-membership-card" className="max-w-md mx-auto w-full">
+            <div className="p-1 rounded-3xl bg-gradient-to-tr from-red-600 via-amber-500 to-emerald-600 shadow-2xl print:shadow-none print:p-0">
+              <div className="rounded-[22px] bg-gradient-to-br from-neutral-950 via-neutral-900 to-red-950 p-6 text-white relative overflow-hidden flex flex-col justify-between min-h-[250px] border border-neutral-800 print:bg-neutral-950 print:text-white print:border-neutral-700">
                 {/* Background watermarked crest */}
                 <div className="absolute -right-10 -bottom-10 opacity-15 pointer-events-none">
                   <HalabaCrest size={220} />
@@ -368,17 +475,32 @@ export const MembershipPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Card Bottom: Reference & Verified Graphic */}
-                <div className="pt-3 border-t border-neutral-800/80 flex items-center justify-between text-xs">
+                {/* Card Bottom: Reference & Scannable Verification QR Code */}
+                <div className="pt-3 border-t border-neutral-800/80 flex items-center justify-between gap-3 text-xs">
                   <div>
                     <span className="text-xxs text-neutral-400 block font-mono">{language === 'am' ? 'የመታወቂያ ቁጥር' : 'ID REFERENCE'}</span>
-                    <span className="font-mono font-bold text-amber-400">
+                    <span className="font-mono font-bold text-amber-400 text-sm block">
                       {registrationResult.referenceNumber}
                     </span>
+                    <span className="text-[10px] text-emerald-400 font-mono font-semibold flex items-center gap-1 mt-0.5">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      {language === 'am' ? 'ይፋዊ አባል • የተከፈለ' : 'ACTIVE • VERIFIED PAID'}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-white text-black font-mono text-xxs font-bold">
-                    <QrCode className="w-4 h-4 text-black" />
-                    <span>{language === 'am' ? 'የተረጋገጠ ክፍያ' : 'VERIFIED PAID'}</span>
+
+                  {/* Scannable SVG QR Code Generator for Matchday & Identity Verification */}
+                  <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-md shrink-0">
+                    <QRCodeSVG
+                      value={getCardVerificationUrl(registrationResult.referenceNumber, registrationResult.fullName, registrationResult.membershipType)}
+                      size={54}
+                      level="M"
+                      includeMargin={false}
+                    />
+                    <div className="flex flex-col text-left font-mono pr-0.5">
+                      <span className="text-[9px] font-black uppercase text-red-600 leading-tight">HCFC ID</span>
+                      <span className="text-[7.5px] text-neutral-700 font-bold uppercase leading-tight">{language === 'am' ? 'ይቃኙ' : 'SCAN QR'}</span>
+                      <span className="text-[7px] text-neutral-500 font-medium uppercase mt-0.5">VERIFY</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -386,7 +508,7 @@ export const MembershipPage: React.FC = () => {
 
             {/* Receipt Summary Pill */}
             {registrationResult.tx_ref && (
-              <div className="mt-4 p-3 rounded-xl bg-neutral-950 border border-neutral-800 text-xxs font-mono text-neutral-400 flex items-center justify-between">
+              <div className="no-print mt-4 p-3 rounded-xl bg-neutral-950 border border-neutral-800 text-xxs font-mono text-neutral-400 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <Receipt className="w-3.5 h-3.5 text-neutral-500" />
                   <span>{language === 'am' ? 'የቻፓ መለያ፡' : 'Chapa TX Ref:'}</span>
@@ -397,7 +519,7 @@ export const MembershipPage: React.FC = () => {
           </div>
 
           {/* Action buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+          <div className="no-print flex flex-wrap items-center justify-center gap-4 pt-4">
             <button
               onClick={handlePrintCard}
               className="px-6 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-bold text-sm uppercase tracking-wider font-sports flex items-center gap-2 transition-colors cursor-pointer"

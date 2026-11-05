@@ -510,3 +510,80 @@ select,
     padding-right: 0.5rem;
   }
 }
+
+/* ==========================================================================
+   ISOLATED PRINT STYLES FOR DIGITAL MEMBERSHIP CARD
+   Ensures ONLY the digital membership card is printed, centered on clean paper
+   without headers, footers, form elements, buttons, or website clutter.
+   ========================================================================== */
+@media print {
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100% !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Reset layout wrappers to avoid page break or clipping issues */
+  #root, main, .min-h-screen {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    min-height: auto !important;
+    height: auto !important;
+    display: block !important;
+  }
+
+  /* Hide everything on the page by default */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Explicitly remove all website layout chrome from the print flow */
+  header,
+  nav,
+  footer,
+  aside,
+  button,
+  .navbar,
+  .mobile-footer,
+  .no-print,
+  .no-print * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Make ONLY the printable membership card and its descendants visible */
+  #printable-membership-card,
+  #printable-membership-card * {
+    visibility: visible !important;
+  }
+
+  /* Center the card cleanly in the print viewport */
+  #printable-membership-card {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: 30px !important;
+    margin: 0 auto !important;
+    width: 440px !important;
+    max-width: 95% !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    z-index: 999999 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  @page {
+    size: auto;
+    margin: 10mm;
+  }
+}

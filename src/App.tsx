@@ -61,13 +61,19 @@ const MainApp: React.FC = () => {
       <AppStartupLoader minDurationMs={1200} />
 
       {/* Top Navigation */}
-      <Navbar onOpenInstallModal={openInstallModal} isInstalled={isInstalled} />
+      <div className="no-print">
+        <Navbar onOpenInstallModal={openInstallModal} isInstalled={isInstalled} />
+      </div>
 
       {/* Floating Live Goal & Standings Notifications */}
-      <LiveNotificationToast />
+      <div className="no-print">
+        <LiveNotificationToast />
+      </div>
 
       {/* Graceful Offline Interruption Layer */}
-      <OfflineInterruptedOverlay />
+      <div className="no-print">
+        <OfflineInterruptedOverlay />
+      </div>
 
       {/* Main Page Body with Suspense Fallback */}
       <main className="flex-1 w-full pb-28 sm:pb-0">
@@ -94,10 +100,14 @@ const MainApp: React.FC = () => {
       </main>
 
       {/* Mobile Fixed Footer */}
-      <MobileFixedFooter />
+      <div className="no-print">
+        <MobileFixedFooter />
+      </div>
 
       {/* Footer */}
-      <Footer />
+      <div className="no-print">
+        <Footer />
+      </div>
 
       {/* Suspense-guarded Modals */}
       <Suspense fallback={null}>
