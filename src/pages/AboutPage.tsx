@@ -265,12 +265,6 @@ export const AboutPage: React.FC = () => {
                   {getLocalizedPosition(player.position, language)}
                 </span>
               </div>
-
-              <div className="mt-4 pt-3 border-t border-neutral-800/80 flex items-center justify-between text-xs text-neutral-400 font-mono">
-                <span>{player.appearances} {t.appearances}</span>
-                <span>{player.goals} {t.goals}</span>
-                <span>{player.birthYear}</span>
-              </div>
             </div>
           ))}
         </div>

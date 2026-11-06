@@ -135,25 +135,45 @@ export const getLocalizedTeamName = (teamId?: string, teamName?: string, lang: L
 };
 
 export const playerTranslations: Record<string, Record<Language, string>> = {
-  'Biniam Teklu': { en: 'Biniam Teklu', am: 'ቢንያም ተክሉ', om: 'Biniyaam Takluu' },
-  'Mekonnen Abera': { en: 'Mekonnen Abera', am: 'መኮንን አበራ', om: 'Makonnin Abarraa' },
-  'Henok Haile': { en: 'Henok Haile', am: 'ሄኖክ ኃይሌ', om: 'Heenook Haayilee' },
-  'Biruk Tadesse': { en: 'Biruk Tadesse', am: 'ብሩክ ታደሰ', om: 'Biruk Taaddasaa' },
-  'Samson Fikru': { en: 'Samson Fikru', am: 'ሳምሶን ፍቅሩ', om: 'Saamsoon Fiqruu' },
-  'Kassahun Negash': { en: 'Kassahun Negash', am: 'ካሳሁን ነጋሽ', om: 'Kaassaahuun Nagaash' },
-  'Mohammed Seid': { en: 'Mohammed Seid', am: 'መሀመድ ሰይድ', om: 'Mahaammad Sa’iid' },
-  'Amanuel Tesfaye': { en: 'Amanuel Tesfaye', am: 'አማኑኤል ተስፋዬ', om: 'Amaanu’eel Tasfaayee' },
-  'Yohannes Bekele': { en: 'Yohannes Bekele', am: 'ዮሐንስ በቀለ', om: 'Yohaannis Baqqalaa' },
-  'Desta Alemayehu': { en: 'Desta Alemayehu', am: 'ደስታ አለማየሁ', om: 'Dastaa Alamayyahu' },
-  'Abdi Gemeda': { en: 'Abdi Gemeda', am: 'አብዲ ገመዳ', om: 'Abdi Gamadaa' },
-  'Elias Zewdu': { en: 'Elias Zewdu', am: 'ኤልያስ ዘውዱ', om: 'Eeliyaas Zawuduu' },
-  'Mulugeta Wolde': { en: 'Mulugeta Wolde', am: 'ሙሉጌታ ወልዴ', om: 'Muluugeetaa Waldee' },
-  'Biniam Getachew': { en: 'Biniam Getachew', am: 'ቢንያም ጌታቸው', om: 'Biniyaam Getaachoo' },
-  'Tarekegn Assefa': { en: 'Tarekegn Assefa', am: 'ታሪከኝ አሰፋ', om: 'Taarikaññ Asaffaa' },
-  'Fikadu Shiferaw': { en: 'Fikadu Shiferaw', am: 'ፍቃዱ ሽፈራው', om: 'Fiqaaduu Shifarraaw' },
-  'Kaleb Amankwah': { en: 'Kaleb Amankwah', am: 'ካሌብ አማንክዋህ', om: 'Kaaleeb Amaankwaa' },
-  'Romaric': { en: 'Romaric', am: 'ሮማሪክ', om: 'Roomaariik' },
-  'Yonatan Hailu': { en: 'Yonatan Hailu', am: 'ዮናታን ኃይሉ', om: 'Yoonaataan Haayiluu' },
+  // Goalkeepers
+  'Rayan Obin': { en: 'Rayan Obin', am: 'ራያን ኦቢን', om: 'Raayaan Oobiin' },
+  'Abatu Jarso': { en: 'Abatu Jarso', am: 'አባቱ ጃርሶ', om: 'Abaatuu Jaarsoo' },
+  'Ezedin Masresha': { en: 'Ezedin Masresha', am: 'እዘዲን ማስረሻ', om: 'Izzaddiin Masrashaa' },
+
+  // Defenders
+  'Kaleb Amankuah': { en: 'Kaleb Amankuah', am: 'ካሌብ አማንክዋህ', om: 'Kaaleeb Amaankwaa' },
+  'Nesredin Haylu': { en: 'Nesredin Haylu', am: 'ነስረዲን ኃይሉ', om: 'Nasradiin Haayiluu' },
+  'Yared Mohammed': { en: 'Yared Mohammed', am: 'ያሬድ መሀመድ', om: 'Yaareed Mahaammad' },
+  'Kirubel Wendimu': { en: 'Kirubel Wendimu', am: 'ኪሩቤል ወንድሙ', om: 'Kiirubeel Wandimmuu' },
+  'Tsegab Yohans': { en: 'Tsegab Yohans', am: 'ፀጋብ ዮሐንስ', om: 'Tsagaab Yohaannis' },
+  'Kirubel Fikremarkos': { en: 'Kirubel Fikremarkos', am: 'ኪሩቤል ፍቅረማርቆስ', om: 'Kiirubeel Fiqramaarqoos' },
+  'Abdulkerim Rameto': { en: 'Abdulkerim Rameto', am: 'አብዱልከሪም ራመቶ', om: 'Abdulkariim Raamatoo' },
+  'Jilalu Muhdin': { en: 'Jilalu Muhdin', am: 'ጂላሉ ሙህዲን', om: 'Jiilaaluu Muhdiin' },
+  'Chernet Dembushe': { en: 'Chernet Dembushe', am: 'ቸርነት ደምቡሼ', om: 'Charnat Dambuushee' },
+  'Hayder Shukr': { en: 'Hayder Shukr', am: 'ሃይደር ሹክር', om: 'Haaydar Shukri' },
+
+  // Midfielders
+  'Samba Seck': { en: 'Samba Seck', am: 'ሳምባ ሴክ', om: 'Saambaa Seek' },
+  'Firew Solomon': { en: 'Firew Solomon', am: 'ፍሬው ሰለሞን', om: 'Fireew Solomoon' },
+  'Seid Girma': { en: 'Seid Girma', am: 'ሰይድ ግርማ', om: 'Sa’iid Girmaa' },
+  'Husam Selman': { en: 'Husam Selman', am: 'ሁሳም ሰልማን', om: 'Husaam Salmaan' },
+  'Biniyam Deginet': { en: 'Biniyam Deginet', am: 'ቢንያም ደግነት', om: 'Biniyaam Daginat' },
+  'Fasil Abebayehu': { en: 'Fasil Abebayehu', am: 'ፋሲል አበበየሁ', om: 'Faasiil Abbabayyahu' },
+  'Behaylu Girma': { en: 'Behaylu Girma', am: 'በኃይሉ ግርማ', om: 'Bahaayiluu Girmaa' },
+
+  // Forwards
+  'Shimekt Gugsa': { en: 'Shimekt Gugsa', am: 'ሽመክት ጉግሳ', om: 'Shimagkit Gugsisa' },
+  'Yonatan Haylu': { en: 'Yonatan Haylu', am: 'ዮናታን ኃይሉ', om: 'Yoonaataan Haayiluu' },
+  'Konkoni Hafz': { en: 'Konkoni Hafz', am: 'ኮንኮኒ ሃፍዝ', om: 'Koonkoonii Haafiz' },
+  'Abush Derbe': { en: 'Abush Derbe', am: 'አቡሽ ደርቤ', om: 'Abuush Darbee' },
+  'Fiseha Tomas': { en: 'Fiseha Tomas', am: 'ፍሰሃ ቶማስ', om: 'Fissahaa Toomaas' },
+  'Siraj Kedir': { en: 'Siraj Kedir', am: 'ሲራጅ ከዲር', om: 'Siraaj Kadiir' },
+  'Tsega Derbe': { en: 'Tsega Derbe', am: 'ፀጋ ደርቤ', om: 'Tsaggaa Darbee' },
+  'Israel Shegole': { en: 'Israel Shegole', am: 'እስራኤል ሸጎሌ', om: 'Israa’eel Shagolee' },
+  'Natinael Solomon': { en: 'Natinael Solomon', am: 'ናትናኤል ሰለሞን', om: 'Naatinaa’eel Solomoon' },
+  'Abdulkerim Kelifa': { en: 'Abdulkerim Kelifa', am: 'አብዱልከሪም ከሊፋ', om: 'Abdulkariim Kaliifaa' },
+
+  // Management Staff
   'Dr. Kassim Ahmed': { en: 'Dr. Kassim Ahmed', am: 'ዶ/ር ቃሲም አህመድ', om: 'Dr. Qaasim Ahimad' },
   'Solomon Kebede': { en: 'Solomon Kebede', am: 'ሰለሞን ከበደ', om: 'Solomoon Kabbadaa' },
   'Getachew Dinberu': { en: 'Getachew Dinberu', am: 'ጌታቸው ድንበሩ', om: 'Getaachoo Dinbaruu' },

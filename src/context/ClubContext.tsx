@@ -1099,10 +1099,74 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Helper to guarantee the official 30-player roster is completely populated.
+  // Even if Firestore or local storage has partial/draft records (such as 14 players),
+  // this merges custom stats/photos while ensuring all 30 squad members are included.
+  const reconcileSquadWithOfficialList = (liveList: Player[]): Player[] => {
+    const matchedLiveIds = new Set<string>();
+
+    const mergedOfficial: Player[] = initialPlayers.map((official) => {
+      // Find matching player in liveList by:
+      // 1. Same id
+      // 2. Same jersey number (most reliable for matchday squad)
+      // 3. Normalized name equality
+      const matched = liveList.find((lp) => {
+        if (lp.id === official.id) return true;
+        if (typeof lp.number === 'number' && lp.number === official.number) return true;
+        const normLive = (lp.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const normOff = (official.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return normLive === normOff && normOff.length > 0;
+      });
+
+      if (matched) {
+        matchedLiveIds.add(matched.id);
+        return {
+          ...official,
+          id: matched.id || official.id,
+          photoUrl: matched.photoUrl || official.photoUrl,
+          appearances: matched.appearances ?? official.appearances,
+          goals: matched.goals ?? official.goals,
+          assists: matched.assists ?? official.assists,
+          cleanSheets: matched.cleanSheets ?? official.cleanSheets,
+          birthYear: matched.birthYear || official.birthYear,
+          // Guarantee official name, position, jersey number, and captaincy
+          name: official.name,
+          position: official.position,
+          number: official.number,
+          isCaptain: Boolean(official.isCaptain),
+          nationality: official.nationality,
+        };
+      }
+
+      return official;
+    });
+
+    // Also include any extra custom players added in Firestore that aren't in initialPlayers
+    const extraLivePlayers = liveList.filter(
+      (lp) => !matchedLiveIds.has(lp.id) && !initialPlayers.some((p) => p.number === lp.number)
+    );
+
+    return [...mergedOfficial, ...extraLivePlayers];
+  };
+
   // Players & Staff State & Real-Time Firebase Firestore Integration
   const [players, setPlayers] = useState<Player[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.PLAYERS);
-    return saved ? JSON.parse(saved) : initialPlayers;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.PLAYERS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length >= initialPlayers.length) {
+          return parsed;
+        }
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // If cached squad has fewer than 30 (e.g. legacy 14), reconcile it immediately
+          return reconcileSquadWithOfficialList(parsed);
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return initialPlayers;
   });
 
   const [staff, setStaff] = useState<StaffMember[]>(() => {
@@ -1120,8 +1184,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    // Reuse session data for visitors to prevent re-reading all 16 documents on every page navigation
-    if (!isAdminLoggedIn && hasLoadedPlayersRef.current && players.length > 0) {
+    // Reuse session data for visitors to prevent re-reading all documents on every page navigation
+    if (!isAdminLoggedIn && hasLoadedPlayersRef.current && players.length >= initialPlayers.length) {
       return;
     }
 
@@ -1142,6 +1206,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
         }
+        setPlayers(initialPlayers);
+        localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(initialPlayers));
         return;
       }
       const livePlayers: Player[] = snapshot.docs.map((docSnap) => {
@@ -1161,10 +1227,32 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
           photoUrl: data.photoUrl,
         } as Player;
       });
-      if (livePlayers.length > 0) {
-        setPlayers(livePlayers);
-        localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(livePlayers));
-        localStorage.setItem('hcfc_firestore_players_seeded', 'true');
+
+      // Always reconcile to ensure the full 30-player official squad is displayed,
+      // preventing draft/partial Firestore collections (e.g. 14 players) from truncating the roster
+      const fullSquad = reconcileSquadWithOfficialList(livePlayers);
+      setPlayers(fullSquad);
+      localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(fullSquad));
+      localStorage.setItem('hcfc_firestore_players_seeded', 'true');
+
+      // If an administrator is logged in and Firestore has fewer than the complete 30 players,
+      // automatically sync the missing official players to Firestore
+      if (isAdminLoggedIn && snapshot.docs.length < initialPlayers.length) {
+        try {
+          for (const player of fullSquad) {
+            const existsInDb = snapshot.docs.some(
+              (d) => d.id === player.id || d.data().number === player.number
+            );
+            if (!existsInDb) {
+              await setDoc(doc(db, 'players', player.id), {
+                ...player,
+                updatedAt: serverTimestamp(),
+              });
+            }
+          }
+        } catch (syncErr) {
+          console.warn('Could not sync missing players to Firestore:', syncErr);
+        }
       }
     }, (error) => {
       if (typeof navigator !== 'undefined' && !navigator.onLine) return;

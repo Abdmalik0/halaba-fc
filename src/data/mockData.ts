@@ -1005,29 +1005,43 @@ export const initialNews: NewsArticle[] = [
 
 
 export const initialPlayers: Player[] = [
-  // Goalkeepers
-  { id: 'p1', number: 1, name: 'Biniam Teklu', position: 'Goalkeeper', nationality: 'Ethiopian', birthYear: 2000, appearances: 28, goals: 0 },
-  { id: 'p2', number: 22, name: 'Mekonnen Abera', position: 'Goalkeeper', nationality: 'Ethiopian', birthYear: 2003, appearances: 6, goals: 0 },
+  // Goalkeepers (3)
+  { id: 'p-gk-38', number: 38, name: 'Rayan Obin', position: 'Goalkeeper', nationality: 'Ivorian', birthYear: 2001, appearances: 18, goals: 0 },
+  { id: 'p-gk-22', number: 22, name: 'Abatu Jarso', position: 'Goalkeeper', nationality: 'Ethiopian', birthYear: 2000, appearances: 24, goals: 0 },
+  { id: 'p-gk-1', number: 1, name: 'Ezedin Masresha', position: 'Goalkeeper', nationality: 'Ethiopian', birthYear: 2003, appearances: 9, goals: 0 },
 
-  // Defenders
-  { id: 'p3', number: 4, name: 'Henok Haile', position: 'Defender', nationality: 'Ethiopian', birthYear: 1998, appearances: 54, goals: 3, isCaptain: true },
-  { id: 'p4', number: 5, name: 'Biruk Tadesse', position: 'Defender', nationality: 'Ethiopian', birthYear: 2001, appearances: 32, goals: 1 },
-  { id: 'p5', number: 3, name: 'Samson Fikru', position: 'Defender', nationality: 'Ethiopian', birthYear: 2002, appearances: 24, goals: 0 },
-  { id: 'p6', number: 18, name: 'Kassahun Negash', position: 'Defender', nationality: 'Ethiopian', birthYear: 1999, appearances: 41, goals: 2 },
-  { id: 'p7', number: 2, name: 'Mohammed Seid', position: 'Defender', nationality: 'Ethiopian', birthYear: 2004, appearances: 11, goals: 0 },
+  // Defenders (10)
+  { id: 'p-df-20', number: 20, name: 'Kaleb Amankuah', position: 'Defender', nationality: 'Ghanaian', birthYear: 1998, appearances: 35, goals: 2 },
+  { id: 'p-df-34', number: 34, name: 'Nesredin Haylu', position: 'Defender', nationality: 'Ethiopian', birthYear: 2001, appearances: 27, goals: 1 },
+  { id: 'p-df-12', number: 12, name: 'Yared Mohammed', position: 'Defender', nationality: 'Ethiopian', birthYear: 2000, appearances: 22, goals: 0 },
+  { id: 'p-df-16', number: 16, name: 'Kirubel Wendimu', position: 'Defender', nationality: 'Ethiopian', birthYear: 2002, appearances: 19, goals: 1 },
+  { id: 'p-df-8', number: 8, name: 'Tsegab Yohans', position: 'Defender', nationality: 'Ethiopian', birthYear: 1999, appearances: 40, goals: 3 },
+  { id: 'p-df-15', number: 15, name: 'Kirubel Fikremarkos', position: 'Defender', nationality: 'Ethiopian', birthYear: 2002, appearances: 17, goals: 0 },
+  { id: 'p-df-2', number: 2, name: 'Abdulkerim Rameto', position: 'Defender', nationality: 'Ethiopian', birthYear: 2003, appearances: 15, goals: 0 },
+  { id: 'p-df-13', number: 13, name: 'Jilalu Muhdin', position: 'Defender', nationality: 'Ethiopian', birthYear: 2001, appearances: 26, goals: 1 },
+  { id: 'p-df-3', number: 3, name: 'Chernet Dembushe', position: 'Defender', nationality: 'Ethiopian', birthYear: 2000, appearances: 28, goals: 0 },
+  { id: 'p-df-29', number: 29, name: 'Hayder Shukr', position: 'Defender', nationality: 'Ethiopian', birthYear: 2004, appearances: 12, goals: 0 },
 
-  // Midfielders
-  { id: 'p8', number: 8, name: 'Amanuel Tesfaye', position: 'Midfielder', nationality: 'Ethiopian', birthYear: 2000, appearances: 38, goals: 9 },
-  { id: 'p9', number: 10, name: 'Yohannes Bekele', position: 'Midfielder', nationality: 'Ethiopian', birthYear: 1999, appearances: 45, goals: 7 },
-  { id: 'p10', number: 6, name: 'Desta Alemayehu', position: 'Midfielder', nationality: 'Ethiopian', birthYear: 2001, appearances: 30, goals: 2 },
-  { id: 'p11', number: 14, name: 'Abdi Gemeda', position: 'Midfielder', nationality: 'Ethiopian', birthYear: 2003, appearances: 19, goals: 3 },
-  { id: 'p12', number: 16, name: 'Elias Zewdu', position: 'Midfielder', nationality: 'Ethiopian', birthYear: 2002, appearances: 22, goals: 1 },
+  // Midfielders (7)
+  { id: 'p-mf-6', number: 6, name: 'Samba Seck', position: 'Midfielder', nationality: 'Senegalese', birthYear: 1999, appearances: 33, goals: 4 },
+  { id: 'p-mf-10', number: 10, name: 'Firew Solomon', position: 'Midfielder', nationality: 'Ethiopian', birthYear: 1998, appearances: 58, goals: 11, isCaptain: true },
+  { id: 'p-mf-4', number: 4, name: 'Seid Girma', position: 'Midfielder', nationality: 'Ethiopian', birthYear: 2001, appearances: 31, goals: 3 },
+  { id: 'p-mf-17', number: 17, name: 'Husam Selman', position: 'Midfielder', nationality: 'Ethiopian', birthYear: 2002, appearances: 25, goals: 2 },
+  { id: 'p-mf-41', number: 41, name: 'Biniyam Deginet', position: 'Midfielder', nationality: 'Ethiopian', birthYear: 2003, appearances: 16, goals: 1 },
+  { id: 'p-mf-18', number: 18, name: 'Fasil Abebayehu', position: 'Midfielder', nationality: 'Ethiopian', birthYear: 2000, appearances: 29, goals: 3 },
+  { id: 'p-mf-21', number: 21, name: 'Behaylu Girma', position: 'Midfielder', nationality: 'Ethiopian', birthYear: 2002, appearances: 20, goals: 2 },
 
-  // Forwards
-  { id: 'p13', number: 9, name: 'Mulugeta Wolde', position: 'Forward', nationality: 'Ethiopian', birthYear: 1999, appearances: 42, goals: 16 },
-  { id: 'p14', number: 11, name: 'Biniam Getachew', position: 'Forward', nationality: 'Ethiopian', birthYear: 2001, appearances: 36, goals: 11 },
-  { id: 'p15', number: 7, name: 'Tarekegn Assefa', position: 'Forward', nationality: 'Ethiopian', birthYear: 2002, appearances: 29, goals: 8 },
-  { id: 'p16', number: 19, name: 'Fikadu Shiferaw', position: 'Forward', nationality: 'Ethiopian', birthYear: 2004, appearances: 14, goals: 4 },
+  // Forwards (10)
+  { id: 'p-fw-19', number: 19, name: 'Shimekt Gugsa', position: 'Forward', nationality: 'Ethiopian', birthYear: 1997, appearances: 46, goals: 14 },
+  { id: 'p-fw-14', number: 14, name: 'Yonatan Haylu', position: 'Forward', nationality: 'Ethiopian', birthYear: 2001, appearances: 32, goals: 8 },
+  { id: 'p-fw-23', number: 23, name: 'Konkoni Hafz', position: 'Forward', nationality: 'Ghanaian', birthYear: 2000, appearances: 24, goals: 9 },
+  { id: 'p-fw-77', number: 77, name: 'Abush Derbe', position: 'Forward', nationality: 'Ethiopian', birthYear: 2003, appearances: 18, goals: 5 },
+  { id: 'p-fw-97', number: 97, name: 'Fiseha Tomas', position: 'Forward', nationality: 'Ethiopian', birthYear: 2002, appearances: 21, goals: 6 },
+  { id: 'p-fw-28', number: 28, name: 'Siraj Kedir', position: 'Forward', nationality: 'Ethiopian', birthYear: 2001, appearances: 27, goals: 7 },
+  { id: 'p-fw-7', number: 7, name: 'Tsega Derbe', position: 'Forward', nationality: 'Ethiopian', birthYear: 2000, appearances: 36, goals: 12 },
+  { id: 'p-fw-11', number: 11, name: 'Israel Shegole', position: 'Forward', nationality: 'Ethiopian', birthYear: 2002, appearances: 23, goals: 5 },
+  { id: 'p-fw-9', number: 9, name: 'Natinael Solomon', position: 'Forward', nationality: 'Ethiopian', birthYear: 1999, appearances: 41, goals: 15 },
+  { id: 'p-fw-37', number: 37, name: 'Abdulkerim Kelifa', position: 'Forward', nationality: 'Ethiopian', birthYear: 2004, appearances: 14, goals: 4 },
 ];
 
 export const initialStaff: StaffMember[] = [

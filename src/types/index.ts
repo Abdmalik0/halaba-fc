@@ -175,6 +175,9 @@ export interface Player {
   goals: number;
   isCaptain?: boolean;
   image?: string;
+  photoUrl?: string;
+  assists?: number;
+  cleanSheets?: number;
 }
 
 export interface StaffMember {
