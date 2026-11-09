@@ -1,0 +1,142 @@
+
+name: Validate Firestore Export
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Export and validate Firestore collections
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          node <<'NODE'
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+
+          async function main() {
+            const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '{}');
+
+            if (!sa.client_email || !sa.private_key || !sa.project_id) {
+              throw new Error('Service account JSON is missing required fields.');
+            }
+
+            const now = Math.floor(Date.now() / 1000);
+            const b64 = value => Buffer.from(JSON.stringify(value)).toString('base64url');
+
+            const header = b64({ alg: 'RS256', typ: 'JWT' });
+            const claim = b64({
+              iss: sa.client_email,
+              scope: 'https://www.googleapis.com/auth/datastore',
+              aud: 'https://oauth2.googleapis.com/token',
+              iat: now,
+              exp: now + 3600
+            });
+
+            const unsigned = `${header}.${claim}`;
+            const signature = crypto.sign(
+              'RSA-SHA256',
+              Buffer.from(unsigned),
+              sa.private_key
+            ).toString('base64url');
+
+            const assertion = `${unsigned}.${signature}`;
+
+            const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({
+                grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                assertion
+              })
+            });
+
+            if (!tokenResponse.ok) {
+              throw new Error(`Google authentication failed: HTTP ${tokenResponse.status}`);
+            }
+
+            const { access_token } = await tokenResponse.json();
+            const collections = ['matches', 'news', 'players', 'staff', 'sponsors'];
+            const expected = {
+              matches: 41,
+              news: 3,
+              players: 30,
+              staff: 6,
+              sponsors: 2
+            };
+
+            const exported = {};
+            let valid = true;
+
+            for (const collection of collections) {
+              let pageToken = null;
+              const documents = [];
+
+              do {
+                const url = new URL(
+                  `https://firestore.googleapis.com/v1/projects/${sa.project_id}/databases/(default)/documents/${collection}`
+                );
+                url.searchParams.set('pageSize', '1000');
+                if (pageToken) url.searchParams.set('pageToken', pageToken);
+
+                const response = await fetch(url, {
+                  headers: { Authorization: `Bearer ${access_token}` }
+                });
+
+                if (!response.ok) {
+                  throw new Error(
+                    `Firestore read failed for ${collection}: HTTP ${response.status}`
+                  );
+                }
+
+                const data = await response.json();
+                documents.push(...(data.documents || []));
+                pageToken = data.nextPageToken || null;
+              } while (pageToken);
+
+              exported[collection] = documents;
+
+              const actual = documents.length;
+              const wanted = expected[collection];
+              console.log(`${collection}: ${actual} documents (expected ${wanted})`);
+
+              if (actual !== wanted) valid = false;
+            }
+
+            fs.writeFileSync(
+              '/tmp/firestore-export.json',
+              JSON.stringify(exported, null, 2),
+              { mode: 0o600 }
+            );
+
+            if (!valid) {
+              throw new Error('Document counts differ from the expected counts. No D1 data was changed.');
+            }
+
+            console.log('SUCCESS: All five collections exported and counts validated.');
+          }
+
+          main().catch(error => {
+            console.error(error.message);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Save export artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: halaba-firestore-export
+          path: /tmp/firestore-export.json
+          if-no-files-found: ignore
+          retention-days: 1
