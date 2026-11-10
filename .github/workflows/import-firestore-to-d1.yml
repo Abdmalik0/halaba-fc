@@ -196,8 +196,7 @@ jobs:
               const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
-                  Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
-                  'Content-Type': 'application/json'
+            Authorization: `Bearer ${(process.env.CLOUDFLARE_API_TOKEN || '').trim().replace(/\s+/g, '')}`,                  'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ sql })
               });
