@@ -1,0 +1,342 @@
+
+name: Import Existing Firestore Export to D1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download existing export artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          mkdir -p /tmp/halaba-export
+
+          RUN_ID=$(gh api \
+            "repos/Abdmalik0/halaba-fc/actions/workflows/migrate-firestore-to-d1.yml/runs?per_page=50" \
+            --jq '[.workflow_runs[] | select(.conclusion=="success")][0].id')
+
+          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+            echo "No successful export workflow run found."
+            exit 1
+          fi
+
+          echo "Using previous successful export run: $RUN_ID"
+
+          gh run download "$RUN_ID" \
+            --repo Abdmalik0/halaba-fc \
+            --name halaba-firestore-export \
+            --dir /tmp/halaba-export
+
+          test -s /tmp/halaba-export/firestore-export.json
+          echo "Existing export downloaded successfully."
+
+      - name: Import and verify records in D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          D1_DATABASE_ID: 013cfba5-7db0-4275-8329-d17d5505cd23
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          const source = JSON.parse(
+            fs.readFileSync('/tmp/halaba-export/firestore-export.json', 'utf8')
+          );
+
+          const expected = {
+            matches: 41,
+            news: 3,
+            players: 30,
+            staff: 6,
+            sponsors: 2
+          };
+
+          const tables = {
+            matches: 'matches',
+            news: 'news_articles',
+            players: 'players',
+            staff: 'staff',
+            sponsors: 'sponsors'
+          };
+
+          const aliases = {
+            matches: {
+              competition: ['competition'],
+              competition_name: ['competitionName'],
+              match_date: ['date', 'matchDate'],
+              kickoff_time: ['kickoffTime'],
+              venue: ['venue'],
+              home_team_json: ['homeTeam'],
+              away_team_json: ['awayTeam'],
+              status: ['status'],
+              score_json: ['score'],
+              halftime_score_json: ['halftimeScore'],
+              round: ['round'],
+              attendance: ['attendance'],
+              referee: ['referee'],
+              live_minute: ['liveMinute'],
+              live_period: ['livePeriod'],
+              live_events_json: ['liveEvents'],
+              scorers_json: ['scorers'],
+              summary: ['summary'],
+              created_at: ['createdAt'],
+              updated_at: ['updatedAt']
+            },
+            news_articles: {
+              title_json: ['title', 'titleJson'],
+              summary_json: ['summary', 'summaryJson'],
+              content_json: ['content', 'contentJson'],
+              category: ['category'],
+              article_date: ['articleDate', 'date'],
+              author: ['author'],
+              image_url: ['imageUrl', 'image'],
+              is_featured: ['isFeatured', 'featured'],
+              read_time: ['readTime'],
+              created_at: ['createdAt'],
+              updated_at: ['updatedAt']
+            },
+            players: {
+              number: ['number'],
+              name: ['name'],
+              position: ['position'],
+              nationality: ['nationality'],
+              birth_year: ['birthYear'],
+              appearances: ['appearances'],
+              goals: ['goals'],
+              is_captain: ['isCaptain'],
+              image: ['image'],
+              assists: ['assists'],
+              clean_sheets: ['cleanSheets'],
+              photo_url: ['photoUrl'],
+              created_at: ['createdAt'],
+              updated_at: ['updatedAt']
+            },
+            staff: {
+              name: ['name'],
+              role: ['role'],
+              department: ['department'],
+              nationality: ['nationality'],
+              photo_url: ['photoUrl'],
+              created_at: ['createdAt'],
+              updated_at: ['updatedAt']
+            },
+            sponsors: {
+              name: ['name'],
+              name_am: ['nameAm'],
+              name_om: ['nameOm'],
+              tier: ['tier'],
+              tier_am: ['tierAm'],
+              image_url: ['imageUrl'],
+              website_url: ['websiteUrl'],
+              description: ['description'],
+              description_am: ['descriptionAm'],
+              active: ['active'],
+              display_order: ['displayOrder'],
+              created_at: ['createdAt'],
+              updated_at: ['updatedAt']
+            }
+          };
+
+          function decode(v) {
+            if (!v || typeof v !== 'object') return v;
+            if ('stringValue' in v) return v.stringValue;
+            if ('integerValue' in v) return Number(v.integerValue);
+            if ('doubleValue' in v) return Number(v.doubleValue);
+            if ('booleanValue' in v) return v.booleanValue;
+            if ('nullValue' in v) return null;
+            if ('timestampValue' in v) return v.timestampValue;
+            if ('arrayValue' in v)
+              return (v.arrayValue.values || []).map(decode);
+            if ('mapValue' in v) return decodeFields(v.mapValue.fields || {});
+            return v;
+          }
+
+          function decodeFields(fields) {
+            return Object.fromEntries(
+              Object.entries(fields || {}).map(([k, v]) => [k, decode(v)])
+            );
+          }
+
+          function quote(value, column) {
+            if (value === undefined || value === null) return 'NULL';
+
+            if (column.endsWith('_json') || typeof value === 'object') {
+              value = JSON.stringify(value);
+            } else if (typeof value === 'boolean') {
+              value = value ? 1 : 0;
+            }
+
+            if (typeof value === 'number' && Number.isFinite(value))
+              return String(value);
+
+            if (typeof value === 'string') {
+              if (['active', 'is_captain', 'is_featured'].includes(column)) {
+                if (value.toLowerCase() === 'true') return '1';
+                if (value.toLowerCase() === 'false') return '0';
+              }
+              return "'" + value.replace(/'/g, "''") + "'";
+            }
+
+            return "'" + String(value).replace(/'/g, "''") + "'";
+          }
+
+          async function main() {
+            const endpoint =
+              `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/d1/database/${process.env.D1_DATABASE_ID}/query`;
+
+            async function query(sql) {
+              const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ sql })
+              });
+
+              const data = await response.json();
+
+              if (!response.ok || !data.success) {
+                throw new Error(JSON.stringify(data.errors || data));
+              }
+
+              return data.result?.[0]?.results || [];
+            }
+
+            // Validate the downloaded source before touching D1.
+            for (const [collection, count] of Object.entries(expected)) {
+              if (!Array.isArray(source[collection]) ||
+                  source[collection].length !== count) {
+                throw new Error(
+                  `Export count mismatch for ${collection}. Expected ${count}.`
+                );
+              }
+              console.log(`Export verified: ${collection} = ${count}`);
+            }
+
+            const prepared = [];
+
+            // Inspect actual D1 schemas and validate all required fields.
+            for (const [collection, table] of Object.entries(tables)) {
+              const schema = await query(`PRAGMA table_info("${table}")`);
+
+              if (!schema.length)
+                throw new Error(`D1 table ${table} does not exist.`);
+
+              const columns = schema.map(c => c.name);
+
+              for (const document of source[collection]) {
+                const doc = {
+                  id: document.name
+                    ? document.name.split('/').pop()
+                    : document.id,
+                  ...decodeFields(document.fields || {})
+                };
+
+                if (!doc.id)
+                  throw new Error(`Missing document ID in ${collection}.`);
+
+                const row = { id: doc.id };
+
+                for (const column of columns) {
+                  if (column === 'id') continue;
+
+                  const keys = aliases[table][column] || [column];
+                  const key = keys.find(k =>
+                    Object.prototype.hasOwnProperty.call(doc, k)
+                  );
+
+                  if (key !== undefined) row[column] = doc[key];
+                }
+
+                for (const col of schema) {
+                  if (col.notnull === 1 &&
+                      col.pk === 0 &&
+                      col.dflt_value === null &&
+                      (row[col.name] === undefined ||
+                       row[col.name] === null)) {
+                    throw new Error(
+                      `${collection}/${doc.id}: required field "${col.name}" is missing. No records have been imported.`
+                    );
+                  }
+                }
+
+                const insertColumns = columns.filter(
+                  c => row[c] !== undefined
+                );
+
+                const names = insertColumns.map(
+                  c => `"${c.replace(/"/g, '""')}"`
+                );
+
+                const values = insertColumns.map(c => quote(row[c], c));
+
+                const updates = insertColumns
+                  .filter(c => c !== 'id')
+                  .map(c =>
+                    `"${c.replace(/"/g, '""')}"=excluded."${c.replace(/"/g, '""')}"`
+                  );
+
+                const conflict = updates.length
+                  ? `DO UPDATE SET ${updates.join(',')}`
+                  : 'DO NOTHING';
+
+                prepared.push({
+                  collection,
+                  id: doc.id,
+                  sql: `INSERT INTO "${table}" (${names.join(',')}) VALUES (${values.join(',')}) ON CONFLICT("id") ${conflict}`
+                });
+              }
+            }
+
+            console.log(
+              `Preflight passed: ${prepared.length} records ready.`
+            );
+
+            // Import only the five approved collections.
+            for (let i = 0; i < prepared.length; i++) {
+              await query(prepared[i].sql);
+              if ((i + 1) % 10 === 0)
+                console.log(`Imported ${i + 1}/${prepared.length}`);
+            }
+
+            // Verify every source ID exists in its destination table.
+            for (const [collection, table] of Object.entries(tables)) {
+              const ids = source[collection].map(d =>
+                d.name ? d.name.split('/').pop() : d.id
+              );
+
+              for (const id of ids) {
+                const found = await query(
+                  `SELECT id FROM "${table}" WHERE id=${quote(id, 'id')} LIMIT 1`
+                );
+                if (!found.length)
+                  throw new Error(`Verification failed: ${table}/${id}`);
+              }
+
+              console.log(
+                `VERIFIED ${table}: all ${ids.length} imported IDs found.`
+              );
+            }
+
+            console.log(
+              'SUCCESS: All 82 exported club records imported and verified.'
+            );
+            console.log(
+              'No payment, membership, order, donation, or authentication data was accessed.'
+            );
+          }
+
+          main().catch(error => {
+            console.error(error.message);
+            process.exit(1);
+          });
+          NODE
