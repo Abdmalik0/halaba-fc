@@ -245,12 +245,11 @@ jobs:
             continue; }
              {
                  const doc = {
-                  id: document.name
-                    ? document.name.split('/').pop()
-                    : document.id,
-                  ...decodeFields(document.fields || {})
-                };
-
+               id: document.name
+               ? document.name.split('/').pop()
+               : document.id,
+               ...decodeFields(document.fields || {})
+               };
                 if (!doc.id)
                   throw new Error(`Missing document ID in ${collection}.`);
 
