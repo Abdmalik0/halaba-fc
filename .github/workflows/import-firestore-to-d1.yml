@@ -53,7 +53,7 @@ jobs:
 
           const expected = {
             matches: 41,
-            news: 3,
+            news: 2,
             players: 30,
             staff: 6,
             sponsors: 2
@@ -232,8 +232,13 @@ jobs:
 
               const columns = schema.map(c => c.name);
 
-              for (const document of source[collection]) {
-                const doc = {
+              for (const document of source[collection]) 
+               if (collection === 'news' &&
+             document.name?.endsWith('/n-hossana-summit-chase')) {
+            console.log('Skipping unwanted Hossana news article.');
+            continue; }
+             {
+                 const doc = {
                   id: document.name
                     ? document.name.split('/').pop()
                     : document.id,
