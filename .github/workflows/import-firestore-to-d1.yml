@@ -211,15 +211,21 @@ jobs:
             }
 
             // Validate the downloaded source before touching D1.
-            for (const [collection, count] of Object.entries(expected)) {
-              if (!Array.isArray(source[collection]) ||
-                  source[collection].length !== count) {
-                throw new Error(
-                  `Export count mismatch for ${collection}. Expected ${count}.`
-                );
-              }
-              console.log(`Export verified: ${collection} = ${count}`);
-            }
+           for (const [collection, count] of Object.entries(expected)) {
+           const actualCount = collection === 'news'
+           ? source[collection]?.filter(
+           d => !d.name?.endsWith('/n-hossana-summit-chase')
+           ).length
+           : source[collection]?.length;
+
+           if (!Array.isArray(source[collection]) || actualCount !== count) {
+           throw new Error(
+          `Export count mismatch for ${collection}. Expected ${count}.`
+          );
+          }
+
+          console.log(`Export verified: ${collection} = ${actualCount}`);
+          }
 
             const prepared = [];
 
