@@ -238,72 +238,77 @@ jobs:
 
               const columns = schema.map(c => c.name);
 
-              for (const document of source[collection]) 
-               if (collection === 'news' &&
-             document.name?.endsWith('/n-hossana-summit-chase')) {
-            console.log('Skipping unwanted Hossana news article.');
-            continue; }
-             {
-                 const doc = {
-               id: document.name
-               ? document.name.split('/').pop()
-               : document.id,
-               ...decodeFields(document.fields || {})
-               };
-                if (!doc.id)
-                  throw new Error(`Missing document ID in ${collection}.`);
+              for (const document of source[collection]) {
+             if (
+            collection === 'news' &&
+           document.name?.endsWith('/n-hossana-summit-chase')
+         ) {
+         console.log('Skipping unwanted Hossana news article.');
+         continue;
+         }
 
-                const row = { id: doc.id };
+         const doc = {
+         id: document.name
+         ? document.name.split('/').pop()
+         : document.id,
+         ...decodeFields(document.fields || {})
+         };
 
-                for (const column of columns) {
-                  if (column === 'id') continue;
+         if (!doc.id)
+         throw new Error(`Missing document ID in ${collection}.`);
 
-                  const keys = aliases[table][column] || [column];
-                  const key = keys.find(k =>
-                    Object.prototype.hasOwnProperty.call(doc, k)
-                  );
+         const row = { id: doc.id };
 
-                  if (key !== undefined) row[column] = doc[key];
-                }
+         for (const column of columns) {
+         if (column === 'id') continue;
 
-                for (const col of schema) {
-                  if (col.notnull === 1 &&
-                      col.pk === 0 &&
-                      col.dflt_value === null &&
-                      (row[col.name] === undefined ||
-                       row[col.name] === null)) {
-                    throw new Error(
-                      `${collection}/${doc.id}: required field "${col.name}" is missing. No records have been imported.`
-                    );
-                  }
-                }
+         const keys = aliases[table][column] || [column];
+         const key = keys.find(k =>
+         Object.prototype.hasOwnProperty.call(doc, k)
+         );
 
-                const insertColumns = columns.filter(
-                  c => row[c] !== undefined
-                );
+         if (key !== undefined) row[column] = doc[key];
+         }
 
-                const names = insertColumns.map(
-                  c => `"${c.replace(/"/g, '""')}"`
-                );
+         for (const col of schema) {
+         if (
+         col.notnull === 1 &&
+         col.pk === 0 &&
+         col.dflt_value === null &&
+         (row[col.name] === undefined || row[col.name] === null)
+         ) {
+         throw new Error(
+           `${collection}/${doc.id}: required field "${col.name}" is missing. No records have been imported.`
+            );
+          }
+           }
 
-                const values = insertColumns.map(c => quote(row[c], c));
+          const insertColumns = columns.filter(
+          c => row[c] !== undefined
+          );
 
-                const updates = insertColumns
-                  .filter(c => c !== 'id')
-                  .map(c =>
-                    `"${c.replace(/"/g, '""')}"=excluded."${c.replace(/"/g, '""')}"`
-                  );
+         const names = insertColumns.map(
+         c => `"${c.replace(/"/g, '""')}"`
+         );
 
-                const conflict = updates.length
-                  ? `DO UPDATE SET ${updates.join(',')}`
-                  : 'DO NOTHING';
+         const values = insertColumns.map(c => quote(row[c], c));
 
-                prepared.push({
-                  collection,
-                  id: doc.id,
-                  sql: `INSERT INTO "${table}" (${names.join(',')}) VALUES (${values.join(',')}) ON CONFLICT("id") ${conflict}`
-                });
-              }
+         const updates = insertColumns
+         .filter(c => c !== 'id')
+         .map(c =>
+          `"${c.replace(/"/g, '""')}"=excluded."${c.replace(/"/g, '""')}"`
+           );
+
+          const conflict = updates.length
+          ? `DO UPDATE SET ${updates.join(',')}`
+          : 'DO NOTHING';
+
+          prepared.push({
+          collection,
+          id: doc.id,
+         sql: `INSERT INTO "${table}" (${names.join(',')}) VALUES (${values.join(',')}) ON CONFLICT("id") ${conflict}`
+          });
+            }
             }
 
             console.log(
