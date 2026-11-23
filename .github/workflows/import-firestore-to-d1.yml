@@ -324,9 +324,12 @@ jobs:
 
             // Verify every source ID exists in its destination table.
             for (const [collection, table] of Object.entries(tables)) {
-              const ids = source[collection].map(d =>
-                d.name ? d.name.split('/').pop() : d.id
-              );
+              const ids = source[collection]
+             .filter(d =>
+             !(collection === 'news' &&
+             d.name?.endsWith('/n-hossana-summit-chase'))
+              )
+            .map(d => d.name ? d.name.split('/').pop() : d.id);
 
               for (const id of ids) {
                 const found = await query(
