@@ -139,7 +139,7 @@ jobs:
               description: ['description'],
               description_am: ['descriptionAm'],
               active: ['active'],
-              display_order: ['displayOrder'],
+              display_order: ['displayOrder', 'order'],
               created_at: ['createdAt'],
               updated_at: ['updatedAt']
             }
