@@ -294,10 +294,14 @@ export const SponsorManager: React.FC = () => {
 
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={() => {
+            onClick={async () => {
               if (window.confirm('Restore initial official club sponsors (NetVibe, Halaba Union, Chapa, etc.)?')) {
-                resetSponsors();
-                showToast('Restored default official club sponsors.');
+                try {
+                  await resetSponsors();
+                  showToast('Restored default official club sponsors.');
+                } catch (err: any) {
+                  showToast(`Error resetting sponsors: ${err?.message || 'Failed'}`);
+                }
               }
             }}
             className="px-3.5 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-bold uppercase tracking-wider font-sports flex items-center gap-1.5 transition-colors cursor-pointer"

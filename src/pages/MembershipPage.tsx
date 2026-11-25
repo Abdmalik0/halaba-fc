@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import { toJpeg } from 'html-to-image';
 import { useClub } from '../context/ClubContext';
 import { MembershipTier, Language } from '../types';
 import { HalabaCrest } from '../components/HalabaCrest';
@@ -9,7 +10,8 @@ import {
   CheckCircle2,
   ShieldCheck,
   QrCode,
-  Printer,
+  Download,
+  Loader2,
   Sparkles,
   Info,
   Calendar,
@@ -283,15 +285,90 @@ export const MembershipPage: React.FC = () => {
     setErrors({});
   };
 
-  const handlePrintCard = () => {
-    const originalTitle = document.title;
-    if (registrationResult) {
-      document.title = `HCFC_Membership_Card_${registrationResult.referenceNumber}`;
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
+
+  const handleDownloadCard = async () => {
+    if (!cardRef.current || !registrationResult || isDownloading) return;
+    setIsDownloading(true);
+    setDownloadSuccess(false);
+
+    try {
+      const cardElement = cardRef.current;
+
+      // 1. Ensure fonts are loaded so Amharic and custom typography render crisply
+      if (typeof document !== 'undefined' && document.fonts && document.fonts.ready) {
+        try {
+          await document.fonts.ready;
+        } catch {
+          // ignore font loading error
+        }
+      }
+
+      // 2. Ensure all images inside the card are fully loaded before capturing
+      const images = Array.from(cardElement.querySelectorAll('img'));
+      await Promise.all(
+        images.map((img) => {
+          if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
+          return new Promise<void>((resolve) => {
+            const onFinish = () => resolve();
+            img.addEventListener('load', onFinish, { once: true });
+            img.addEventListener('error', onFinish, { once: true });
+            setTimeout(onFinish, 1500); // 1.5s fallback timeout
+          });
+        })
+      );
+
+      // 3. Small delay to allow SVG QR code and layout to be fully painted
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      // 4. Capture rendered card element as high-quality JPEG (pixelRatio: 3 for ultra-sharp QR & typography)
+      // skipFonts: true prevents html-to-image from accessing cross-origin Google Fonts stylesheets (cssRules error)
+      const dataUrl = await toJpeg(cardElement, {
+        quality: 0.95,
+        pixelRatio: 3,
+        backgroundColor: '#0a0a0a',
+        cacheBust: false,
+        skipFonts: true,
+        fontEmbedCSS: '',
+      });
+
+      // 5. Convert to Blob for universal compatibility across desktop Chrome & Android browsers
+      const byteCharacters = atob(dataUrl.split(',')[1]);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'image/jpeg' });
+      const blobUrl = URL.createObjectURL(blob);
+
+      // 6. Filename format: HALABA-City-FC-Membership-[MembershipID].jpg
+      const membershipId = (registrationResult.referenceNumber || 'MEMBER').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const filename = `HALABA-City-FC-Membership-${membershipId}.jpg`;
+
+      // 7. Trigger the browser download
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+
+      // 8. Clean up
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }, 3000);
+
+      setDownloadSuccess(true);
+      setTimeout(() => setDownloadSuccess(false), 4000);
+    } catch (error) {
+      console.error('Failed to capture membership card as JPEG:', error);
+    } finally {
+      setIsDownloading(false);
     }
-    window.print();
-    setTimeout(() => {
-      document.title = originalTitle;
-    }, 1000);
   };
 
   return (
@@ -411,9 +488,12 @@ export const MembershipPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Interactive Digital Membership Card Graphic (Isolated for Print) */}
+          {/* Interactive Digital Membership Card Graphic (Isolated for Export) */}
           <div id="printable-membership-card" className="max-w-md mx-auto w-full">
-            <div className="p-1 rounded-3xl bg-gradient-to-tr from-red-600 via-amber-500 to-emerald-600 shadow-2xl print:shadow-none print:p-0">
+            <div
+              ref={cardRef}
+              className="p-1 rounded-3xl bg-gradient-to-tr from-red-600 via-amber-500 to-emerald-600 shadow-2xl print:shadow-none print:p-0"
+            >
               <div className="rounded-[22px] bg-gradient-to-br from-neutral-950 via-neutral-900 to-red-950 p-6 text-white relative overflow-hidden flex flex-col justify-between min-h-[250px] border border-neutral-800 print:bg-neutral-950 print:text-white print:border-neutral-700">
                 {/* Background watermarked crest */}
                 <div className="absolute -right-10 -bottom-10 opacity-15 pointer-events-none">
@@ -465,6 +545,7 @@ export const MembershipPage: React.FC = () => {
                     <img
                       src={registrationResult.photoUrl}
                       alt={registrationResult.fullName}
+                      loading="eager"
                       className="w-14 h-16 object-cover rounded-xl border-2 border-amber-400 shadow-md shrink-0"
                     />
                   ) : (
@@ -521,15 +602,37 @@ export const MembershipPage: React.FC = () => {
           {/* Action buttons */}
           <div className="no-print flex flex-wrap items-center justify-center gap-4 pt-4">
             <button
-              onClick={handlePrintCard}
-              className="px-6 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-bold text-sm uppercase tracking-wider font-sports flex items-center gap-2 transition-colors cursor-pointer"
+              type="button"
+              onClick={handleDownloadCard}
+              disabled={isDownloading}
+              className={`px-6 py-3 rounded-xl font-bold text-sm uppercase tracking-wider font-sports flex items-center gap-2 transition-all cursor-pointer shadow-lg ${
+                downloadSuccess
+                  ? 'bg-emerald-600 text-white shadow-emerald-950/60'
+                  : 'bg-emerald-700 hover:bg-emerald-600 text-white shadow-emerald-950/40 hover:-translate-y-0.5'
+              } disabled:opacity-60 disabled:cursor-not-allowed`}
+              title={language === 'am' ? 'የአባልነት መታወቂያ በከፍተኛ ጥራት JPEG አውርድ' : 'Download high-quality JPEG membership card'}
             >
-              <Printer className="w-4 h-4" />
-              <span>{t.downloadCard}</span>
+              {isDownloading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>{language === 'am' ? 'ካርዱ እየተዘጋጀ ነው...' : 'Generating Image...'}</span>
+                </>
+              ) : downloadSuccess ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-white" />
+                  <span>{language === 'am' ? 'ተጠናቅቋል!' : 'Downloaded!'}</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 text-white" />
+                  <span>{t.downloadCard}</span>
+                </>
+              )}
             </button>
             <button
+              type="button"
               onClick={handleResetForm}
-              className="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm uppercase tracking-wider font-sports flex items-center gap-2 transition-colors shadow-lg shadow-red-950 cursor-pointer"
+              className="px-6 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-bold text-sm uppercase tracking-wider font-sports flex items-center gap-2 transition-colors cursor-pointer"
             >
               <UserPlus className="w-4 h-4" />
               <span>{t.newRegistrationBtn}</span>

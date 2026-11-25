@@ -195,7 +195,7 @@ export const translations = {
     registrationSuccessDesc: 'Welcome to the Berberewochu family! Your official supporter registration has been recorded in the club database.',
     yourRefNumber: 'Membership Reference Number',
     digitalCardTitle: 'Official Halaba City FC Digital Fan ID',
-    downloadCard: 'Print / Save Fan Pass',
+    downloadCard: 'Download Membership Card (.JPG)',
     newRegistrationBtn: 'Register Another Supporter',
 
     // Validation
@@ -569,7 +569,7 @@ export const translations = {
     registrationSuccessDesc: 'እንኳን ወደ በርበሬዎቹ ቤተሰብ በደህና መጡ! ምዝገባዎ በክለቡ የውሂብ ጎታ ውስጥ ተመዝግቧል።',
     yourRefNumber: 'የአባልነት መለያ ቁጥር',
     digitalCardTitle: 'የሀላባ ከተማ እግርኳስ ክለብ ይፋዊ ዲጂታል መታወቂያ',
-    downloadCard: 'መታወቂያውን አትም / አስቀምጥ',
+    downloadCard: 'የአባልነት መታወቂያ አውርድ (.JPG)',
     newRegistrationBtn: 'ሌላ ደጋፊ መዝግብ',
 
     // Validation
@@ -943,7 +943,7 @@ export const translations = {
     registrationSuccessDesc: 'Baga gara maatii Berberewochu dhuftan! Galmeen keessan kuusaa ragaa kilabichaa keessatti qabameera.',
     yourRefNumber: 'Lakkoofsa Eenyummaa Miseensummaa',
     digitalCardTitle: 'Waraqaa Eenyummaa Dijitaalaa Halaba City FC',
-    downloadCard: 'Waraqicha Maxxansi / Ol-kaa’i',
+    downloadCard: 'Waraqaa Miseensummaa Buufadhu (.JPG)',
     newRegistrationBtn: 'Nama Biraa Galmeessi',
 
     // Validation

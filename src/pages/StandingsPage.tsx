@@ -2,16 +2,36 @@ import React, { useState } from 'react';
 import { useClub } from '../context/ClubContext';
 import { HalabaCrest } from '../components/HalabaCrest';
 import { EthiopianClubLogo } from '../components/EthiopianClubLogo';
-import { Trophy, Filter, RefreshCw } from 'lucide-react';
+import { Trophy, Filter, RefreshCw, Lock, AlertTriangle } from 'lucide-react';
 import { getLocalizedTeamName, getFormBadgeLocalized } from '../utils/localization';
 import { formatTeamName } from '../utils/formatTeamName';
 
 export const StandingsPage: React.FC = () => {
-  const { t, language, standings, isSyncing, syncNow, isOnline } = useClub();
-  const [competition, setCompetition] = useState('ETHIOPIAN_PREMIER_LEAGUE');
+  const {
+    t,
+    language,
+    standings,
+    standingsCompetition,
+    standingsSeason,
+    standingsMode,
+    standingsError,
+    setStandingsScope,
+    isSyncing,
+    syncNow,
+    isOnline,
+  } = useClub();
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
+
+  const handleManualSync = async () => {
+    setSyncNotice(null);
+    try {
+      await syncNow(true);
+    } catch (err: any) {
+      setSyncNotice(err?.message || 'Could not synchronize standings.');
+    }
+  };
 
   const halabaStanding = standings.find((s) => s.isHalaba) || standings[0];
-  const halabaName = halabaStanding ? getLocalizedTeamName(halabaStanding.teamId, halabaStanding.teamName, language) : '';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -27,7 +47,7 @@ export const StandingsPage: React.FC = () => {
               {t.standingsTitle}
             </h1>
             <p className="text-neutral-400 text-sm mt-1 max-w-xl">{t.standingsSubtitle}</p>
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex flex-wrap items-center gap-2 mt-2">
               {!isOnline ? (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/80 border border-amber-800/80 text-amber-300 text-xxs font-bold">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
@@ -36,7 +56,17 @@ export const StandingsPage: React.FC = () => {
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-800/80 text-emerald-400 text-xxs font-bold">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  {language === 'am' ? 'የቀጥታ ግንኙነት ነቅቷል • TheSportsDB' : 'Live Connected • TheSportsDB'}
+                  {language === 'am' ? 'የቀጥታ ግንኙነት ነቅቷል • D1 & TheSportsDB' : 'Live Connected • D1 & TheSportsDB'}
+                </span>
+              )}
+              {standingsMode === 'manual' ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-950/80 border border-amber-600/50 text-amber-300 text-xxs font-bold uppercase">
+                  <Lock className="w-3 h-3" />
+                  <span>{language === 'am' ? 'በአስተዳዳሪ የተቆለፈ (Manual)' : 'Admin Manual Mode'}</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-neutral-900 border border-neutral-700 text-neutral-300 text-xxs font-bold uppercase">
+                  <span>{language === 'am' ? 'ራስ-ሰር ማሻሻያ (Automatic)' : 'Automatic Feed'}</span>
                 </span>
               )}
             </div>
@@ -45,7 +75,7 @@ export const StandingsPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
             {/* Live SportsDB Sync Button */}
             <button
-              onClick={() => syncNow(true)}
+              onClick={handleManualSync}
               disabled={isSyncing}
               className="flex items-center gap-2 px-3.5 py-2 rounded-xl btn-secondary-amber font-sports font-bold text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 disabled:opacity-50"
               title="Sync directly with TheSportsDB official data"
@@ -58,8 +88,11 @@ export const StandingsPage: React.FC = () => {
             <div className="flex items-center gap-2 bg-neutral-950 p-1.5 rounded-xl border border-neutral-800">
               <Filter className="w-4 h-4 text-neutral-400 ml-2" />
               <select
-                value={competition}
-                onChange={(e) => setCompetition(e.target.value)}
+                value={standingsCompetition}
+                onChange={(e) => {
+                  setSyncNotice(null);
+                  void setStandingsScope(e.target.value, standingsSeason);
+                }}
                 className="bg-transparent text-neutral-200 text-xs sm:text-sm font-semibold rounded-lg px-2 py-1.5 focus:outline-none"
               >
                 <option value="ETHIOPIAN_PREMIER_LEAGUE">
@@ -69,9 +102,29 @@ export const StandingsPage: React.FC = () => {
                   {language === 'am' ? 'የኢትዮጵያ ዋንጫ 2026/27' : 'Ethiopian Cup 2026/27'}
                 </option>
               </select>
+              <select
+                value={standingsSeason}
+                onChange={(e) => {
+                  setSyncNotice(null);
+                  void setStandingsScope(standingsCompetition, e.target.value);
+                }}
+                className="bg-neutral-900 text-neutral-300 text-xs font-mono font-semibold rounded-lg px-2 py-1.5 border border-neutral-800 focus:outline-none"
+                aria-label="Season"
+              >
+                <option value="2026-2027">2026/27</option>
+                <option value="2025-2026">2025/26</option>
+                <option value="2024-2025">2024/25</option>
+              </select>
             </div>
           </div>
         </div>
+
+        {(syncNotice || standingsError) && (
+          <div className="mt-4 p-3 rounded-xl bg-amber-950/70 border border-amber-700/60 text-amber-200 text-xs flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>{syncNotice || standingsError}</span>
+          </div>
+        )}
 
         {/* Verified League Status Summary Card */}
         {halabaStanding && (
@@ -158,6 +211,15 @@ export const StandingsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-800/80">
+              {standings.length === 0 && (
+                <tr>
+                  <td colSpan={11} className="py-10 px-4 text-center text-neutral-400 text-xs">
+                    {language === 'am'
+                      ? 'ለተመረጠው ውድድር እና የውድድር ዘመን የተቀመጠ የደረጃ ሰንጠረዥ የለም።'
+                      : 'No standings recorded yet for the selected competition and season.'}
+                  </td>
+                </tr>
+              )}
               {standings.map((team) => {
                 const isLeader = team.position === 1;
                 const isConfed = team.position === 2;

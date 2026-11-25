@@ -122,14 +122,11 @@ export const EthiopianClubLogo: React.FC<EthiopianClubLogoProps> = ({
 }) => {
   // Normalize lookup key
   const normalizedKey = (teamId || teamName).toLowerCase().trim();
-
-  // If rendering Halaba City FC, directly render the pristine HalabaCrest component
-  if (normalizedKey.includes('halaba') || teamId === 'halaba') {
-    return <HalabaCrest size={size} className={className} />;
-  }
+  const isHalaba = normalizedKey.includes('halaba') || teamId === 'halaba';
 
   // Instant synchronous lookup for zero delay on initial render
   const initialBadge = (): string | null => {
+    if (isHalaba) return null;
     if (badgeUrl) return badgeUrl;
     if (badgeCache.has(normalizedKey)) {
       return badgeCache.get(normalizedKey) || null;
@@ -152,6 +149,10 @@ export const EthiopianClubLogo: React.FC<EthiopianClubLogoProps> = ({
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
+    if (isHalaba) {
+      return;
+    }
+
     if (badgeUrl) {
       setBadge(badgeUrl);
       setImgError(false);
@@ -227,7 +228,12 @@ export const EthiopianClubLogo: React.FC<EthiopianClubLogoProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [teamId, teamName, badgeUrl, normalizedKey]);
+  }, [teamId, teamName, badgeUrl, normalizedKey, isHalaba]);
+
+  // If rendering Halaba City FC, directly render the pristine HalabaCrest component
+  if (isHalaba) {
+    return <HalabaCrest size={size} className={className} />;
+  }
 
   // If badge exists and image has not failed, render standard <img>
   if (badge && !imgError) {

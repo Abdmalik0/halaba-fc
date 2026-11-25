@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { collection, query, orderBy, limit, onSnapshot, addDoc, setDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
-import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, User } from 'firebase/auth';
+import { collection, onSnapshot, addDoc, setDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
+import { apiFetchJson, adminApiFetchJson } from '../utils/api';
 import {
   Language,
   ClubInfo,
@@ -33,6 +34,20 @@ import { ClubImages } from '../assets/images';
 import { getIdbItem, setIdbItem, createThumbnail } from '../utils/idb';
 
 export type PageRoute = 'home' | 'fixtures' | 'standings' | 'news' | 'membership' | 'shop' | 'about' | 'contact' | 'admin';
+export type StandingsUpdateMode = 'automatic' | 'manual';
+
+export interface StandingsHistoryEntry {
+  id: string;
+  competition: string;
+  season: string;
+  changedBy: string | null;
+  changeReason: string | null;
+  createdAt: string;
+  teamCount: number;
+}
+
+export const DEFAULT_STANDINGS_COMPETITION = 'ETHIOPIAN_PREMIER_LEAGUE';
+export const DEFAULT_STANDINGS_SEASON = '2026-2027';
 
 interface ClubContextType {
   // Language
@@ -71,7 +86,7 @@ interface ClubContextType {
 
   // Club Info
   clubInfo: ClubInfo;
-  updateClubInfo: (info: ClubInfo) => void;
+  updateClubInfo: (info: ClubInfo) => Promise<void>;
 
   // Matches
   matches: Match[];
@@ -81,15 +96,24 @@ interface ClubContextType {
 
   // Standings
   standings: StandingTeam[];
+  standingsCompetition: string;
+  standingsSeason: string;
+  standingsMode: StandingsUpdateMode;
+  standingsHistory: StandingsHistoryEntry[];
+  standingsError: string | null;
+  d1SyncError: string | null;
+  setStandingsScope: (competition: string, season?: string) => Promise<void>;
+  setStandingsUpdateMode: (mode: StandingsUpdateMode) => Promise<void>;
+  loadStandingsForScope: (competition?: string, season?: string, includeHistory?: boolean) => Promise<void>;
   updateStanding: (teamId: string, updates: Partial<StandingTeam>) => Promise<void>;
   resetStandings: () => Promise<void>;
   recalculateStandingsFromMatches: () => Promise<void>;
 
   // News
   news: NewsArticle[];
-  addNewsArticle: (article: Omit<NewsArticle, 'id'>) => void;
-  updateNewsArticle: (id: string, updates: Partial<NewsArticle>) => void;
-  deleteNewsArticle: (id: string) => void;
+  addNewsArticle: (article: Omit<NewsArticle, 'id'>) => Promise<void>;
+  updateNewsArticle: (id: string, updates: Partial<NewsArticle>) => Promise<void>;
+  deleteNewsArticle: (id: string) => Promise<void>;
 
   // Squad & Staff
   players: Player[];
@@ -248,6 +272,157 @@ export const normalizeEplTeamId = (rawId?: string, rawName?: string): string => 
   if (str.includes('negelle') || str.includes('negele')) return 'negelle';
   return (rawId || '').replace(/[^a-z0-9]/g, '') || 'unknown';
 };
+
+function makeMatchSignature(m: Match): string {
+  const homeKey = normalizeEplTeamId(m.homeTeam?.id, m.homeTeam?.name);
+  const awayKey = normalizeEplTeamId(m.awayTeam?.id, m.awayTeam?.name);
+  return `${m.date || ''}::${homeKey}::${awayKey}`;
+}
+
+export function mergeMatchesPreservingCustom(
+  existingMatches: Match[],
+  incomingFixtures: Match[]
+): { merged: Match[]; toSync: Match[] } {
+  const merged = [...existingMatches];
+  const byId = new Map<string, number>();
+  const bySignature = new Map<string, number>();
+
+  merged.forEach((m, idx) => {
+    byId.set(m.id, idx);
+    bySignature.set(makeMatchSignature(m), idx);
+  });
+
+  const toSync: Match[] = [];
+
+  for (const incoming of incomingFixtures) {
+    const sig = makeMatchSignature(incoming);
+    const existingIdx = byId.has(incoming.id)
+      ? byId.get(incoming.id)!
+      : bySignature.has(sig)
+      ? bySignature.get(sig)!
+      : -1;
+
+    if (existingIdx >= 0) {
+      const current = merged[existingIdx];
+      const updated: Match = {
+        ...current,
+        ...incoming,
+        id: current.id,
+        venue: incoming.venue || current.venue,
+        summary: current.summary || incoming.summary,
+        attendance: current.attendance || incoming.attendance,
+        referee: current.referee || incoming.referee,
+        scorers: current.scorers && current.scorers.length > 0 ? current.scorers : incoming.scorers,
+        liveEvents:
+          current.liveEvents && current.liveEvents.length > 0 ? current.liveEvents : incoming.liveEvents,
+      };
+      merged[existingIdx] = updated;
+      toSync.push(updated);
+    } else {
+      merged.push(incoming);
+      byId.set(incoming.id, merged.length - 1);
+      bySignature.set(sig, merged.length - 1);
+      toSync.push(incoming);
+    }
+  }
+
+  merged.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return { merged, toSync };
+}
+
+const CANONICAL_TEAM_NAMES: Record<string, string> = {
+  cbe_sa: 'Ethiopia Nigd Bank (CBE SA)',
+  halaba: 'Halaba Ketema (በርበሬዎቹ)',
+  insurance: 'Ethiopian Medhin (Insurance)',
+  adama: 'Adama Kenema SC',
+  electric: 'Ethio Electric',
+  shaggar: 'Shaggar City FC',
+  negelle: 'Negele Arsi FC',
+  hawassa: 'Hawassa Kenema SC',
+  hosaena: 'Hadiya Hossana',
+};
+
+export function normalizeStandingsScopeRows(
+  rawRows: any[],
+  competition: string,
+  season: string
+): StandingTeam[] {
+  const isDefaultEpl =
+    competition === DEFAULT_STANDINGS_COMPETITION && season === DEFAULT_STANDINGS_SEASON;
+
+  if (!isDefaultEpl) {
+    const map = new Map<string, StandingTeam>();
+    rawRows.forEach((data: any) => {
+      const rawId = String(data?.teamId ?? data?.team_id ?? data?.id ?? '').trim();
+      const teamId = rawId || normalizeEplTeamId(rawId, data?.teamName);
+      if (!teamId || teamId === 'diredawa') return;
+      const gf = Number(data?.goalsFor) || 0;
+      const ga = Number(data?.goalsAgainst) || 0;
+      map.set(teamId, {
+        position: Number(data?.position) || 1,
+        teamId,
+        teamName: String(data?.teamName || CANONICAL_TEAM_NAMES[teamId] || 'Team'),
+        played: Number(data?.played) || 0,
+        won: Number(data?.won) || 0,
+        drawn: Number(data?.drawn) || 0,
+        lost: Number(data?.lost) || 0,
+        goalsFor: gf,
+        goalsAgainst: ga,
+        goalDifference: gf - ga,
+        points: Number(data?.points) || 0,
+        form: Array.isArray(data?.form) && data.form.length > 0 ? data.form : ['D', 'W', 'D'],
+        isHalaba: teamId === 'halaba' || Boolean(data?.isHalaba),
+        badgeUrl: data?.badgeUrl || undefined,
+      });
+    });
+
+    const list = Array.from(map.values());
+    list.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
+    return list.map((t, idx) => ({ ...t, position: idx + 1 }));
+  }
+
+  const canonicalMap = new Map<string, StandingTeam>();
+  rawRows.forEach((data: any) => {
+    const canonicalId = normalizeEplTeamId(data?.teamId ?? data?.team_id, data?.teamName);
+    if (!VALID_EPL_18_TEAM_IDS.has(canonicalId)) {
+      return;
+    }
+    const gf = Number(data?.goalsFor) || 0;
+    const ga = Number(data?.goalsAgainst) || 0;
+    const teamItem: StandingTeam = {
+      position: Number(data?.position) || 1,
+      teamId: canonicalId,
+      teamName: CANONICAL_TEAM_NAMES[canonicalId] || String(data?.teamName || 'Team'),
+      played: Number(data?.played) || 0,
+      won: Number(data?.won) || 0,
+      drawn: Number(data?.drawn) || 0,
+      lost: Number(data?.lost) || 0,
+      goalsFor: gf,
+      goalsAgainst: ga,
+      goalDifference: gf - ga,
+      points: Number(data?.points) || 0,
+      form: Array.isArray(data?.form) && data.form.length > 0 ? data.form : ['D', 'W', 'D'],
+      isHalaba: canonicalId === 'halaba',
+      badgeUrl: data?.badgeUrl || undefined,
+    };
+    if (!canonicalMap.has(canonicalId)) {
+      canonicalMap.set(canonicalId, teamItem);
+    }
+  });
+
+  if (canonicalMap.size > 0) {
+    initialStandings.forEach((initT) => {
+      if (!canonicalMap.has(initT.teamId) && VALID_EPL_18_TEAM_IDS.has(initT.teamId)) {
+        canonicalMap.set(initT.teamId, { ...initT });
+      }
+    });
+  }
+
+  const list = Array.from(canonicalMap.values())
+    .filter((t) => VALID_EPL_18_TEAM_IDS.has(t.teamId) && t.teamId !== 'diredawa');
+  list.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
+  return list.slice(0, 18).map((t, idx) => ({ ...t, position: idx + 1 }));
+}
 
 const STORAGE_KEYS = {
   LANG: 'halaba_lang',
@@ -467,18 +642,69 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Club Info
+  const [d1SyncError, setD1SyncError] = useState<string | null>(null);
+
+  // Club Info (Cloudflare D1 backed with localStorage offline fallback)
   const [clubInfo, setClubInfo] = useState<ClubInfo>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.CLUB);
     return saved ? JSON.parse(saved) : initialClubInfo;
   });
 
-  const updateClubInfo = (info: ClubInfo) => {
-    setClubInfo(info);
-    localStorage.setItem(STORAGE_KEYS.CLUB, JSON.stringify(info));
+  useEffect(() => {
+    let isMounted = true;
+    const loadClubSettings = async () => {
+      const res = await apiFetchJson<{
+        success: boolean;
+        configured?: boolean;
+        clubInfo?: ClubInfo | null;
+      }>('/api/club-settings');
+
+      if (!isMounted) return;
+      if (!res.ok && !res.isHtmlFallback && !res.isOffline) {
+        setD1SyncError(res.error || 'Failed to load club settings from D1.');
+        return;
+      }
+      if (res.ok && res.data?.configured && res.data.clubInfo && res.data.clubInfo.name) {
+        setClubInfo(res.data.clubInfo);
+        try {
+          localStorage.setItem(STORAGE_KEYS.CLUB, JSON.stringify(res.data.clubInfo));
+        } catch {
+          // Ignore storage quota errors
+        }
+      }
+    };
+    loadClubSettings();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const updateClubInfo = async (info: ClubInfo): Promise<void> => {
+    if (!isAdminLoggedIn) {
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
+
+    const res = await adminApiFetchJson<{ success: boolean; clubInfo?: ClubInfo }>('/api/club-settings', {
+      method: 'PUT',
+      body: JSON.stringify(info),
+    });
+
+    if (!res.ok && res.status !== 501 && !res.isHtmlFallback && !res.isOffline) {
+      const message = res.error || 'Failed to persist club settings.';
+      setD1SyncError(message);
+      throw new Error(message);
+    }
+
+    const saved = res.ok && res.data?.clubInfo ? res.data.clubInfo : info;
+    setD1SyncError(null);
+    setClubInfo(saved);
+    try {
+      localStorage.setItem(STORAGE_KEYS.CLUB, JSON.stringify(saved));
+    } catch {
+      // Ignore storage quota errors
+    }
   };
 
-  // Matches State & Real-Time Firebase Firestore Integration
   // Helper to strictly identify Halaba City FC matches
   const isHalabaMatch = (m: any): boolean =>
     Boolean(
@@ -491,7 +717,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         m.awayTeam?.name?.toLowerCase().includes('halaba'))
     );
 
-  // Matches State & Real-Time TheSportsDB / Firestore Integration
+  // Matches State (Cloudflare D1 authoritative with localStorage offline fallback)
   const [matches, setMatches] = useState<Match[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.MATCHES);
     if (!saved) return [];
@@ -506,67 +732,31 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return [];
     }
   });
+  const matchesRef = useRef<Match[]>(matches);
+  matchesRef.current = matches;
+  const d1MatchesPromiseRef = useRef<Promise<Match[] | null> | null>(null);
 
-  // Background auto-sync of Halaba fixtures from TheSportsDB (runs once per app open session)
+  // Load matches from Cloudflare D1 API (authoritative source of truth)
   useEffect(() => {
-    const sessionKey = 'halaba_sportsdb_app_session_synced';
-    if (typeof window !== 'undefined' && sessionStorage.getItem(sessionKey)) {
-      return;
-    }
+    let isMounted = true;
+    const loadMatchesFromD1 = async (): Promise<Match[] | null> => {
+      const res = await apiFetchJson<{ success: boolean; matches: any[] }>('/api/matches');
+      if (!isMounted) return null;
 
-    const fetchHalabaFixturesFromSportsDB = async () => {
-      try {
-        const res = await fetch('/api/fixtures/sportsdb');
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && Array.isArray(json.fixtures) && json.fixtures.length > 0) {
-            const halabaOnly: Match[] = json.fixtures.filter(isHalabaMatch);
-            if (halabaOnly.length > 0) {
-              halabaOnly.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-              setMatches(halabaOnly);
-              try {
-                localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(halabaOnly));
-              } catch (e) {
-                console.warn('LocalStorage error caching matches:', e);
-              }
-
-              // Synchronize official fixtures into Firestore only if admin is logged in
-              // This avoids 17 unnecessary document writes and prevents broadcasting read updates to all clients on every visitor app open
-              if (isAdminLoggedIn) {
-                for (const fm of halabaOnly) {
-                  try {
-                    await setDoc(doc(db, 'matches', fm.id), { ...fm, updatedAt: serverTimestamp() }, { merge: true });
-                  } catch {
-                    // Ignore background network/permission notice
-                  }
-                }
-              }
-
-              if (typeof window !== 'undefined') {
-                sessionStorage.setItem(sessionKey, 'true');
-              }
-            }
-          }
+      if (!res.ok) {
+        if (!res.isHtmlFallback && !res.isOffline) {
+          setD1SyncError(res.error || 'Failed to load matches from D1.');
         }
-      } catch (err) {
-        console.warn('Auto-sync Halaba fixtures notice:', err);
+        return null;
       }
-    };
-    fetchHalabaFixturesFromSportsDB();
-  }, []);
 
-  useEffect(() => {
-    const matchesRef = collection(db, 'matches');
-    const unsubscribe = onSnapshot(matchesRef, (snapshot) => {
-      if (snapshot.empty) {
-        // Do not automatically seed sample fixtures into an empty Firestore collection.
-        // Preserve any valid existing cache in state and localStorage.
-        return;
+      if (!res.data || !Array.isArray(res.data.matches) || res.data.matches.length === 0) {
+        return [];
       }
-      const liveMatches: Match[] = snapshot.docs.map((docSnap) => {
-        const data = docSnap.data();
-        return {
-          id: docSnap.id,
+
+      const liveMatches: Match[] = res.data.matches
+        .map((data: any) => ({
+          id: data.id,
           competition: data.competition || 'ETHIOPIAN_PREMIER_LEAGUE',
           competitionName: data.competitionName || 'Ethiopian Premier League',
           date: data.date || '',
@@ -585,13 +775,13 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
           liveMinute: data.liveMinute,
           livePeriod: data.livePeriod,
           liveEvents: data.liveEvents,
-        } as Match;
-      }).filter(isHalabaMatch);
+        }) as Match)
+        .filter(isHalabaMatch);
 
-      // Sort fixtures strictly by actual match date chronologically
       liveMatches.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       if (liveMatches.length > 0) {
+        matchesRef.current = liveMatches;
         setMatches(liveMatches);
         try {
           localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(liveMatches));
@@ -599,15 +789,14 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.warn('LocalStorage error caching matches:', e);
         }
       }
-    }, (error) => {
-      if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        // Offline: gracefully serve local cache without throwing UI errors
-      }
-    });
+      return liveMatches;
+    };
 
-    return () => unsubscribe();
+    d1MatchesPromiseRef.current = loadMatchesFromD1();
+    return () => {
+      isMounted = false;
+    };
   }, []);
-
 
   const addMatch = async (matchData: Omit<Match, 'id'>) => {
     if (!isAdminLoggedIn) {
@@ -619,20 +808,20 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...matchData,
       id: matchId,
     };
-    const updated = [newMatch, ...matches];
+
+    const res = await adminApiFetchJson<{ success: boolean; match?: Match }>('/api/matches', {
+      method: 'POST',
+      body: JSON.stringify(newMatch),
+    });
+
+    if (!res.ok && !res.isHtmlFallback && !res.isOffline) {
+      throw new Error(res.error || 'Failed to add match.');
+    }
+
+    const savedMatch = res.ok && res.data?.match ? res.data.match : newMatch;
+    const updated = [savedMatch, ...matches];
     setMatches(updated);
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(updated));
-
-    try {
-      await setDoc(doc(db, 'matches', matchId), {
-        ...newMatch,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    } catch (error) {
-      console.error('Firestore add match error:', error);
-      handleFirestoreError(error, OperationType.CREATE, `matches/${matchId}`);
-    }
   };
 
   const updateMatch = async (id: string, updates: Partial<Match>) => {
@@ -640,25 +829,30 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Unauthorized updateMatch attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
-    const updated = matches.map((m) => (m.id === id ? { ...m, ...updates } : m));
+    const cleanUpdates: Record<string, any> = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) {
+        cleanUpdates[key] = value;
+      }
+    }
+
+    const res = await adminApiFetchJson<{ success: boolean; match?: Match }>(
+      `/api/matches/${encodeURIComponent(id)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(cleanUpdates),
+      }
+    );
+
+    if (!res.ok && !res.isHtmlFallback && !res.isOffline) {
+      throw new Error(res.error || 'Failed to update match.');
+    }
+
+    const updated = matches.map((m) =>
+      m.id === id ? (res.ok && res.data?.match ? res.data.match : { ...m, ...updates }) : m
+    );
     setMatches(updated);
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(updated));
-
-    try {
-      const cleanUpdates: Record<string, any> = {};
-      for (const [key, value] of Object.entries(updates)) {
-        if (value !== undefined) {
-          cleanUpdates[key] = value;
-        }
-      }
-      await setDoc(doc(db, 'matches', id), {
-        ...cleanUpdates,
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-    } catch (error) {
-      console.error('Firestore update match error:', error);
-      handleFirestoreError(error, OperationType.UPDATE, `matches/${id}`);
-    }
   };
 
   const deleteMatch = async (id: string) => {
@@ -666,34 +860,53 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Unauthorized deleteMatch attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
+    const res = await adminApiFetchJson(`/api/matches/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+
+    if (!res.ok && !res.isHtmlFallback && !res.isOffline) {
+      throw new Error(res.error || 'Failed to delete match.');
+    }
+
     const updated = matches.filter((m) => m.id !== id);
     setMatches(updated);
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(updated));
-
-    try {
-      await deleteDoc(doc(db, 'matches', id));
-    } catch (error) {
-      console.error('Firestore delete match error:', error);
-      handleFirestoreError(error, OperationType.DELETE, `matches/${id}`);
-    }
   };
 
-  // Standings State & Real-Time TheSportsDB / Firestore Integration
-  const isCorruptedStandings = (list: any[]): boolean => {
-    if (!Array.isArray(list) || list.length < 18) return true;
+  // Standings State (Cloudflare D1 backed with competition/season scope, manual lock, & history)
+  const isLegacyCorruptedStandings = (list: any[]): boolean => {
+    if (!Array.isArray(list) || list.length === 0) return true;
     const teamsWithZero = list.filter((t: any) => Number(t.played) === 0).length;
     if (list[0]?.teamId === 'halaba' && Number(list[0]?.points) === 8 && teamsWithZero > 10) return true;
-    const halabaTeam = list.find((t: any) => t.teamId === 'halaba' || t.isHalaba);
-    if (halabaTeam && Number(halabaTeam.played) < 5) return true;
     return false;
   };
+
+  const getStandingsCacheKey = (competition: string, season: string) =>
+    competition === DEFAULT_STANDINGS_COMPETITION && season === DEFAULT_STANDINGS_SEASON
+      ? STORAGE_KEYS.STANDINGS
+      : `halaba_standings_${competition}_${season}`;
+
+  const [standingsCompetition, setStandingsCompetition] = useState<string>(DEFAULT_STANDINGS_COMPETITION);
+  const [standingsSeason, setStandingsSeason] = useState<string>(DEFAULT_STANDINGS_SEASON);
+  const [standingsMode, setStandingsMode] = useState<StandingsUpdateMode>('automatic');
+  const [standingsHistory, setStandingsHistory] = useState<StandingsHistoryEntry[]>([]);
+  const [standingsError, setStandingsError] = useState<string | null>(null);
+
+  const standingsScopeRef = useRef({
+    competition: DEFAULT_STANDINGS_COMPETITION,
+    season: DEFAULT_STANDINGS_SEASON,
+  });
+  standingsScopeRef.current = { competition: standingsCompetition, season: standingsSeason };
+
+  const standingsModeRef = useRef<StandingsUpdateMode>(standingsMode);
+  standingsModeRef.current = standingsMode;
 
   const [standings, setStandings] = useState<StandingTeam[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.STANDINGS);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= 18 && !isCorruptedStandings(parsed)) {
+        if (Array.isArray(parsed) && parsed.length >= 18 && !isLegacyCorruptedStandings(parsed)) {
           const hasHalaba = parsed.some((t) => t.isHalaba || t.teamId === 'halaba');
           const hasCbe = parsed.some((t) => t.teamId === 'cbe_sa');
           if (hasHalaba && hasCbe) {
@@ -701,110 +914,170 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       }
-    } catch (e) {
+    } catch {
       // Ignore
     }
     return initialStandings;
   });
 
-  useEffect(() => {
-    const standingsRef = collection(db, 'standings');
-    const unsubscribe = onSnapshot(standingsRef, async (snapshot) => {
-      const canonicalMap = new Map<string, StandingTeam>();
+  const persistStandingsCache = useCallback((competition: string, season: string, rows: StandingTeam[]) => {
+    try {
+      localStorage.setItem(getStandingsCacheKey(competition, season), JSON.stringify(rows));
+    } catch {
+      // Ignore storage quota errors
+    }
+  }, []);
 
-      snapshot.docs.forEach((docSnap) => {
-        // Permanently purge diredawa and duplicate hadiya docs from Firestore (admin only)
-        if (isAdminLoggedIn) {
-          if (docSnap.id === 'diredawa' || docSnap.id === 'hadiya') {
-            deleteDoc(doc(db, 'standings', docSnap.id)).catch(() => {});
-            return;
-          }
-        }
+  const loadStandingsForScope = useCallback(
+    async (
+      competitionArg?: string,
+      seasonArg?: string,
+      includeHistoryArg?: boolean
+    ): Promise<void> => {
+      const competition = competitionArg || standingsScopeRef.current.competition;
+      const season = seasonArg || standingsScopeRef.current.season;
+      const includeHistory = includeHistoryArg ?? isAdminLoggedIn;
 
-        const data = docSnap.data();
-        const canonicalId = normalizeEplTeamId(docSnap.id, data.teamName || data.teamId);
-
-        // Delete obsolete, non-canonical or duplicate doc IDs from Firestore (admin only)
-        if (isAdminLoggedIn && docSnap.id !== canonicalId) {
-          deleteDoc(doc(db, 'standings', docSnap.id)).catch(() => {});
-        }
-
-        // Only accept valid 18 EPL teams (diredawa is not in the league)
-        if (!VALID_EPL_18_TEAM_IDS.has(canonicalId)) {
-          return;
-        }
-
-        const teamItem: StandingTeam = {
-          position: data.position || 1,
-          teamId: canonicalId,
-          teamName: canonicalId === 'cbe_sa'
-            ? 'Ethiopia Nigd Bank (CBE SA)'
-            : canonicalId === 'halaba'
-            ? 'Halaba Ketema (በርበሬዎቹ)'
-            : canonicalId === 'insurance'
-            ? 'Ethiopian Medhin (Insurance)'
-            : canonicalId === 'adama'
-            ? 'Adama Kenema SC'
-            : canonicalId === 'electric'
-            ? 'Ethio Electric'
-            : canonicalId === 'shaggar'
-            ? 'Shaggar City FC'
-            : canonicalId === 'negelle'
-            ? 'Negele Arsi FC'
-            : canonicalId === 'hawassa'
-            ? 'Hawassa Kenema SC'
-            : canonicalId === 'hosaena'
-            ? 'Hadiya Hossana'
-            : (data.teamName || 'Team'),
-          played: Number(data.played) || 0,
-          won: Number(data.won) || 0,
-          drawn: Number(data.drawn) || 0,
-          lost: Number(data.lost) || 0,
-          goalsFor: Number(data.goalsFor) || 0,
-          goalsAgainst: Number(data.goalsAgainst) || 0,
-          goalDifference: (Number(data.goalsFor) || 0) - (Number(data.goalsAgainst) || 0),
-          points: Number(data.points) || 0,
-          form: Array.isArray(data.form) && data.form.length > 0 ? data.form : ['D', 'W', 'D'],
-          isHalaba: canonicalId === 'halaba',
-          badgeUrl: data.badgeUrl || undefined,
-        };
-
-        if (!canonicalMap.has(canonicalId)) {
-          canonicalMap.set(canonicalId, teamItem);
-        }
+      const query = new URLSearchParams({
+        competition,
+        season,
+        ...(includeHistory ? { includeHistory: '1' } : {}),
       });
 
-      // Guarantee all 18 official Ethiopian Premier League clubs are present
-      initialStandings.forEach((initT) => {
-        if (!canonicalMap.has(initT.teamId) && VALID_EPL_18_TEAM_IDS.has(initT.teamId)) {
-          canonicalMap.set(initT.teamId, { ...initT });
-        }
-      });
+      const res = await apiFetchJson<{
+        success: boolean;
+        configured?: boolean;
+        competition?: string;
+        season?: string;
+        updateMode?: StandingsUpdateMode;
+        standings?: any[];
+        history?: StandingsHistoryEntry[];
+      }>(`/api/standings?${query.toString()}`);
 
-      const list = Array.from(canonicalMap.values())
-        .filter((t) => VALID_EPL_18_TEAM_IDS.has(t.teamId) && t.teamId !== 'diredawa');
-      list.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
-      const reordered = list.slice(0, 18).map((t, idx) => ({ ...t, position: idx + 1 }));
-
-      if (reordered.length > 0 && !isCorruptedStandings(reordered)) {
-        setStandings(reordered);
-        localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(reordered));
-      }
-    }, (error) => {
-      if (typeof navigator !== 'undefined' && !navigator.onLine) {
-        // Offline: gracefully serve local cache without throwing UI errors
+      if (
+        standingsScopeRef.current.competition !== competition ||
+        standingsScopeRef.current.season !== season
+      ) {
         return;
       }
-      console.warn('Firebase real-time standings note:', error);
+
+      if (!res.ok) {
+        if (!res.isHtmlFallback && !res.isOffline) {
+          setStandingsError(res.error || 'Failed to load standings from D1.');
+        }
+        return;
+      }
+
+      if (!res.data || res.data.configured === false) {
+        return;
+      }
+
+      const mode: StandingsUpdateMode = res.data.updateMode === 'manual' ? 'manual' : 'automatic';
+      setStandingsMode(mode);
+      standingsModeRef.current = mode;
+      setStandingsError(null);
+
+      if (Array.isArray(res.data.history)) {
+        setStandingsHistory(res.data.history);
+      }
+
+      if (!Array.isArray(res.data.standings) || res.data.standings.length === 0) {
+        if (
+          competition !== DEFAULT_STANDINGS_COMPETITION ||
+          season !== DEFAULT_STANDINGS_SEASON
+        ) {
+          setStandings([]);
+          persistStandingsCache(competition, season, []);
+        }
+        return;
+      }
+
+      const normalized = normalizeStandingsScopeRows(res.data.standings, competition, season);
+      setStandings(normalized);
+      persistStandingsCache(competition, season, normalized);
+    },
+    [isAdminLoggedIn, persistStandingsCache]
+  );
+
+  // Load standings from Cloudflare D1 API if configured
+  useEffect(() => {
+    void loadStandingsForScope(standingsCompetition, standingsSeason, isAdminLoggedIn);
+  }, [standingsCompetition, standingsSeason, isAdminLoggedIn, loadStandingsForScope]);
+
+  const setStandingsScope = useCallback(
+    async (competition: string, season?: string): Promise<void> => {
+      const nextComp = competition || DEFAULT_STANDINGS_COMPETITION;
+      const nextSeason = season || standingsScopeRef.current.season || DEFAULT_STANDINGS_SEASON;
+      standingsScopeRef.current = { competition: nextComp, season: nextSeason };
+      setStandingsCompetition(nextComp);
+      setStandingsSeason(nextSeason);
+      setStandingsError(null);
+
+      try {
+        const cached = localStorage.getItem(getStandingsCacheKey(nextComp, nextSeason));
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) {
+            setStandings(parsed);
+          }
+        } else if (
+          nextComp !== DEFAULT_STANDINGS_COMPETITION ||
+          nextSeason !== DEFAULT_STANDINGS_SEASON
+        ) {
+          setStandings([]);
+        }
+      } catch {
+        // Ignore cache read error
+      }
+
+      await loadStandingsForScope(nextComp, nextSeason, isAdminLoggedIn);
+    },
+    [isAdminLoggedIn, loadStandingsForScope]
+  );
+
+  const setStandingsUpdateMode = async (mode: StandingsUpdateMode): Promise<void> => {
+    if (!isAdminLoggedIn) {
+      throw new Error('Unauthorized: Administrator privileges required.');
+    }
+    const { competition, season } = standingsScopeRef.current;
+
+    const res = await adminApiFetchJson<{
+      success: boolean;
+      updateMode?: StandingsUpdateMode;
+      standings?: any[];
+      history?: StandingsHistoryEntry[];
+    }>('/api/standings', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'setMode',
+        competition,
+        season,
+        updateMode: mode,
+      }),
     });
-    return () => unsubscribe();
-  }, []);
+
+    if (!res.ok && res.status !== 501 && !res.isHtmlFallback && !res.isOffline) {
+      const message = res.error || 'Failed to update standings mode.';
+      setStandingsError(message);
+      throw new Error(message);
+    }
+
+    const nextMode = res.ok && res.data?.updateMode ? res.data.updateMode : mode;
+    setStandingsMode(nextMode);
+    standingsModeRef.current = nextMode;
+    setStandingsError(null);
+
+    if (res.ok && Array.isArray(res.data?.history)) {
+      setStandingsHistory(res.data.history);
+    }
+  };
 
   const updateStanding = async (teamId: string, updates: Partial<StandingTeam>) => {
     if (!isAdminLoggedIn) {
       console.warn('Unauthorized updateStanding attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
+    const { competition, season } = standingsScopeRef.current;
     const updated = standings.map((item) => {
       if (item.teamId === teamId) {
         const next = { ...item, ...updates };
@@ -815,20 +1088,55 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     updated.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
     const reordered = updated.map((t, idx) => ({ ...t, position: idx + 1 }));
-    setStandings(reordered);
-    localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(reordered));
-    try {
-      const targetTeam = reordered.find((t) => t.teamId === teamId);
-      if (targetTeam) {
-        await setDoc(doc(db, 'standings', teamId), {
+
+    const targetTeam = reordered.find((t) => t.teamId === teamId);
+    let finalStandings = reordered;
+
+    if (targetTeam) {
+      const res = await adminApiFetchJson<{
+        success: boolean;
+        updateMode?: StandingsUpdateMode;
+        standings?: any[];
+        history?: StandingsHistoryEntry[];
+      }>(`/api/standings/${encodeURIComponent(teamId)}`, {
+        method: 'PUT',
+        body: JSON.stringify({
           ...targetTeam,
-          updatedAt: serverTimestamp(),
-        }, { merge: true });
+          competition,
+          season,
+          lockManual: true,
+        }),
+      });
+
+      if (!res.ok && res.status !== 501 && !res.isHtmlFallback && !res.isOffline) {
+        const message = res.error || 'Failed to update standing.';
+        setStandingsError(message);
+        throw new Error(message);
       }
-    } catch (error) {
-      console.error('Firestore update standing error:', error);
-      handleFirestoreError(error, OperationType.UPDATE, `standings/${teamId}`);
+
+      if (res.ok && res.data) {
+        if (Array.isArray(res.data.standings) && res.data.standings.length > 0) {
+          finalStandings = normalizeStandingsScopeRows(res.data.standings, competition, season);
+        }
+        if (res.data.updateMode) {
+          setStandingsMode(res.data.updateMode);
+          standingsModeRef.current = res.data.updateMode;
+        } else {
+          setStandingsMode('manual');
+          standingsModeRef.current = 'manual';
+        }
+        if (Array.isArray(res.data.history)) {
+          setStandingsHistory(res.data.history);
+        }
+      } else {
+        setStandingsMode('manual');
+        standingsModeRef.current = 'manual';
+      }
     }
+
+    setStandingsError(null);
+    setStandings(finalStandings);
+    persistStandingsCache(competition, season, finalStandings);
   };
 
   const resetStandings = async () => {
@@ -836,18 +1144,40 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Unauthorized resetStandings attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
-    localStorage.removeItem(STORAGE_KEYS.STANDINGS);
-    setStandings(initialStandings);
-    localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(initialStandings));
-    try {
-      for (const item of initialStandings) {
-        await setDoc(doc(db, 'standings', item.teamId), {
-          ...item,
-          updatedAt: serverTimestamp(),
-        }, { merge: true });
-      }
-    } catch (error) {
-      console.error('Firestore reset standings error:', error);
+    const { competition, season } = standingsScopeRef.current;
+
+    const res = await adminApiFetchJson<{
+      success: boolean;
+      updateMode?: StandingsUpdateMode;
+      standings?: any[];
+      history?: StandingsHistoryEntry[];
+    }>('/api/standings', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'reset',
+        competition,
+        season,
+        standings: initialStandings,
+      }),
+    });
+
+    if (!res.ok && res.status !== 501 && !res.isHtmlFallback && !res.isOffline) {
+      const message = res.error || 'Failed to reset standings.';
+      setStandingsError(message);
+      throw new Error(message);
+    }
+
+    const nextRows =
+      res.ok && Array.isArray(res.data?.standings) && res.data.standings.length > 0
+        ? normalizeStandingsScopeRows(res.data.standings, competition, season)
+        : initialStandings;
+
+    setStandingsError(null);
+    setStandings(nextRows);
+    persistStandingsCache(competition, season, nextRows);
+
+    if (res.ok && Array.isArray(res.data?.history)) {
+      setStandingsHistory(res.data.history);
     }
   };
 
@@ -944,25 +1274,24 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    // Limit news reads to prevent downloading unbounded document archives
-    const q = query(
-      collection(db, "news"),
-      orderBy("createdAt", "desc"),
-      limit(isAdminLoggedIn ? 50 : 12)
-    );
+    let isMounted = true;
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (snapshot.empty) {
+    const loadNewsFromD1 = async () => {
+      const limitCount = isAdminLoggedIn ? 50 : 24;
+      const res = await apiFetchJson<{ success: boolean; articles: any[] }>(
+        `/api/news?limit=${limitCount}`
+      );
+
+      if (!isMounted || !res.ok || !res.data || !Array.isArray(res.data.articles) || res.data.articles.length === 0) {
         return;
       }
 
-      const liveArticles: NewsArticle[] = snapshot.docs.map((docSnap) => {
-        const data = docSnap.data();
-        const initialMatch = initialNews.find((n) => n.id === docSnap.id);
+      const liveArticles: NewsArticle[] = res.data.articles.map((data: any) => {
+        const initialMatch = initialNews.find((n) => n.id === data.id);
         const resolvedImage = data.imageUrl || initialMatch?.imageUrl || getCategoryFallbackImage(data.category);
 
         return {
-          id: docSnap.id,
+          id: data.id,
           title: typeof data.title === 'object' && data.title !== null
             ? { en: data.title.en || '', am: data.title.am || data.title.en || '', om: data.title.om || data.title.en || '' }
             : (initialMatch ? initialMatch.title : { en: String(data.title || ''), am: String(data.title || ''), om: String(data.title || '') }),
@@ -977,7 +1306,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
           author: data.author || initialMatch?.author || 'Club Administration',
           imageUrl: resolvedImage,
           readTime: data.readTime || initialMatch?.readTime || '3 min read',
-          isFeatured: docSnap.id === 'news-1793126013273' || docSnap.id === 'sxRTmExguBl4NTz4RYjR' || Boolean(data.isFeatured || initialMatch?.isFeatured),
+          isFeatured: data.id === 'news-1793126013273' || data.id === 'sxRTmExguBl4NTz4RYjR' || Boolean(data.isFeatured || initialMatch?.isFeatured),
         } as NewsArticle;
       });
 
@@ -990,11 +1319,8 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (liveArticles.length > 0) {
         setNews(liveArticles);
-
-        // 1. Asynchronously cache full-resolution payload in IndexedDB (no 5MB quota limit)
         setIdbItem('halaba_news_full_cache_v2', liveArticles);
 
-        // 2. Persist compressed thumbnails to localStorage for synchronous 0ms startup
         Promise.all(
           liveArticles.map(async (art) => {
             if (art.imageUrl && art.imageUrl.startsWith('data:')) {
@@ -1017,13 +1343,12 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // ignore
         });
       }
-    }, (error) => {
-      if (typeof navigator !== 'undefined' && !navigator.onLine) return;
-      console.debug('Firebase real-time news notice (offline):', error);
-      handleFirestoreError(error, OperationType.LIST, 'news');
-    });
+    };
 
-    return () => unsubscribe();
+    loadNewsFromD1();
+    return () => {
+      isMounted = false;
+    };
   }, [isAdminLoggedIn]);
 
   const addNewsArticle = async (art: Omit<NewsArticle, 'id'>) => {
@@ -1037,27 +1362,29 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: newId,
       imageUrl: art.imageUrl || getCategoryFallbackImage(art.category),
     };
-    const updated = [newArticle, ...news];
+
+    const res = await adminApiFetchJson<{ success: boolean; article?: NewsArticle }>('/api/news', {
+      method: 'POST',
+      body: JSON.stringify(newArticle),
+    });
+
+    if (!res.ok && !res.isHtmlFallback && !res.isOffline) {
+      throw new Error(res.error || 'Failed to publish news article.');
+    }
+
+    const savedArticle = res.ok && res.data?.article ? res.data.article : newArticle;
+    const updated = [savedArticle, ...news];
     setNews(updated);
     setIdbItem('halaba_news_full_cache_v2', updated);
 
-    createThumbnail(newArticle.imageUrl || '', 360, 0.55).then((thumb) => {
+    createThumbnail(savedArticle.imageUrl || '', 360, 0.55).then((thumb) => {
       try {
-        const cached = updated.map((a) => (a.id === newId ? { ...a, imageUrl: thumb } : a));
+        const cached = updated.map((a) => (a.id === savedArticle.id ? { ...a, imageUrl: thumb } : a));
         localStorage.setItem(STORAGE_KEYS.NEWS, JSON.stringify(cached));
       } catch {
         // ignore
       }
     });
-
-    try {
-      await setDoc(doc(db, "news", newId), {
-        ...art,
-        createdAt: serverTimestamp(),
-      });
-    } catch (e) {
-      console.warn('Could not sync added article to Firestore:', e);
-    }
   };
 
   const updateNewsArticle = async (id: string, updates: Partial<NewsArticle>) => {
@@ -1065,18 +1392,24 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Unauthorized updateNewsArticle attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
-    const updated = news.map((n) => (n.id === id ? { ...n, ...updates } : n));
+
+    const res = await adminApiFetchJson<{ success: boolean; article?: NewsArticle }>(
+      `/api/news/${encodeURIComponent(id)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      }
+    );
+
+    if (!res.ok && !res.isHtmlFallback && !res.isOffline) {
+      throw new Error(res.error || 'Failed to update news article.');
+    }
+
+    const updated = news.map((n) =>
+      n.id === id ? (res.ok && res.data?.article ? res.data.article : { ...n, ...updates }) : n
+    );
     setNews(updated);
     setIdbItem('halaba_news_full_cache_v2', updated);
-
-    try {
-      await setDoc(doc(db, "news", id), {
-        ...updates,
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-    } catch (e) {
-      console.warn('Could not sync updated article to Firestore:', e);
-    }
   };
 
   const deleteNewsArticle = async (id: string) => {
@@ -1084,11 +1417,15 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Unauthorized deleteNewsArticle attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
-    try {
-      await deleteDoc(doc(db, "news", id));
-    } catch (error) {
-      console.warn("Could not delete news article from Firebase Cloud:", error);
+
+    const res = await adminApiFetchJson(`/api/news/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+
+    if (!res.ok && !res.isHtmlFallback && !res.isOffline) {
+      throw new Error(res.error || 'Failed to delete news article.');
     }
+
     const updated = news.filter((n) => n.id !== id);
     setNews(updated);
     setIdbItem('halaba_news_full_cache_v2', updated);
@@ -1176,145 +1513,120 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const hasLoadedPlayersRef = useRef<boolean>(false);
   const hasLoadedStaffRef = useRef<boolean>(false);
+  const hasSyncedMissingPlayersRef = useRef<boolean>(false);
 
   useEffect(() => {
-    // Only subscribe to players if on About or Admin page, or if admin is logged in
-    // This saves 16 document reads on all other page views (home, fixtures, standings, etc.)
+    // Only fetch players when viewing About/Admin pages or logged in as admin
     if (currentPage !== 'about' && currentPage !== 'admin' && !isAdminLoggedIn) {
       return;
     }
 
-    // Reuse session data for visitors to prevent re-reading all documents on every page navigation
     if (!isAdminLoggedIn && hasLoadedPlayersRef.current && players.length >= initialPlayers.length) {
       return;
     }
 
-    const playersRef = collection(db, 'players');
-    const unsubscribe = onSnapshot(playersRef, async (snapshot) => {
+    let isMounted = true;
+    const loadPlayersFromD1 = async () => {
+      const res = await apiFetchJson<{ success: boolean; players: any[] }>('/api/players');
+      if (!isMounted || !res.ok || !res.data || !Array.isArray(res.data.players)) {
+        return;
+      }
+
       hasLoadedPlayersRef.current = true;
-      if (snapshot.empty) {
-        if (isAdminLoggedIn) {
-          const seeded = localStorage.getItem('hcfc_firestore_players_seeded');
-          if (!seeded) {
-            try {
-              for (const p of initialPlayers) {
-                await setDoc(doc(db, 'players', p.id), { ...p, updatedAt: serverTimestamp() });
-              }
-              localStorage.setItem('hcfc_firestore_players_seeded', 'true');
-            } catch (err) {
-              console.warn('Could not seed players:', err);
-            }
-          }
+      const rawPlayers = res.data.players;
+
+      if (rawPlayers.length === 0) {
+        if (isAdminLoggedIn && !hasSyncedMissingPlayersRef.current) {
+          hasSyncedMissingPlayersRef.current = true;
+          adminApiFetchJson('/api/players', {
+            method: 'POST',
+            body: JSON.stringify({ action: 'syncMissing', players: initialPlayers }),
+          }).catch(() => {});
         }
         setPlayers(initialPlayers);
         localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(initialPlayers));
         return;
       }
-      const livePlayers: Player[] = snapshot.docs.map((docSnap) => {
-        const data = docSnap.data();
-        return {
-          id: docSnap.id,
-          number: data.number || 10,
-          name: data.name || 'Player',
-          position: data.position || 'Midfielder',
-          nationality: data.nationality || 'Ethiopian',
-          birthYear: data.birthYear || 2000,
-          appearances: data.appearances || 0,
-          goals: data.goals || 0,
-          assists: data.assists || 0,
-          cleanSheets: data.cleanSheets || 0,
-          isCaptain: Boolean(data.isCaptain),
-          photoUrl: data.photoUrl,
-        } as Player;
-      });
 
-      // Always reconcile to ensure the full 30-player official squad is displayed,
-      // preventing draft/partial Firestore collections (e.g. 14 players) from truncating the roster
+      const livePlayers: Player[] = rawPlayers.map((data: any) => ({
+        id: data.id,
+        number: data.number || 10,
+        name: data.name || 'Player',
+        position: data.position || 'Midfielder',
+        nationality: data.nationality || 'Ethiopian',
+        birthYear: data.birthYear || 2000,
+        appearances: data.appearances || 0,
+        goals: data.goals || 0,
+        assists: data.assists || 0,
+        cleanSheets: data.cleanSheets || 0,
+        isCaptain: Boolean(data.isCaptain),
+        photoUrl: data.photoUrl,
+      }) as Player);
+
       const fullSquad = reconcileSquadWithOfficialList(livePlayers);
       setPlayers(fullSquad);
       localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(fullSquad));
-      localStorage.setItem('hcfc_firestore_players_seeded', 'true');
 
-      // If an administrator is logged in and Firestore has fewer than the complete 30 players,
-      // automatically sync the missing official players to Firestore
-      if (isAdminLoggedIn && snapshot.docs.length < initialPlayers.length) {
-        try {
-          for (const player of fullSquad) {
-            const existsInDb = snapshot.docs.some(
-              (d) => d.id === player.id || d.data().number === player.number
-            );
-            if (!existsInDb) {
-              await setDoc(doc(db, 'players', player.id), {
-                ...player,
-                updatedAt: serverTimestamp(),
-              });
-            }
-          }
-        } catch (syncErr) {
-          console.warn('Could not sync missing players to Firestore:', syncErr);
+      if (isAdminLoggedIn && !hasSyncedMissingPlayersRef.current && rawPlayers.length < initialPlayers.length) {
+        hasSyncedMissingPlayersRef.current = true;
+        const missingPlayers = fullSquad.filter(
+          (player) => !rawPlayers.some((d: any) => d.id === player.id || d.number === player.number)
+        );
+        if (missingPlayers.length > 0) {
+          adminApiFetchJson('/api/players', {
+            method: 'POST',
+            body: JSON.stringify({ action: 'syncMissing', players: missingPlayers }),
+          }).catch(() => {});
         }
       }
-    }, (error) => {
-      if (typeof navigator !== 'undefined' && !navigator.onLine) return;
-      console.debug('Firebase real-time players notice (offline):', error);
-      handleFirestoreError(error, OperationType.LIST, 'players');
-    });
-    return () => unsubscribe();
+    };
+
+    loadPlayersFromD1();
+    return () => {
+      isMounted = false;
+    };
   }, [currentPage, isAdminLoggedIn, players.length]);
 
   useEffect(() => {
-    // Only subscribe to staff if on About or Admin page, or if admin is logged in
-    // This saves 6 document reads on all other page views
     if (currentPage !== 'about' && currentPage !== 'admin' && !isAdminLoggedIn) {
       return;
     }
 
-    // Reuse session data for visitors to prevent re-reading all 6 documents on every page navigation
     if (!isAdminLoggedIn && hasLoadedStaffRef.current && staff.length > 0) {
       return;
     }
 
-    const staffRef = collection(db, 'staff');
-    const unsubscribe = onSnapshot(staffRef, async (snapshot) => {
-      hasLoadedStaffRef.current = true;
-      if (snapshot.empty) {
-        if (isAdminLoggedIn) {
-          const seeded = localStorage.getItem('hcfc_firestore_staff_seeded');
-          if (!seeded) {
-            try {
-              for (const s of initialStaff) {
-                await setDoc(doc(db, 'staff', s.id), { ...s, updatedAt: serverTimestamp() });
-              }
-              localStorage.setItem('hcfc_firestore_staff_seeded', 'true');
-            } catch (err) {
-              console.warn('Could not seed staff:', err);
-            }
-          }
-        }
+    let isMounted = true;
+    const loadStaffFromD1 = async () => {
+      const res = await apiFetchJson<{ success: boolean; staff: any[] }>('/api/staff');
+      if (!isMounted || !res.ok || !res.data || !Array.isArray(res.data.staff)) {
         return;
       }
-      const liveStaff: StaffMember[] = snapshot.docs.map((docSnap) => {
-        const data = docSnap.data();
-        return {
-          id: docSnap.id,
-          name: data.name || 'Staff',
-          role: data.role || 'Coach',
-          department: data.department || 'Coaching',
-          nationality: data.nationality || 'Ethiopian',
-          photoUrl: data.photoUrl,
-        } as StaffMember;
-      });
+
+      hasLoadedStaffRef.current = true;
+      if (res.data.staff.length === 0) {
+        return;
+      }
+
+      const liveStaff: StaffMember[] = res.data.staff.map((data: any) => ({
+        id: data.id,
+        name: data.name || 'Staff',
+        role: data.role || 'Coach',
+        department: data.department || 'Coaching',
+        nationality: data.nationality || 'Ethiopian',
+        photoUrl: data.photoUrl,
+      }) as StaffMember);
+
       if (liveStaff.length > 0) {
         setStaff(liveStaff);
         localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(liveStaff));
-        localStorage.setItem('hcfc_firestore_staff_seeded', 'true');
       }
-    }, (error) => {
-      if (typeof navigator !== 'undefined' && !navigator.onLine) return;
-      console.debug('Firebase real-time staff notice (offline):', error);
-      handleFirestoreError(error, OperationType.LIST, 'staff');
-    });
-    return () => unsubscribe();
+    };
+
+    loadStaffFromD1();
+    return () => {
+      isMounted = false;
+    };
   }, [currentPage, isAdminLoggedIn, staff.length]);
 
   const addPlayer = async (p: Omit<Player, 'id'>) => {
@@ -1324,15 +1636,20 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     const id = `p-${Date.now()}`;
     const newP: Player = { ...p, id };
-    const updated = [...players, newP];
+
+    const res = await adminApiFetchJson<{ success: boolean; player?: Player }>('/api/players', {
+      method: 'POST',
+      body: JSON.stringify(newP),
+    });
+
+    if (!res.ok && !res.isHtmlFallback && !res.isOffline) {
+      throw new Error(res.error || 'Failed to add player.');
+    }
+
+    const savedPlayer = res.ok && res.data?.player ? res.data.player : newP;
+    const updated = [...players, savedPlayer];
     setPlayers(updated);
     localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(updated));
-    try {
-      await setDoc(doc(db, 'players', id), { ...newP, updatedAt: serverTimestamp() });
-    } catch (error) {
-      console.error('Firestore add player error:', error);
-      handleFirestoreError(error, OperationType.CREATE, `players/${id}`);
-    }
   };
 
   const updatePlayer = async (id: string, updates: Partial<Player>) => {
@@ -1340,15 +1657,24 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Unauthorized updatePlayer attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
-    const updated = players.map((p) => (p.id === id ? { ...p, ...updates } : p));
+
+    const res = await adminApiFetchJson<{ success: boolean; player?: Player }>(
+      `/api/players/${encodeURIComponent(id)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      }
+    );
+
+    if (!res.ok && !res.isHtmlFallback && !res.isOffline) {
+      throw new Error(res.error || 'Failed to update player.');
+    }
+
+    const updated = players.map((p) =>
+      p.id === id ? (res.ok && res.data?.player ? res.data.player : { ...p, ...updates }) : p
+    );
     setPlayers(updated);
     localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(updated));
-    try {
-      await setDoc(doc(db, 'players', id), { ...updates, updatedAt: serverTimestamp() }, { merge: true });
-    } catch (error) {
-      console.error('Firestore update player error:', error);
-      handleFirestoreError(error, OperationType.UPDATE, `players/${id}`);
-    }
   };
 
   const deletePlayer = async (id: string) => {
@@ -1356,15 +1682,18 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Unauthorized deletePlayer attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
+
+    const res = await adminApiFetchJson(`/api/players/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+
+    if (!res.ok && !res.isHtmlFallback && !res.isOffline) {
+      throw new Error(res.error || 'Failed to delete player.');
+    }
+
     const updated = players.filter((p) => p.id !== id);
     setPlayers(updated);
     localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(updated));
-    try {
-      await deleteDoc(doc(db, 'players', id));
-    } catch (error) {
-      console.error('Firestore delete player error:', error);
-      handleFirestoreError(error, OperationType.DELETE, `players/${id}`);
-    }
   };
 
   const addStaff = async (s: Omit<StaffMember, 'id'>) => {
@@ -1374,15 +1703,20 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     const id = `s-${Date.now()}`;
     const newS: StaffMember = { ...s, id };
-    const updated = [...staff, newS];
+
+    const res = await adminApiFetchJson<{ success: boolean; staffMember?: StaffMember }>('/api/staff', {
+      method: 'POST',
+      body: JSON.stringify(newS),
+    });
+
+    if (!res.ok && !res.isHtmlFallback && !res.isOffline) {
+      throw new Error(res.error || 'Failed to add staff member.');
+    }
+
+    const savedStaff = res.ok && res.data?.staffMember ? res.data.staffMember : newS;
+    const updated = [...staff, savedStaff];
     setStaff(updated);
     localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(updated));
-    try {
-      await setDoc(doc(db, 'staff', id), { ...newS, updatedAt: serverTimestamp() });
-    } catch (error) {
-      console.error('Firestore add staff error:', error);
-      handleFirestoreError(error, OperationType.CREATE, `staff/${id}`);
-    }
   };
 
   const updateStaff = async (id: string, updates: Partial<StaffMember>) => {
@@ -1390,15 +1724,24 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Unauthorized updateStaff attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
-    const updated = staff.map((s) => (s.id === id ? { ...s, ...updates } : s));
+
+    const res = await adminApiFetchJson<{ success: boolean; staffMember?: StaffMember }>(
+      `/api/staff/${encodeURIComponent(id)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      }
+    );
+
+    if (!res.ok && !res.isHtmlFallback && !res.isOffline) {
+      throw new Error(res.error || 'Failed to update staff member.');
+    }
+
+    const updated = staff.map((s) =>
+      s.id === id ? (res.ok && res.data?.staffMember ? res.data.staffMember : { ...s, ...updates }) : s
+    );
     setStaff(updated);
     localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(updated));
-    try {
-      await setDoc(doc(db, 'staff', id), { ...updates, updatedAt: serverTimestamp() }, { merge: true });
-    } catch (error) {
-      console.error('Firestore update staff error:', error);
-      handleFirestoreError(error, OperationType.UPDATE, `staff/${id}`);
-    }
   };
 
   const deleteStaff = async (id: string) => {
@@ -1406,15 +1749,18 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Unauthorized deleteStaff attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
+
+    const res = await adminApiFetchJson(`/api/staff/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+
+    if (!res.ok && !res.isHtmlFallback && !res.isOffline) {
+      throw new Error(res.error || 'Failed to delete staff member.');
+    }
+
     const updated = staff.filter((s) => s.id !== id);
     setStaff(updated);
     localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(updated));
-    try {
-      await deleteDoc(doc(db, 'staff', id));
-    } catch (error) {
-      console.error('Firestore delete staff error:', error);
-      handleFirestoreError(error, OperationType.DELETE, `staff/${id}`);
-    }
   };
 
   // Memberships State & Real-Time Firebase Firestore Integration
@@ -1650,16 +1996,104 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isProductsLoading, setIsProductsLoading] = useState<boolean>(false);
   const [productsSyncError, setProductsSyncError] = useState<string | null>(null);
   const hasLoadedProductsRef = useRef<boolean>(false);
+  const productsBackendRef = useRef<'unknown' | 'd1' | 'firestore'>('unknown');
+  const [useFirestoreProductsFallback, setUseFirestoreProductsFallback] = useState<boolean>(false);
 
   useEffect(() => {
-    // Only subscribe to products if visitor is on Shop or Admin page, or if admin is logged in
-    // This saves document reads on startup for visitors who only view home, fixtures, or standings
     if (currentPage !== 'shop' && currentPage !== 'admin' && !isAdminLoggedIn) {
       return;
     }
 
-    // Reuse session data for visitors to prevent re-reading on every shop page navigation
     if (!isAdminLoggedIn && hasLoadedProductsRef.current && shopItems.length > 0) {
+      return;
+    }
+
+    let isMounted = true;
+    const loadProductsFromD1 = async () => {
+      setIsProductsLoading(true);
+      const res = await apiFetchJson<{
+        success: boolean;
+        configured?: boolean;
+        products?: any[];
+      }>('/api/products');
+
+      if (!isMounted) return;
+
+      if (res.ok && res.data?.configured === true) {
+        productsBackendRef.current = 'd1';
+        setUseFirestoreProductsFallback(false);
+        hasLoadedProductsRef.current = true;
+        setIsProductsLoading(false);
+        setProductsSyncError(null);
+
+        const rawProducts = Array.isArray(res.data.products) ? res.data.products : [];
+        if (rawProducts.length === 0) {
+          setShopItems(initialShopItems);
+          localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(initialShopItems));
+          return;
+        }
+
+        const liveProducts: ShopItem[] = rawProducts.map((data: any) => {
+          const initialMatch = initialShopItems.find((i) => i.id === data.id);
+          const resolvedImage = initialMatch?.imageUrl || data.imageUrl || ClubImages.jerseyHomeReal;
+
+          return {
+            id: data.id,
+            name: typeof data.name === 'object' && data.name !== null
+              ? { en: data.name.en || '', am: data.name.am || data.name.en || '', om: data.name.om || data.name.en || '' }
+              : (initialMatch ? initialMatch.name : { en: String(data.name || ''), am: String(data.name || ''), om: String(data.name || '') }),
+            description: typeof data.description === 'object' && data.description !== null
+              ? { en: data.description.en || '', am: data.description.am || data.description.en || '', om: data.description.om || data.description.en || '' }
+              : (initialMatch ? initialMatch.description : { en: String(data.description || ''), am: String(data.description || ''), om: String(data.description || '') }),
+            price: typeof data.price === 'number' ? data.price : (initialMatch ? initialMatch.price : (parseFloat(data.price) || 0)),
+            imageUrl: resolvedImage,
+            availableSizes: Array.isArray(data.availableSizes) && data.availableSizes.length > 0 ? data.availableSizes : (initialMatch ? initialMatch.availableSizes : ['S', 'M', 'L', 'XL']),
+            category: (data.category as 'JERSEY' | 'KIT' | 'ACCESSORY') || (initialMatch ? initialMatch.category : 'JERSEY'),
+            inStock: data.inStock !== undefined ? Boolean(data.inStock) : true,
+            featured: Boolean(data.featured) || (initialMatch ? initialMatch.featured : false),
+          };
+        });
+
+        initialShopItems.forEach((initItem) => {
+          if (!liveProducts.some((p) => p.id === initItem.id)) {
+            liveProducts.push({ ...initItem });
+          }
+        });
+
+        liveProducts.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+        setShopItems(liveProducts);
+        try {
+          const cacheSafeProds = liveProducts.map((p) => ({
+            ...p,
+            imageUrl: p.imageUrl?.startsWith('data:') ? '' : p.imageUrl,
+          }));
+          localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(cacheSafeProds));
+        } catch (e) {
+          console.warn('Could not cache shop items in localStorage:', e);
+        }
+        return;
+      }
+
+      if ((res.ok && res.data?.configured === false) || res.isHtmlFallback) {
+        productsBackendRef.current = 'firestore';
+        setUseFirestoreProductsFallback(true);
+        return;
+      }
+
+      setIsProductsLoading(false);
+    };
+
+    loadProductsFromD1();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentPage, isAdminLoggedIn, shopItems.length]);
+
+  useEffect(() => {
+    if (!useFirestoreProductsFallback) {
+      return;
+    }
+    if (currentPage !== 'shop' && currentPage !== 'admin' && !isAdminLoggedIn) {
       return;
     }
 
@@ -1726,7 +2160,6 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
       });
 
-      // Retain full 5 products catalog if any standard item is absent from cloud collection
       initialShopItems.forEach((initItem) => {
         if (!liveProducts.some((p) => p.id === initItem.id)) {
           liveProducts.push({ ...initItem });
@@ -1749,18 +2182,43 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, (error) => {
       if (typeof navigator !== 'undefined' && !navigator.onLine) return;
       console.debug('Firebase real-time products sync notice (offline):', error);
+      setIsProductsLoading(false);
       setProductsSyncError(error.message);
       handleFirestoreError(error, OperationType.LIST, 'products');
     });
 
     return () => unsubscribe();
-  }, [currentPage, isAdminLoggedIn, shopItems.length]);
+  }, [useFirestoreProductsFallback, currentPage, isAdminLoggedIn]);
 
   const addShopItem = async (item: Omit<ShopItem, 'id'>) => {
     if (!isAdminLoggedIn) {
       console.warn('Unauthorized addShopItem attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
+
+    if (productsBackendRef.current !== 'firestore') {
+      const id = `shop-${Date.now()}`;
+      const payload: ShopItem = { ...item, id };
+      const res = await adminApiFetchJson<{ success: boolean; configured?: boolean; product?: ShopItem }>(
+        '/api/products',
+        {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (res.ok && res.data?.configured !== false) {
+        productsBackendRef.current = 'd1';
+        const savedItem = res.data?.product || payload;
+        setShopItems((prev) => [savedItem, ...prev.filter((p) => p.id !== savedItem.id)]);
+        return savedItem.id;
+      }
+
+      if (!res.ok && res.status !== 501 && !res.isHtmlFallback && !res.isOffline) {
+        throw new Error(res.error || 'Failed to save product to D1.');
+      }
+    }
+
     try {
       const docRef = await addDoc(collection(db, 'products'), {
         name: item.name,
@@ -1799,6 +2257,32 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Unauthorized updateShopItem attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
+
+    if (productsBackendRef.current !== 'firestore') {
+      const existing = shopItems.find((item) => item.id === id);
+      const res = await adminApiFetchJson<{ success: boolean; configured?: boolean; product?: ShopItem }>(
+        `/api/products/${encodeURIComponent(id)}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(existing ? { ...existing, ...updates } : updates),
+        }
+      );
+
+      if (res.ok && res.data?.configured !== false) {
+        productsBackendRef.current = 'd1';
+        const updated = shopItems.map((item) =>
+          item.id === id ? (res.data?.product || { ...item, ...updates }) : item
+        );
+        setShopItems(updated);
+        localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(updated));
+        return;
+      }
+
+      if (!res.ok && res.status !== 501 && !res.isHtmlFallback && !res.isOffline) {
+        throw new Error(res.error || 'Failed to update product in D1.');
+      }
+    }
+
     try {
       const productRef = doc(db, 'products', id);
       await setDoc(productRef, {
@@ -1823,6 +2307,28 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Unauthorized deleteShopItem attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
+
+    if (productsBackendRef.current !== 'firestore') {
+      const res = await adminApiFetchJson<{ success: boolean; configured?: boolean }>(
+        `/api/products/${encodeURIComponent(id)}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (res.ok && res.data?.configured !== false) {
+        productsBackendRef.current = 'd1';
+        const updated = shopItems.filter((item) => item.id !== id);
+        setShopItems(updated);
+        localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(updated));
+        return;
+      }
+
+      if (!res.ok && res.status !== 501 && !res.isHtmlFallback && !res.isOffline) {
+        throw new Error(res.error || 'Failed to delete product from D1.');
+      }
+    }
+
     try {
       const productRef = doc(db, 'products', id);
       await deleteDoc(productRef);
@@ -1844,6 +2350,28 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Unauthorized resetShopItems attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
+
+    if (productsBackendRef.current !== 'firestore') {
+      const res = await adminApiFetchJson<{ success: boolean; configured?: boolean }>(
+        '/api/products',
+        {
+          method: 'POST',
+          body: JSON.stringify({ action: 'reset', products: initialShopItems }),
+        }
+      );
+
+      if (res.ok && res.data?.configured !== false) {
+        productsBackendRef.current = 'd1';
+        setShopItems(initialShopItems);
+        localStorage.setItem(STORAGE_KEYS.SHOP_ITEMS, JSON.stringify(initialShopItems));
+        return;
+      }
+
+      if (!res.ok && res.status !== 501 && !res.isHtmlFallback && !res.isOffline) {
+        throw new Error(res.error || 'Failed to reset products in D1.');
+      }
+    }
+
     try {
       for (const item of initialShopItems) {
         await setDoc(doc(db, 'products', item.id), {
@@ -1942,169 +2470,230 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSecondsUntilNextSync(interval);
   }, []);
 
+  const inFlightSyncRef = useRef<boolean>(false);
+  const syncRequestIdRef = useRef<number>(0);
+
   const syncNow = async (isManual: boolean = false) => {
+    if (inFlightSyncRef.current) {
+      if (isManual) {
+        const msg = 'A standings & fixtures sync is already in progress.';
+        setStandingsError(msg);
+        throw new Error(msg);
+      }
+      return;
+    }
+
+    inFlightSyncRef.current = true;
+    const reqId = ++syncRequestIdRef.current;
+    const { competition, season } = standingsScopeRef.current;
     setIsSyncing(true);
-    let freshStandings: StandingTeam[] | null = null;
+    if (isManual) {
+      setStandingsError(null);
+    }
+
     let syncSource = 'TheSportsDB Official EPL Feed';
 
     try {
-      // 1. Try backend endpoint
-      try {
-        const res = await fetch('/api/standings/sportsdb');
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && Array.isArray(json.standings) && json.standings.length > 0) {
-            const canonicalMap = new Map<string, StandingTeam>();
-            initialStandings.forEach((initT) => canonicalMap.set(initT.teamId, { ...initT }));
-
-            json.standings.forEach((t: any) => {
-              const canonicalId = normalizeEplTeamId(t.teamId, t.teamName);
-              const isHalaba = canonicalId === 'halaba';
-              const existing = canonicalMap.get(canonicalId);
-              canonicalMap.set(canonicalId, {
-                position: t.position || 1,
-                teamId: canonicalId,
-                teamName: canonicalId === 'cbe_sa'
-                  ? 'Ethiopia Nigd Bank (CBE SA)'
-                  : canonicalId === 'halaba'
-                  ? 'Halaba Ketema (በርበሬዎቹ)'
-                  : canonicalId === 'insurance'
-                  ? 'Ethiopian Medhin (Insurance)'
-                  : canonicalId === 'adama'
-                  ? 'Adama Kenema SC'
-                  : canonicalId === 'electric'
-                  ? 'Ethio Electric'
-                  : (t.teamName || existing?.teamName || 'Team'),
-                played: Number(t.played) || existing?.played || 0,
-                won: Number(t.won) || existing?.won || 0,
-                drawn: Number(t.drawn) || existing?.drawn || 0,
-                lost: Number(t.lost) || existing?.lost || 0,
-                goalsFor: Number(t.goalsFor) || existing?.goalsFor || 0,
-                goalsAgainst: Number(t.goalsAgainst) || existing?.goalsAgainst || 0,
-                goalDifference: (Number(t.goalsFor) || 0) - (Number(t.goalsAgainst) || 0),
-                points: Number(t.points) || existing?.points || 0,
-                form: Array.isArray(t.form) && t.form.length > 0 ? t.form : (existing?.form || ['D', 'W', 'D']),
-                isHalaba,
-                badgeUrl: t.badgeUrl || existing?.badgeUrl,
-              });
-            });
-
-            const list = Array.from(canonicalMap.values())
-              .filter((t) => VALID_EPL_18_TEAM_IDS.has(t.teamId) && t.teamId !== 'diredawa');
-            list.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
-            freshStandings = list.slice(0, 18).map((st, i) => ({ ...st, position: i + 1 }));
-          }
-        }
-      } catch (err) {
-        console.warn('Backend proxy fetch failed, trying direct SportsDB...', err);
-      }
-
-      // 2. Direct fetch fallback from TheSportsDB
-      if (!freshStandings || freshStandings.length < 14) {
+      // Ensure authoritative D1 matches finish initial load before merging SportsDB fixtures
+      if (d1MatchesPromiseRef.current) {
         try {
-          const directRes = await fetch('https://www.thesportsdb.com/api/v1/json/123/lookuptable.php?l=4959&s=2026-2027');
-          if (directRes.ok) {
-            const data = await directRes.json();
-            const canonicalMap = new Map<string, StandingTeam>();
-
-            initialStandings.forEach((initT) => canonicalMap.set(initT.teamId, { ...initT }));
-
-            if (data?.table && Array.isArray(data.table) && data.table.length > 0) {
-              data.table.forEach((item: any) => {
-                const canonicalId = normalizeEplTeamId(item.idTeam, item.strTeam);
-                if (canonicalId === 'diredawa') return; // Dire Dawa is not in the league
-                const isHalaba = canonicalId === 'halaba';
-                const formArr = (item.strForm || 'DWD').split('').filter((c: string) => ['W', 'D', 'L'].includes(c));
-                const existing = canonicalMap.get(canonicalId);
-
-                canonicalMap.set(canonicalId, {
-                  position: parseInt(item.intRank, 10) || 1,
-                  teamId: canonicalId,
-                  teamName: canonicalId === 'cbe_sa'
-                    ? 'Ethiopia Nigd Bank (CBE SA)'
-                    : canonicalId === 'halaba'
-                    ? 'Halaba Ketema (በርበሬዎቹ)'
-                    : canonicalId === 'insurance'
-                    ? 'Ethiopian Medhin (Insurance)'
-                    : canonicalId === 'adama'
-                    ? 'Adama Kenema SC'
-                    : canonicalId === 'electric'
-                    ? 'Ethio Electric'
-                    : canonicalId === 'hosaena'
-                    ? 'Hadiya Hossana'
-                    : (item.strTeam || existing?.teamName || 'Team'),
-                  played: parseInt(item.intPlayed, 10) || existing?.played || 0,
-                  won: parseInt(item.intWin, 10) || existing?.won || 0,
-                  drawn: parseInt(item.intDraw, 10) || existing?.drawn || 0,
-                  lost: parseInt(item.intLoss, 10) || existing?.lost || 0,
-                  goalsFor: parseInt(item.intGoalsFor, 10) || existing?.goalsFor || 0,
-                  goalsAgainst: parseInt(item.intGoalsAgainst, 10) || existing?.goalsAgainst || 0,
-                  goalDifference: parseInt(item.intGoalDifference, 10) || existing?.goalDifference || 0,
-                  points: parseInt(item.intPoints, 10) || existing?.points || 0,
-                  form: (formArr.length > 0 ? formArr : (existing?.form || ['D', 'W', 'D'])) as ('W' | 'D' | 'L')[],
-                  isHalaba,
-                  badgeUrl: item.strBadge ? item.strBadge.replace('/tiny', '') : existing?.badgeUrl,
-                });
-              });
-            }
-
-            const mergedList = Array.from(canonicalMap.values())
-              .filter((t) => VALID_EPL_18_TEAM_IDS.has(t.teamId) && t.teamId !== 'diredawa');
-            mergedList.sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
-            freshStandings = mergedList.slice(0, 18).map((st, i) => ({ ...st, position: i + 1 }));
-          }
-        } catch (err) {
-          console.warn('Direct SportsDB fetch failed:', err);
+          await d1MatchesPromiseRef.current;
+        } catch {
+          // Proceed with current state if initial load failed
         }
       }
 
-      if (!freshStandings || freshStandings.length === 0) {
-        freshStandings = initialStandings;
-        syncSource = 'Official SportsDB Seed';
-      }
-
-      // Overwrite local standings
-      setStandings(freshStandings);
-      localStorage.setItem(STORAGE_KEYS.STANDINGS, JSON.stringify(freshStandings));
-
-      // Overwrite Firestore collection only if user is admin
-      // This prevents every ordinary visitor from generating 18 document writes and broadcasting reads to all clients
+      // 1. Synchronize Standings respecting Manual Mode & failure preservation
       if (isAdminLoggedIn) {
-        try {
-          for (const item of freshStandings) {
-            await setDoc(doc(db, 'standings', item.teamId), {
-              ...item,
-              updatedAt: serverTimestamp(),
-            }, { merge: true });
+        const refreshRes = await adminApiFetchJson<{
+          success: boolean;
+          source?: string;
+          updateMode?: StandingsUpdateMode;
+          standings?: any[];
+          history?: StandingsHistoryEntry[];
+          blocked?: boolean;
+          mode?: string;
+          inProgress?: boolean;
+          stale?: boolean;
+          preservedExisting?: boolean;
+        }>('/api/standings', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'refresh',
+            competition,
+            season,
+          }),
+        });
+
+        if (
+          reqId === syncRequestIdRef.current &&
+          standingsScopeRef.current.competition === competition &&
+          standingsScopeRef.current.season === season
+        ) {
+          if (refreshRes.ok && Array.isArray(refreshRes.data?.standings)) {
+            const normalized = normalizeStandingsScopeRows(
+              refreshRes.data.standings,
+              competition,
+              season
+            );
+            setStandings(normalized);
+            persistStandingsCache(competition, season, normalized);
+            const nextMode: StandingsUpdateMode =
+              refreshRes.data.updateMode === 'manual' ? 'manual' : 'automatic';
+            setStandingsMode(nextMode);
+            standingsModeRef.current = nextMode;
+            if (Array.isArray(refreshRes.data.history)) {
+              setStandingsHistory(refreshRes.data.history);
+            }
+            setStandingsError(null);
+            if (refreshRes.data.source) {
+              syncSource = refreshRes.data.source;
+            }
+          } else if (refreshRes.status === 409) {
+            if (refreshRes.data?.blocked || refreshRes.data?.mode === 'manual') {
+              setStandingsMode('manual');
+              standingsModeRef.current = 'manual';
+            }
+            const errMsg =
+              refreshRes.error ||
+              'Standings are in Manual Mode. Automatic refresh was blocked to preserve manual edits.';
+            setStandingsError(errMsg);
+            if (isManual) {
+              throw new Error(errMsg);
+            }
+          } else if (!refreshRes.isHtmlFallback && !refreshRes.isOffline) {
+            // 502 upstream SportsDB failure or server/CORS error -> preserve existing D1 standings!
+            const errMsg =
+              refreshRes.error ||
+              'Upstream standings feed unavailable; existing D1 standings preserved.';
+            setStandingsError(errMsg);
+            if (isManual) {
+              throw new Error(errMsg);
+            }
+          } else if (refreshRes.isHtmlFallback && standingsModeRef.current !== 'manual') {
+            // Local Vite dev mode fallback when Pages Functions are absent
+            const devSports = await apiFetchJson<{
+              success: boolean;
+              liveFetched?: boolean;
+              standings?: any[];
+            }>(`/api/standings/sportsdb?strict=1&season=${encodeURIComponent(season)}`);
+            if (
+              devSports.ok &&
+              devSports.data?.liveFetched !== false &&
+              Array.isArray(devSports.data?.standings) &&
+              devSports.data.standings.length > 0
+            ) {
+              const normalized = normalizeStandingsScopeRows(
+                devSports.data.standings,
+                competition,
+                season
+              );
+              setStandings(normalized);
+              persistStandingsCache(competition, season, normalized);
+            }
           }
-        } catch (fsErr) {
-          console.warn('Firestore write warning:', fsErr);
+        }
+      } else {
+        // Public visitor: check D1 standings & updateMode first so manual tables are never overwritten
+        const d1Res = await apiFetchJson<{
+          success: boolean;
+          configured?: boolean;
+          updateMode?: StandingsUpdateMode;
+          standings?: any[];
+        }>(
+          `/api/standings?competition=${encodeURIComponent(competition)}&season=${encodeURIComponent(season)}`
+        );
+
+        if (
+          reqId === syncRequestIdRef.current &&
+          standingsScopeRef.current.competition === competition &&
+          standingsScopeRef.current.season === season
+        ) {
+          const d1Mode: StandingsUpdateMode =
+            d1Res.ok && d1Res.data?.updateMode === 'manual' ? 'manual' : 'automatic';
+
+          if (d1Res.ok && d1Res.data?.configured) {
+            setStandingsMode(d1Mode);
+            standingsModeRef.current = d1Mode;
+            if (Array.isArray(d1Res.data.standings) && d1Res.data.standings.length > 0) {
+              const normalizedD1 = normalizeStandingsScopeRows(
+                d1Res.data.standings,
+                competition,
+                season
+              );
+              setStandings(normalizedD1);
+              persistStandingsCache(competition, season, normalizedD1);
+            }
+          }
+
+          if (d1Mode === 'manual') {
+            if (isManual) {
+              const msg = 'Standings are locked in Manual Mode by club administrators.';
+              setStandingsError(msg);
+              throw new Error(msg);
+            }
+          } else if (competition === DEFAULT_STANDINGS_COMPETITION) {
+            const sportsRes = await apiFetchJson<{
+              success: boolean;
+              liveFetched?: boolean;
+              standings?: any[];
+            }>(`/api/standings/sportsdb?strict=1&season=${encodeURIComponent(season)}`);
+
+            if (
+              sportsRes.ok &&
+              sportsRes.data?.liveFetched !== false &&
+              Array.isArray(sportsRes.data?.standings) &&
+              sportsRes.data.standings.length > 0
+            ) {
+              const normalized = normalizeStandingsScopeRows(
+                sportsRes.data.standings,
+                competition,
+                season
+              );
+              setStandings(normalized);
+              persistStandingsCache(competition, season, normalized);
+              setStandingsError(null);
+            } else if (isManual && !sportsRes.isOffline && !sportsRes.isHtmlFallback) {
+              const errMsg =
+                sportsRes.error || 'Could not reach live SportsDB feed; showing saved D1 standings.';
+              setStandingsError(errMsg);
+              throw new Error(errMsg);
+            }
+          }
         }
       }
 
-      // 3. Synchronize official Halaba City FC fixtures and results from TheSportsDB
+      // 2. Synchronize official Halaba City FC fixtures without overwriting custom D1 matches
       try {
-        const fixturesRes = await fetch('/api/fixtures/sportsdb');
-        if (fixturesRes.ok) {
-          const fixturesData = await fixturesRes.json();
-          if (fixturesData.success && Array.isArray(fixturesData.fixtures) && fixturesData.fixtures.length > 0) {
-            const halabaOnly: Match[] = fixturesData.fixtures.filter(isHalabaMatch);
-            if (halabaOnly.length > 0) {
-              setMatches(halabaOnly);
-              try {
-                localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(halabaOnly));
-              } catch (e) {
-                console.warn('LocalStorage error caching matches:', e);
-              }
-              // Write back to Firestore only if user is logged in as administrator
-              if (isAdminLoggedIn) {
-                for (const fm of halabaOnly) {
-                  try {
-                    await setDoc(doc(db, 'matches', fm.id), { ...fm, updatedAt: serverTimestamp() }, { merge: true });
-                  } catch {
-                    // ignore
-                  }
-                }
+        const fixturesRes = await apiFetchJson<{ success: boolean; fixtures?: Match[] }>(
+          '/api/fixtures/sportsdb'
+        );
+        if (
+          fixturesRes.ok &&
+          fixturesRes.data?.success &&
+          Array.isArray(fixturesRes.data.fixtures) &&
+          fixturesRes.data.fixtures.length > 0
+        ) {
+          const halabaOnly: Match[] = fixturesRes.data.fixtures.filter(isHalabaMatch);
+          if (halabaOnly.length > 0) {
+            const { merged, toSync } = mergeMatchesPreservingCustom(
+              matchesRef.current,
+              halabaOnly
+            );
+            matchesRef.current = merged;
+            setMatches(merged);
+            try {
+              localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(merged));
+            } catch (e) {
+              console.warn('LocalStorage error caching matches:', e);
+            }
+            if (isAdminLoggedIn && toSync.length > 0) {
+              const bulkRes = await adminApiFetchJson('/api/matches', {
+                method: 'POST',
+                body: JSON.stringify({ action: 'bulkSync', matches: toSync }),
+              });
+              if (!bulkRes.ok && !bulkRes.isHtmlFallback && !bulkRes.isOffline) {
+                console.warn('D1 bulkSync matches warning:', bulkRes.error);
               }
             }
           }
@@ -2116,20 +2705,27 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLastSyncTime(new Date());
       setSecondsUntilNextSync(autoSyncInterval);
 
-      // Only display the synced notification popup if triggered manually (not on startup)
       if (isManual) {
         const syncNotif: LiveNotification = {
           id: `sync-${Date.now()}`,
           type: 'sync',
           title: 'TheSportsDB Official Feed Synced',
           message: `Official Ethiopian Premier League table, Halaba City fixtures & results synchronized from ${syncSource}.`,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }),
         };
         setLiveNotifications((prev) => [syncNotif, ...prev.slice(0, 9)]);
       }
     } catch (error: any) {
+      if (isManual) {
+        throw error;
+      }
       console.warn('Notice in syncNow:', error?.message || error);
     } finally {
+      inFlightSyncRef.current = false;
       setIsSyncing(false);
     }
   };
@@ -2250,7 +2846,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Sponsors & Partner Posters State with Real-Time Firebase Firestore Integration
+  // Sponsors & Partner Posters State (Cloudflare D1 backed with localStorage fallback)
   const [sponsors, setSponsors] = useState<Sponsor[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.SPONSORS);
@@ -2270,134 +2866,100 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [sponsorsSyncError, setSponsorsSyncError] = useState<string | null>(null);
 
   useEffect(() => {
-    const sponsorsRef = collection(db, 'sponsors');
-    const unsubscribe = onSnapshot(
-      sponsorsRef,
-      async (snapshot) => {
-        setIsSponsorsLoading(false);
-        setSponsorsSyncError(null);
+    let isMounted = true;
+    const loadSponsorsFromD1 = async () => {
+      const res = await apiFetchJson<{ success: boolean; sponsors: any[] }>('/api/sponsors');
+      if (!isMounted) return;
 
-        // If Firestore collection is empty, only seed initial official sponsors if admin is logged in
-        if (snapshot.empty) {
-          if (isAdminLoggedIn) {
-            console.info('[Firebase Firestore] Initializing sponsors collection in Cloud Firestore...');
-            try {
-              for (const initSponsor of initialSponsors) {
-                await setDoc(doc(db, 'sponsors', initSponsor.id), {
-                  name: initSponsor.name,
-                  nameAm: initSponsor.nameAm || '',
-                  nameOm: initSponsor.nameOm || '',
-                  tier: initSponsor.tier,
-                  tierAm: initSponsor.tierAm || '',
-                  imageUrl: initSponsor.imageUrl,
-                  websiteUrl: initSponsor.websiteUrl || '',
-                  description: initSponsor.description || '',
-                  descriptionAm: initSponsor.descriptionAm || '',
-                  active: initSponsor.active,
-                  order: initSponsor.order,
-                  createdAt: serverTimestamp(),
-                  updatedAt: serverTimestamp(),
-                });
-              }
-            } catch (seedErr) {
-              console.warn('[Firebase Firestore] Could not auto-seed sponsors:', seedErr);
-            }
-          }
-          return;
+      setIsSponsorsLoading(false);
+
+      if (!res.ok) {
+        if (!res.isHtmlFallback && !res.isOffline) {
+          setSponsorsSyncError(res.error || 'Failed to load sponsors.');
         }
-
-        const liveSponsors: Sponsor[] = [];
-        snapshot.docs.forEach((docSnap) => {
-          const data = docSnap.data();
-          liveSponsors.push({
-            id: docSnap.id,
-            name: data.name || 'Sponsor',
-            nameAm: data.nameAm || undefined,
-            nameOm: data.nameOm || undefined,
-            tier: data.tier || 'Official Partner',
-            tierAm: data.tierAm || undefined,
-            imageUrl: data.imageUrl || '',
-            websiteUrl: data.websiteUrl || undefined,
-            description: data.description || undefined,
-            descriptionAm: data.descriptionAm || undefined,
-            active: data.active !== undefined ? Boolean(data.active) : true,
-            order: typeof data.order === 'number' ? data.order : 10,
-          });
-        });
-
-        // Sort by order ascending
-        liveSponsors.sort((a, b) => (a.order || 0) - (b.order || 0));
-
-        setSponsors(liveSponsors);
-        try {
-          localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(liveSponsors));
-        } catch (e) {
-          console.warn('Could not cache sponsors in localStorage:', e);
-        }
-      },
-      (error) => {
-        if (typeof navigator !== 'undefined' && !navigator.onLine) return;
-        console.debug('Firebase real-time sponsors sync notice (offline):', error);
-        setIsSponsorsLoading(false);
-        setSponsorsSyncError(error.message);
-        handleFirestoreError(error, OperationType.LIST, 'sponsors');
+        return;
       }
-    );
 
-    return () => unsubscribe();
-  }, []);
+      setSponsorsSyncError(null);
+      const rawList = Array.isArray(res.data?.sponsors) ? res.data!.sponsors : [];
+
+      if (rawList.length === 0) {
+        if (isAdminLoggedIn) {
+          try {
+            await adminApiFetchJson('/api/sponsors', {
+              method: 'POST',
+              body: JSON.stringify({ action: 'reset', sponsors: initialSponsors }),
+            });
+          } catch {
+            // ignore auto-seed notice
+          }
+        }
+        return;
+      }
+
+      const liveSponsors: Sponsor[] = rawList.map((data: any) => ({
+        id: data.id,
+        name: data.name || 'Sponsor',
+        nameAm: data.nameAm || undefined,
+        nameOm: data.nameOm || undefined,
+        tier: data.tier || 'Official Partner',
+        tierAm: data.tierAm || undefined,
+        imageUrl: data.imageUrl || '',
+        websiteUrl: data.websiteUrl || undefined,
+        description: data.description || undefined,
+        descriptionAm: data.descriptionAm || undefined,
+        active: data.active !== undefined ? Boolean(data.active) : true,
+        order: typeof data.order === 'number' ? data.order : 10,
+      }));
+
+      liveSponsors.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+      setSponsors(liveSponsors);
+      try {
+        localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(liveSponsors));
+      } catch (e) {
+        console.warn('Could not cache sponsors in localStorage:', e);
+      }
+    };
+
+    loadSponsorsFromD1();
+    return () => {
+      isMounted = false;
+    };
+  }, [isAdminLoggedIn]);
 
   const addSponsor = async (sponsorData: Omit<Sponsor, 'id'>): Promise<string> => {
     if (!isAdminLoggedIn) {
       console.warn('Unauthorized addSponsor attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
-    try {
-      const docRef = await addDoc(collection(db, 'sponsors'), {
-        name: sponsorData.name,
-        nameAm: sponsorData.nameAm || '',
-        nameOm: sponsorData.nameOm || '',
-        tier: sponsorData.tier,
-        tierAm: sponsorData.tierAm || '',
-        imageUrl: sponsorData.imageUrl,
-        websiteUrl: sponsorData.websiteUrl || '',
-        description: sponsorData.description || '',
-        descriptionAm: sponsorData.descriptionAm || '',
-        active: sponsorData.active !== undefined ? sponsorData.active : true,
-        order: sponsorData.order ?? (sponsors.length + 1),
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
 
-      const newSponsor: Sponsor = {
-        ...sponsorData,
-        id: docRef.id,
-        order: sponsorData.order ?? (sponsors.length + 1),
-        active: sponsorData.active !== undefined ? sponsorData.active : true,
-      };
-      const updated = [...sponsors, newSponsor].sort((a, b) => (a.order || 0) - (b.order || 0));
-      setSponsors(updated);
-      try {
-        localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Could not cache updated sponsors in localStorage:', e);
-      }
-      return docRef.id;
-    } catch (error) {
-      console.error('Firestore add sponsor error, falling back locally:', error);
-      handleFirestoreError(error, OperationType.CREATE, 'sponsors');
-      const fallbackId = `sponsor-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const newSponsor: Sponsor = {
-        ...sponsorData,
-        id: fallbackId,
-        order: sponsorData.order ?? (sponsors.length + 1),
-        active: sponsorData.active ?? true,
-      };
-      const updated = [...sponsors, newSponsor];
-      setSponsors(updated);
-      localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(updated));
-      return fallbackId;
+    const generatedId = `sponsor-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const payload: Sponsor = {
+      ...sponsorData,
+      id: generatedId,
+      order: sponsorData.order ?? (sponsors.length + 1),
+      active: sponsorData.active !== undefined ? sponsorData.active : true,
+    };
+
+    const res = await adminApiFetchJson<{ success: boolean; sponsor?: Sponsor }>('/api/sponsors', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok && !res.isHtmlFallback && !res.isOffline) {
+      throw new Error(res.error || 'Failed to save sponsor.');
     }
+
+    const newSponsor = res.ok && res.data?.sponsor ? res.data.sponsor : payload;
+    const updated = [...sponsors, newSponsor].sort((a, b) => (a.order || 0) - (b.order || 0));
+    setSponsors(updated);
+    try {
+      localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Could not cache updated sponsors in localStorage:', e);
+    }
+    return newSponsor.id;
   };
 
   const updateSponsor = async (id: string, updates: Partial<Sponsor>): Promise<void> => {
@@ -2405,26 +2967,28 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Unauthorized updateSponsor attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
-    try {
-      const sponsorRef = doc(db, 'sponsors', id);
-      await setDoc(sponsorRef, {
-        ...updates,
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
 
-      const updated = sponsors.map((s) => (s.id === id ? { ...s, ...updates } : s));
-      setSponsors(updated);
-      try {
-        localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Could not cache updated sponsors in localStorage:', e);
+    const res = await adminApiFetchJson<{ success: boolean; sponsor?: Sponsor }>(
+      `/api/sponsors/${encodeURIComponent(id)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(updates),
       }
-    } catch (error) {
-      console.error('Firestore update sponsor error, falling back locally:', error);
-      handleFirestoreError(error, OperationType.UPDATE, `sponsors/${id}`);
-      const updated = sponsors.map((s) => (s.id === id ? { ...s, ...updates } : s));
-      setSponsors(updated);
+    );
+
+    if (!res.ok && !res.isHtmlFallback && !res.isOffline) {
+      throw new Error(res.error || 'Failed to update sponsor.');
+    }
+
+    const updated = sponsors
+      .map((s) => (s.id === id ? (res.ok && res.data?.sponsor ? res.data.sponsor : { ...s, ...updates }) : s))
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    setSponsors(updated);
+    try {
       localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Could not cache updated sponsors in localStorage:', e);
     }
   };
 
@@ -2433,23 +2997,21 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Unauthorized deleteSponsor attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
-    try {
-      const sponsorRef = doc(db, 'sponsors', id);
-      await deleteDoc(sponsorRef);
 
-      const updated = sponsors.filter((s) => s.id !== id);
-      setSponsors(updated);
-      try {
-        localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Could not cache sponsors after deletion:', e);
-      }
-    } catch (error) {
-      console.error('Firestore delete sponsor error, falling back locally:', error);
-      handleFirestoreError(error, OperationType.DELETE, `sponsors/${id}`);
-      const updated = sponsors.filter((s) => s.id !== id);
-      setSponsors(updated);
+    const res = await adminApiFetchJson(`/api/sponsors/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+
+    if (!res.ok && !res.isHtmlFallback && !res.isOffline) {
+      throw new Error(res.error || 'Failed to delete sponsor.');
+    }
+
+    const updated = sponsors.filter((s) => s.id !== id);
+    setSponsors(updated);
+    try {
       localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Could not cache sponsors after deletion:', e);
     }
   };
 
@@ -2458,31 +3020,18 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Unauthorized resetSponsors attempted');
       throw new Error('Unauthorized: Administrator privileges required.');
     }
-    try {
-      for (const initS of initialSponsors) {
-        await setDoc(doc(db, 'sponsors', initS.id), {
-          name: initS.name,
-          nameAm: initS.nameAm || '',
-          nameOm: initS.nameOm || '',
-          tier: initS.tier,
-          tierAm: initS.tierAm || '',
-          imageUrl: initS.imageUrl,
-          websiteUrl: initS.websiteUrl || '',
-          description: initS.description || '',
-          descriptionAm: initS.descriptionAm || '',
-          active: initS.active,
-          order: initS.order,
-          updatedAt: serverTimestamp(),
-        }, { merge: true });
-      }
-      setSponsors(initialSponsors);
-      localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(initialSponsors));
-    } catch (error) {
-      console.error('Firestore reset sponsors error, falling back locally:', error);
-      handleFirestoreError(error, OperationType.WRITE, 'sponsors');
-      setSponsors(initialSponsors);
-      localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(initialSponsors));
+
+    const res = await adminApiFetchJson('/api/sponsors', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'reset', sponsors: initialSponsors }),
+    });
+
+    if (!res.ok && !res.isHtmlFallback && !res.isOffline) {
+      throw new Error(res.error || 'Failed to reset sponsors.');
     }
+
+    setSponsors(initialSponsors);
+    localStorage.setItem(STORAGE_KEYS.SPONSORS, JSON.stringify(initialSponsors));
   };
 
   const resetAllDataToDefault = () => {
@@ -2533,6 +3082,15 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateMatch,
     deleteMatch,
     standings,
+    standingsCompetition,
+    standingsSeason,
+    standingsMode,
+    standingsHistory,
+    standingsError,
+    d1SyncError,
+    setStandingsScope,
+    setStandingsUpdateMode,
+    loadStandingsForScope,
     updateStanding,
     resetStandings,
     recalculateStandingsFromMatches,
@@ -2610,6 +3168,20 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clubInfo,
     matches,
     standings,
+    standingsCompetition,
+    standingsSeason,
+    standingsMode,
+    standingsHistory,
+    standingsError,
+    d1SyncError,
+    setStandingsScope,
+    setStandingsUpdateMode,
+    loadStandingsForScope,
+    updateStanding,
+    resetStandings,
+    recalculateStandingsFromMatches,
+    updateClubInfo,
+    syncNow,
     news,
     players,
     staff,

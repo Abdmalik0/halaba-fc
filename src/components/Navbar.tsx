@@ -112,19 +112,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
       </div>
 
       {/* Main Navigation Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-4">
         <div className="flex items-center justify-between h-20 gap-2">
           {/* Brand Logo & Name */}
           <button
             onClick={() => handleNavClick('home')}
-            className="flex items-center gap-3 group text-left focus:outline-none shrink-0"
+            className="flex items-center gap-2.5 group text-left focus:outline-none shrink-0"
           >
-            <HalabaCrest size={52} showGlow />
+            <HalabaCrest size={46} showGlow />
             <div className="flex flex-col shrink-0 min-w-max">
-              <span className="font-extrabold text-xl sm:text-2xl tracking-wider text-white group-hover:text-red-400 transition-colors uppercase font-sports whitespace-nowrap select-none">
+              <span className="font-extrabold text-lg sm:text-xl 2xl:text-2xl tracking-wider text-white group-hover:text-red-400 transition-colors uppercase font-sports whitespace-nowrap select-none">
                 HALABA CITY FC
               </span>
-              <span className="text-xs font-semibold tracking-wide text-emerald-400 flex items-center gap-1 whitespace-nowrap select-none">
+              <span className="text-[11px] sm:text-xs font-semibold tracking-wide text-emerald-400 flex items-center gap-1 whitespace-nowrap select-none">
                 <span>በርበሬዎቹ</span>
                 <span className="text-neutral-400 font-normal">|</span>
                 <span className="text-amber-400">{language === 'am' ? 'ይፋዊ ድረ-ገጽ' : 'Berberewochu'}</span>
@@ -133,14 +133,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
           </button>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden xl:flex items-center space-x-1 shrink-0">
+          <nav className="hidden xl:flex items-center gap-0.5 2xl:gap-1 min-w-0">
             {navItems.map((item) => {
               const isActive = currentPage === item.id;
               return (
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.id)}
-                  className={`px-3 py-2 rounded-md text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                  className={`px-2 2xl:px-3 py-2 rounded-md text-xs 2xl:text-sm font-semibold transition-all duration-150 flex items-center gap-1 whitespace-nowrap shrink-0 ${
                     isActive
                       ? 'bg-red-600 text-white shadow-md shadow-red-900/40'
                       : 'text-neutral-200 hover:text-white hover:bg-neutral-800/80'
@@ -153,17 +153,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
           </nav>
 
           {/* Right Action Controls: Language & Membership */}
-          <div className="hidden sm:flex items-center space-x-2 lg:space-x-2.5 xl:space-x-3 shrink-0">
+          <div className="hidden sm:flex items-center gap-2 2xl:gap-2.5 shrink-0">
             {/* Language Dropdown */}
             <div className="relative shrink-0">
               <button
                 onClick={() => setLangDropdownOpen(!langDropdownOpen)}
-                className="flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-md bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-sm font-medium text-neutral-200 transition-colors whitespace-nowrap shrink-0"
+                className="flex items-center gap-1.5 px-2.5 2xl:px-3 py-2 rounded-md bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-sm font-medium text-neutral-200 transition-colors whitespace-nowrap shrink-0"
                 aria-label="Select language"
               >
                 <Globe className="w-4 h-4 text-emerald-400" />
                 <span className="uppercase font-bold text-xs">{language}</span>
-                <span className="text-neutral-400 text-xs hidden md:inline">
+                <span className="text-neutral-400 text-xs hidden 2xl:inline">
                   {languageLabels[language].label}
                 </span>
                 <ChevronDown className="w-3.5 h-3.5 text-neutral-400 ml-0.5" />
@@ -197,7 +197,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
             {/* Donate CTA Button */}
             <button
               onClick={openDonationModal}
-              className="px-3 lg:px-3.5 py-2 rounded-md btn-donate-emerald font-bold text-sm tracking-wide transition-all active:scale-95 flex items-center gap-1.5 font-sports uppercase whitespace-nowrap shrink-0"
+              className="px-2.5 2xl:px-3.5 py-2 rounded-md btn-donate-emerald font-bold text-xs 2xl:text-sm tracking-wide transition-all active:scale-95 flex items-center gap-1.5 font-sports uppercase whitespace-nowrap shrink-0"
             >
               <Heart className="w-3.5 h-3.5 fill-emerald-400" />
               <span>{t.navDonate}</span>
@@ -206,7 +206,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
             {/* Become a Member CTA */}
             <button
               onClick={() => handleNavClick('membership')}
-              className="px-3.5 lg:px-4 py-2 rounded-md btn-membership-join font-bold text-sm tracking-wide shadow-md shadow-red-950/60 hover:shadow-red-800/40 transition-all transform active:scale-95 flex items-center gap-1.5 font-sports uppercase whitespace-nowrap shrink-0"
+              className="px-3 2xl:px-4 py-2 rounded-md btn-membership-join font-bold text-xs 2xl:text-sm tracking-wide shadow-md shadow-red-950/60 hover:shadow-red-800/40 transition-all transform active:scale-95 flex items-center gap-1.5 font-sports uppercase whitespace-nowrap shrink-0"
             >
               <UserPlus className="w-4 h-4" />
               <span>{t.navJoinBtn}</span>

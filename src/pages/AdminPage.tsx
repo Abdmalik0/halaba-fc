@@ -1,6 +1,6 @@
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useClub } from '../context/ClubContext';
 import { HalabaCrest } from '../components/HalabaCrest';
 import { ClubImages } from '../assets/images';
@@ -13,6 +13,7 @@ import {
   NewsCategory,
   Competition,
   ShopItem,
+  ClubInfo,
 } from '../types';
 import {
   Lock,
@@ -78,6 +79,15 @@ export const AdminPage: React.FC = () => {
     updateMatch,
     deleteMatch,
     standings,
+    standingsCompetition,
+    standingsSeason,
+    standingsMode,
+    standingsHistory,
+    standingsError,
+    d1SyncError,
+    setStandingsScope,
+    setStandingsUpdateMode,
+    loadStandingsForScope,
     updateStanding,
     resetStandings,
     recalculateStandingsFromMatches,
@@ -123,6 +133,25 @@ export const AdminPage: React.FC = () => {
     'memberships' | 'shop' | 'news' | 'fixtures' | 'standings' | 'squad' | 'sponsors' | 'sync' | 'settings'
   >('memberships');
 
+  const [adminFeedback, setAdminFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const showAdminFeedback = (message: string, type: 'success' | 'error' = 'success') => {
+    setAdminFeedback({ message, type });
+  };
+
+  // Club Settings editable form state
+  const [settingsForm, setSettingsForm] = useState<ClubInfo>(clubInfo);
+  const [isSavingClubSettings, setIsSavingClubSettings] = useState(false);
+
+  useEffect(() => {
+    setSettingsForm(clubInfo);
+  }, [clubInfo]);
+
+  useEffect(() => {
+    if (isAdminLoggedIn && adminTab === 'standings') {
+      void loadStandingsForScope(standingsCompetition, standingsSeason, true);
+    }
+  }, [isAdminLoggedIn, adminTab, standingsCompetition, standingsSeason, loadStandingsForScope]);
+
   // Shop admin sub-tab & modal states
   const [shopSubTab, setShopSubTab] = useState<'items' | 'orders' | 'donations'>('items');
   const [isShopModalOpen, setIsShopModalOpen] = useState(false);
@@ -147,6 +176,8 @@ export const AdminPage: React.FC = () => {
 
   // Standings Team Editing Modal State
   const [editingStandingTeam, setEditingStandingTeam] = useState<StandingTeam | null>(null);
+  const [isSavingStanding, setIsSavingStanding] = useState(false);
+  const [isSwitchingMode, setIsSwitchingMode] = useState(false);
   const [standingFormData, setStandingFormData] = useState({
     played: 0,
     won: 0,
@@ -173,16 +204,93 @@ export const AdminPage: React.FC = () => {
   const handleSaveStanding = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingStandingTeam) return;
-    await updateStanding(editingStandingTeam.teamId, {
-      played: Math.max(0, Number(standingFormData.played)),
-      won: Math.max(0, Number(standingFormData.won)),
-      drawn: Math.max(0, Number(standingFormData.drawn)),
-      lost: Math.max(0, Number(standingFormData.lost)),
-      goalsFor: Math.max(0, Number(standingFormData.goalsFor)),
-      goalsAgainst: Math.max(0, Number(standingFormData.goalsAgainst)),
-      points: Math.max(0, Number(standingFormData.points)),
-    });
-    setEditingStandingTeam(null);
+    setIsSavingStanding(true);
+    try {
+      await updateStanding(editingStandingTeam.teamId, {
+        played: Math.max(0, Number(standingFormData.played)),
+        won: Math.max(0, Number(standingFormData.won)),
+        drawn: Math.max(0, Number(standingFormData.drawn)),
+        lost: Math.max(0, Number(standingFormData.lost)),
+        goalsFor: Math.max(0, Number(standingFormData.goalsFor)),
+        goalsAgainst: Math.max(0, Number(standingFormData.goalsAgainst)),
+        points: Math.max(0, Number(standingFormData.points)),
+      });
+      showAdminFeedback(
+        `Saved ${editingStandingTeam.teamName} in D1 (${standingsCompetition} • ${standingsSeason}) and locked Manual Mode.`,
+        'success'
+      );
+      setEditingStandingTeam(null);
+    } catch (err: any) {
+      showAdminFeedback(err?.message || 'Failed to save standing to D1.', 'error');
+    } finally {
+      setIsSavingStanding(false);
+    }
+  };
+
+  const handleQuickStandingUpdate = async (teamId: string, updates: Partial<StandingTeam>) => {
+    try {
+      await updateStanding(teamId, updates);
+      showAdminFeedback('Standing updated in D1 and Manual Mode locked.', 'success');
+    } catch (err: any) {
+      showAdminFeedback(err?.message || 'Failed to update standing in D1.', 'error');
+    }
+  };
+
+  const handleToggleStandingsMode = async (nextMode: 'automatic' | 'manual') => {
+    setIsSwitchingMode(true);
+    try {
+      await setStandingsUpdateMode(nextMode);
+      showAdminFeedback(
+        nextMode === 'manual'
+          ? `Switched ${standingsCompetition} (${standingsSeason}) to Manual Mode — automatic SportsDB updates are now blocked.`
+          : `Switched ${standingsCompetition} (${standingsSeason}) to Automatic Mode.`,
+        'success'
+      );
+    } catch (err: any) {
+      showAdminFeedback(err?.message || 'Failed to switch standings mode.', 'error');
+    } finally {
+      setIsSwitchingMode(false);
+    }
+  };
+
+  const handleRecalculateStandings = async () => {
+    try {
+      await recalculateStandingsFromMatches();
+      showAdminFeedback('Standings synchronized with D1 and official feed.', 'success');
+    } catch (err: any) {
+      showAdminFeedback(err?.message || 'Standings refresh failed or blocked by Manual Mode.', 'error');
+    }
+  };
+
+  const handleResetStandings = async () => {
+    try {
+      await resetStandings();
+      showAdminFeedback(`Standings reset in D1 for ${standingsCompetition} (${standingsSeason}).`, 'success');
+    } catch (err: any) {
+      showAdminFeedback(err?.message || 'Failed to reset standings in D1.', 'error');
+    }
+  };
+
+  const handleAdminSyncNow = async () => {
+    try {
+      await syncNow(true);
+      showAdminFeedback('Fixtures and standings synchronized cleanly.', 'success');
+    } catch (err: any) {
+      showAdminFeedback(err?.message || 'Synchronization failed.', 'error');
+    }
+  };
+
+  const handleSaveClubSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingClubSettings(true);
+    try {
+      await updateClubInfo(settingsForm);
+      showAdminFeedback('Club settings saved to Cloudflare D1.', 'success');
+    } catch (err: any) {
+      showAdminFeedback(err?.message || 'Failed to save club settings to D1.', 'error');
+    } finally {
+      setIsSavingClubSettings(false);
+    }
   };
 
   // Compress & resize uploaded image to prevent exceeding browser storage quotas
@@ -422,82 +530,98 @@ export const AdminPage: React.FC = () => {
       setNewsSummaryOm('');
       setNewsContentEn('');
       setNewsImageUrl('');
-    } catch (error) {
-      console.error("Error saving article: ", error);
+      showAdminFeedback(
+        editingArticleId ? 'News article updated in D1.' : 'News article published to D1.',
+        'success'
+      );
+    } catch (error: any) {
+      console.error('Error saving article: ', error);
+      showAdminFeedback(error?.message || 'Failed to save news article.', 'error');
     }
   };
   // Save Match
-  const handleSaveMatch = (e: React.FormEvent) => {
+  const handleSaveMatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!matchAwayTeam.trim() || !matchDate) return;
 
     const isHome = matchHomeTeam.toLowerCase().includes('halaba');
 
-    if (editingMatchId) {
-      const matchUpdates: Partial<Match> = {
-        date: matchDate,
-        kickoffTime: matchTime,
-        venue: matchVenue,
-        status: matchStatus,
-        homeTeam: {
-          id: isHome ? 'halaba' : 'opponent',
-          name: matchHomeTeam,
-          isHalaba: isHome,
-        },
-        awayTeam: {
-          id: !isHome ? 'halaba' : 'opponent',
-          name: matchAwayTeam,
-          isHalaba: !isHome,
-        },
-        competition: matchComp,
-        competitionName: matchComp.replace(/_/g, ' '),
-      };
-      if (matchStatus === 'FINISHED' || matchStatus === 'LIVE') {
-        matchUpdates.score = { home: Number(homeScore), away: Number(awayScore) };
+    try {
+      if (editingMatchId) {
+        const matchUpdates: Partial<Match> = {
+          date: matchDate,
+          kickoffTime: matchTime,
+          venue: matchVenue,
+          status: matchStatus,
+          homeTeam: {
+            id: isHome ? 'halaba' : 'opponent',
+            name: matchHomeTeam,
+            isHalaba: isHome,
+          },
+          awayTeam: {
+            id: !isHome ? 'halaba' : 'opponent',
+            name: matchAwayTeam,
+            isHalaba: !isHome,
+          },
+          competition: matchComp,
+          competitionName: matchComp.replace(/_/g, ' '),
+        };
+        if (matchStatus === 'FINISHED' || matchStatus === 'LIVE') {
+          matchUpdates.score = { home: Number(homeScore), away: Number(awayScore) };
+        }
+        await updateMatch(editingMatchId, matchUpdates);
+        showAdminFeedback('Match updated in D1.', 'success');
+      } else {
+        await addMatch({
+          competition: matchComp,
+          competitionName: matchComp.replace(/_/g, ' '),
+          date: matchDate,
+          kickoffTime: matchTime,
+          venue: matchVenue,
+          homeTeam: {
+            id: isHome ? 'halaba' : 'opponent',
+            name: matchHomeTeam,
+            isHalaba: isHome,
+          },
+          awayTeam: {
+            id: !isHome ? 'halaba' : 'opponent',
+            name: matchAwayTeam,
+            isHalaba: !isHome,
+          },
+          status: matchStatus,
+          score: matchStatus === 'FINISHED' || matchStatus === 'LIVE' ? { home: Number(homeScore), away: Number(awayScore) } : undefined,
+          round: 'Official League Match',
+        });
+        showAdminFeedback('Fixture added to D1.', 'success');
       }
-      updateMatch(editingMatchId, matchUpdates);
-    } else {
-      addMatch({
-        competition: matchComp,
-        competitionName: matchComp.replace(/_/g, ' '),
-        date: matchDate,
-        kickoffTime: matchTime,
-        venue: matchVenue,
-        homeTeam: {
-          id: isHome ? 'halaba' : 'opponent',
-          name: matchHomeTeam,
-          isHalaba: isHome,
-        },
-        awayTeam: {
-          id: !isHome ? 'halaba' : 'opponent',
-          name: matchAwayTeam,
-          isHalaba: !isHome,
-        },
-        status: matchStatus,
-        score: matchStatus === 'FINISHED' || matchStatus === 'LIVE' ? { home: Number(homeScore), away: Number(awayScore) } : undefined,
-        round: 'Official League Match',
-      });
-    }
 
-    setIsMatchModalOpen(false);
-    setEditingMatchId(null);
+      setIsMatchModalOpen(false);
+      setEditingMatchId(null);
+    } catch (err: any) {
+      showAdminFeedback(err?.message || 'Failed to save match to D1.', 'error');
+    }
   };
 
   // Add Player
-  const handleAddPlayer = (e: React.FormEvent) => {
+  const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlayerName.trim()) return;
-    addPlayer({
-      name: newPlayerName.trim(),
-      number: Number(newPlayerNumber),
-      position: newPlayerPos,
-      nationality: 'Ethiopian',
-      birthYear: 2002,
-      appearances: 0,
-      goals: 0,
-    });
-    setNewPlayerName('');
-    setNewPlayerNumber(newPlayerNumber + 1);
+    try {
+      await addPlayer({
+        name: newPlayerName.trim(),
+        number: Number(newPlayerNumber),
+        position: newPlayerPos,
+        nationality: 'Ethiopian',
+        birthYear: 2002,
+        appearances: 0,
+        goals: 0,
+      });
+      setNewPlayerName('');
+      setNewPlayerNumber(newPlayerNumber + 1);
+      showAdminFeedback('Player added to D1 squad.', 'success');
+    } catch (err: any) {
+      showAdminFeedback(err?.message || 'Failed to add player to D1.', 'error');
+    }
   };
 
   // Shop Item Handlers
@@ -896,22 +1020,52 @@ export const AdminPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Firebase Cloud Live Notice Banner */}
+      {/* Firebase Cloud & D1 Live Notice Banner */}
       <div className="p-4 rounded-xl bg-neutral-900 border border-neutral-800 text-xs text-neutral-300 flex items-start gap-3">
         <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
         <div className="space-y-0.5">
           <strong className="block text-white font-sports font-bold tracking-wide uppercase">
             {language === 'am'
-              ? 'የፈርቤዝ ማረጋገጫ እና ቋሚ የክላውድ ዳታቤዝ ነቅቷል'
-              : 'Firebase Authentication & Firestore Persistent Storage Active'}
+              ? 'የፈርቤዝ ማረጋገጫ እና የCloudflare D1 ዳታቤዝ ነቅቷል'
+              : 'Firebase Auth + Cloudflare D1 Persistent Storage Active'}
           </strong>
           <span className="text-neutral-400">
             {language === 'am'
-              ? 'በሱቁ፣ በዜናዎች እና በጨዋታዎች ላይ የሚደረጉ ለውጦች በሙሉ በቀጥታ በፈርቤዝ ይቀመጣሉ።'
-              : 'All additions, updates, and removals of shop merchandise, news, and club schedules persist permanently in Firebase Cloud and synchronize in real-time.'}
+              ? 'የክለቡ መረጃዎች በCloudflare D1 እና የክፍያ/አባልነት መረጃዎች በፈርቤዝ ይቀመጣሉ።'
+              : 'Public club records (matches, standings, news, squad, sponsors, club settings) persist in Cloudflare D1; auth, memberships, and payments remain on Firebase.'}
           </span>
         </div>
       </div>
+
+      {(adminFeedback || d1SyncError) && (
+        <div
+          className={`p-3.5 rounded-xl border text-xs flex items-center justify-between gap-3 ${
+            adminFeedback?.type === 'error' || (!adminFeedback && d1SyncError)
+              ? 'bg-red-950/80 border-red-700/70 text-red-200'
+              : 'bg-emerald-950/80 border-emerald-700/70 text-emerald-200'
+          }`}
+          role="alert"
+        >
+          <div className="flex items-center gap-2.5">
+            {adminFeedback?.type === 'error' || (!adminFeedback && d1SyncError) ? (
+              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            )}
+            <span>{adminFeedback ? adminFeedback.message : d1SyncError}</span>
+          </div>
+          {adminFeedback && (
+            <button
+              type="button"
+              onClick={() => setAdminFeedback(null)}
+              className="p-1 rounded-lg hover:bg-black/30 text-current opacity-80 hover:opacity-100"
+              aria-label="Dismiss message"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1598,7 +1752,14 @@ export const AdminPage: React.FC = () => {
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => deleteNewsArticle(item.id)}
+                    onClick={async () => {
+                      try {
+                        await deleteNewsArticle(item.id);
+                        showAdminFeedback('News article deleted from D1.', 'success');
+                      } catch (err: any) {
+                        showAdminFeedback(err?.message || 'Failed to delete news article.', 'error');
+                      }
+                    }}
                     className="p-1.5 rounded-lg bg-neutral-800 hover:bg-red-950 text-neutral-400 hover:text-red-400"
                     title="Delete article"
                   >
@@ -1700,7 +1861,14 @@ export const AdminPage: React.FC = () => {
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => deleteMatch(m.id)}
+                    onClick={async () => {
+                      try {
+                        await deleteMatch(m.id);
+                        showAdminFeedback('Match deleted from D1.', 'success');
+                      } catch (err: any) {
+                        showAdminFeedback(err?.message || 'Failed to delete match.', 'error');
+                      }
+                    }}
                     className="p-2 rounded-lg bg-neutral-800 hover:bg-red-950 text-neutral-400 hover:text-red-400"
                     title="Delete match"
                   >
@@ -1716,28 +1884,104 @@ export const AdminPage: React.FC = () => {
       {/* TAB CONTENT 4: STANDINGS EDITOR */}
       {adminTab === 'standings' && (
         <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6 shadow-xl">
-          <div className="flex items-center justify-between pb-4 border-b border-neutral-800">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-neutral-800">
             <div>
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xxs font-bold uppercase tracking-wider border ${
+                    standingsMode === 'manual'
+                      ? 'bg-amber-950/80 border-amber-600/50 text-amber-300'
+                      : 'bg-emerald-950/80 border-emerald-600/50 text-emerald-300'
+                  }`}
+                >
+                  {standingsMode === 'manual' ? (
+                    <>
+                      <Lock className="w-3 h-3" />
+                      <span>Manual Mode Locked (Auto Sync Blocked)</span>
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-3 h-3" />
+                      <span>Automatic Sync Enabled</span>
+                    </>
+                  )}
+                </span>
+              </div>
               <h3 className="font-sports font-black text-2xl text-white uppercase tracking-wider">
                 League Standings Table Editor
               </h3>
               <p className="text-xs text-neutral-400 mt-1">
-                Edit team points, wins, draws, and goals. Tables auto-sort immediately.
+                Edit team points, wins, draws, and goals per competition & season. Manual edits automatically lock Manual Mode so external sync never overwrites them.
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={standingsCompetition}
+                onChange={(e) => {
+                  void setStandingsScope(e.target.value, standingsSeason);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-neutral-950 border border-neutral-800 text-xs text-neutral-200 font-semibold focus:outline-none"
+                aria-label="Standings competition"
+              >
+                <option value="ETHIOPIAN_PREMIER_LEAGUE">Ethiopian Premier League</option>
+                <option value="ETHIOPIAN_CUP">Ethiopian Cup</option>
+              </select>
+
+              <select
+                value={standingsSeason}
+                onChange={(e) => {
+                  void setStandingsScope(standingsCompetition, e.target.value);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-neutral-950 border border-neutral-800 text-xs text-neutral-200 font-mono font-semibold focus:outline-none"
+                aria-label="Standings season"
+              >
+                <option value="2026-2027">2026-2027</option>
+                <option value="2025-2026">2025-2026</option>
+                <option value="2024-2025">2024-2025</option>
+              </select>
+
+              <div className="inline-flex rounded-lg bg-neutral-950 p-0.5 border border-neutral-800">
+                <button
+                  type="button"
+                  disabled={isSwitchingMode}
+                  onClick={() => handleToggleStandingsMode('automatic')}
+                  className={`px-2.5 py-1 rounded-md text-xxs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                    standingsMode === 'automatic'
+                      ? 'bg-emerald-700 text-white'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  Automatic
+                </button>
+                <button
+                  type="button"
+                  disabled={isSwitchingMode}
+                  onClick={() => handleToggleStandingsMode('manual')}
+                  className={`px-2.5 py-1 rounded-md text-xxs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                    standingsMode === 'manual'
+                      ? 'bg-amber-600 text-white'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  Manual Lock
+                </button>
+              </div>
+
               <button
-                onClick={recalculateStandingsFromMatches}
-                className="px-3.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold uppercase tracking-wider font-sports flex items-center gap-1.5 transition-colors cursor-pointer"
-                title="Automatically calculate points, goals, and positions from all finished match fixtures"
+                type="button"
+                onClick={handleRecalculateStandings}
+                disabled={isSyncing}
+                className="px-3.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold uppercase tracking-wider font-sports flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                title="Refresh standings from official feed (blocked if Manual Lock is active)"
               >
                 <Calculator className="w-3.5 h-3.5" />
-                <span>Auto-Calculate from Fixtures</span>
+                <span>{isSyncing ? 'Refreshing...' : 'Refresh Official Feed'}</span>
               </button>
 
               <button
-                onClick={resetStandings}
+                type="button"
+                onClick={handleResetStandings}
                 className="px-3.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-bold uppercase tracking-wider font-sports flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
@@ -1745,6 +1989,13 @@ export const AdminPage: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {standingsError && (
+            <div className="p-3 rounded-xl bg-amber-950/70 border border-amber-700/60 text-amber-200 text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>{standingsError}</span>
+            </div>
+          )}
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs whitespace-nowrap">
@@ -1763,6 +2014,13 @@ export const AdminPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-800/60">
+                {standings.length === 0 && (
+                  <tr>
+                    <td colSpan={10} className="py-8 text-center text-neutral-400 text-xs">
+                      No standings stored yet for {standingsCompetition} ({standingsSeason}). Click Reset Standings to seed or switch scope.
+                    </td>
+                  </tr>
+                )}
                 {standings.map((st) => (
                   <tr
                     key={st.teamId}
@@ -1776,7 +2034,7 @@ export const AdminPage: React.FC = () => {
                       <div className="inline-flex items-center justify-center gap-1 bg-neutral-950 px-1.5 py-1 rounded-lg border border-neutral-800 hover:border-neutral-700 transition-colors">
                         <button
                           type="button"
-                          onClick={() => updateStanding(st.teamId, { played: Math.max(0, st.played - 1) })}
+                          onClick={() => void handleQuickStandingUpdate(st.teamId, { played: Math.max(0, st.played - 1) })}
                           className="w-5 h-5 flex items-center justify-center rounded bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors cursor-pointer"
                           title="Decrease Games Played"
                         >
@@ -1789,14 +2047,14 @@ export const AdminPage: React.FC = () => {
                           value={st.played}
                           onChange={(e) => {
                             const val = parseInt(e.target.value, 10);
-                            updateStanding(st.teamId, { played: isNaN(val) ? 0 : Math.max(0, val) });
+                            void handleQuickStandingUpdate(st.teamId, { played: isNaN(val) ? 0 : Math.max(0, val) });
                           }}
                           className="w-8 text-center bg-transparent font-mono font-bold text-white text-xs focus:outline-none focus:bg-neutral-900 rounded p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           title="Click to type games played directly"
                         />
                         <button
                           type="button"
-                          onClick={() => updateStanding(st.teamId, { played: st.played + 1 })}
+                          onClick={() => void handleQuickStandingUpdate(st.teamId, { played: st.played + 1 })}
                           className="w-5 h-5 flex items-center justify-center rounded bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors cursor-pointer"
                           title="Increase Games Played"
                         >
@@ -1818,7 +2076,7 @@ export const AdminPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() =>
-                            updateStanding(st.teamId, {
+                            void handleQuickStandingUpdate(st.teamId, {
                               played: st.played + 1,
                               won: st.won + 1,
                               points: st.points + 3,
@@ -1833,7 +2091,7 @@ export const AdminPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() =>
-                            updateStanding(st.teamId, {
+                            void handleQuickStandingUpdate(st.teamId, {
                               played: st.played + 1,
                               drawn: st.drawn + 1,
                               points: st.points + 1,
@@ -1847,7 +2105,7 @@ export const AdminPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() =>
-                            updateStanding(st.teamId, {
+                            void handleQuickStandingUpdate(st.teamId, {
                               played: st.played + 1,
                               lost: st.lost + 1,
                               goalsAgainst: st.goalsAgainst + 1,
@@ -1872,6 +2130,44 @@ export const AdminPage: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Recent Standings Audit History */}
+          <div className="pt-4 border-t border-neutral-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="font-sports font-bold text-sm text-neutral-300 uppercase tracking-wider flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-400" />
+                <span>Standings Change History ({standingsHistory.length})</span>
+              </h4>
+              <span className="text-xxs text-neutral-500 font-mono">
+                {standingsCompetition} • {standingsSeason}
+              </span>
+            </div>
+            {standingsHistory.length === 0 ? (
+              <p className="text-xs text-neutral-500 italic">
+                No history entries recorded yet for this competition and season.
+              </p>
+            ) : (
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                {standingsHistory.slice(0, 8).map((h) => (
+                  <div
+                    key={h.id}
+                    className="p-2.5 rounded-lg bg-neutral-950 border border-neutral-800 flex flex-wrap items-center justify-between gap-2 text-xxs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-neutral-900 border border-neutral-800 text-amber-300 font-mono font-bold">
+                        {h.changeReason || 'update'}
+                      </span>
+                      <span className="text-neutral-300">{h.changedBy || 'admin'}</span>
+                      <span className="text-neutral-500">({h.teamCount} teams)</span>
+                    </div>
+                    <span className="font-mono text-neutral-500">
+                      {new Date(h.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Detailed Team Standings Edit Modal */}
@@ -2018,9 +2314,10 @@ export const AdminPage: React.FC = () => {
                       </button>
                       <button
                         type="submit"
-                        className="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-sports font-black uppercase transition-colors cursor-pointer text-xs shadow-md"
+                        disabled={isSavingStanding}
+                        className="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-sports font-black uppercase transition-colors cursor-pointer text-xs shadow-md disabled:opacity-50"
                       >
-                        Save Standing
+                        {isSavingStanding ? 'Saving...' : 'Save Standing'}
                       </button>
                     </div>
                   </div>
@@ -2095,7 +2392,14 @@ export const AdminPage: React.FC = () => {
                   </span>
                 </div>
                 <button
-                  onClick={() => deletePlayer(p.id)}
+                  onClick={async () => {
+                    try {
+                      await deletePlayer(p.id);
+                      showAdminFeedback(`Removed ${p.name} from D1 squad.`, 'success');
+                    } catch (err: any) {
+                      showAdminFeedback(err?.message || 'Failed to delete player.', 'error');
+                    }
+                  }}
                   className="p-1.5 text-neutral-500 hover:text-red-400"
                   title="Remove player"
                 >
@@ -2128,7 +2432,7 @@ export const AdminPage: React.FC = () => {
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => syncNow(true)}
+                onClick={handleAdminSyncNow}
                 disabled={isSyncing}
                 className="px-4 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-bold uppercase tracking-wider font-sports flex items-center gap-2 transition-all disabled:opacity-60"
               >
@@ -2293,37 +2597,238 @@ export const AdminPage: React.FC = () => {
         <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6 shadow-xl">
           <div>
             <h3 className="font-sports font-black text-2xl text-white uppercase tracking-wider">
-              Club Configuration & Production Database Guide
+              Club Configuration & Settings (Cloudflare D1)
             </h3>
             <p className="text-xs text-neutral-400 mt-1">
-              Configuration details, official contacts, and cloud persistence deployment guide.
+              Edit official club metadata, stadium details, contacts, and social links stored in Cloudflare D1.
             </p>
           </div>
 
-          <div className="p-5 rounded-xl bg-neutral-950 border border-neutral-800 space-y-4">
+          <form onSubmit={handleSaveClubSettings} className="p-5 rounded-xl bg-neutral-950 border border-neutral-800 space-y-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block font-bold text-neutral-300 uppercase mb-1">Club Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={settingsForm.name}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-neutral-300 uppercase mb-1">Short Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={settingsForm.shortName}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, shortName: e.target.value })}
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-neutral-300 uppercase mb-1">Founded Year *</label>
+                <input
+                  type="number"
+                  min={1850}
+                  max={2100}
+                  required
+                  value={settingsForm.founded}
+                  onChange={(e) =>
+                    setSettingsForm({ ...settingsForm, founded: parseInt(e.target.value, 10) || 1966 })
+                  }
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-white text-sm font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block font-bold text-neutral-300 uppercase mb-1">Nickname (English)</label>
+                <input
+                  type="text"
+                  value={settingsForm.nickname.en}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsForm,
+                      nickname: { ...settingsForm.nickname, en: e.target.value },
+                    })
+                  }
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-neutral-300 uppercase mb-1">Nickname (Amharic)</label>
+                <input
+                  type="text"
+                  value={settingsForm.nickname.am}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsForm,
+                      nickname: { ...settingsForm.nickname, am: e.target.value },
+                    })
+                  }
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-white text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block font-bold text-neutral-300 uppercase mb-1">Stadium Name</label>
+                <input
+                  type="text"
+                  value={settingsForm.stadium.name}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsForm,
+                      stadium: { ...settingsForm.stadium, name: e.target.value },
+                    })
+                  }
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-neutral-300 uppercase mb-1">Stadium City</label>
+                <input
+                  type="text"
+                  value={settingsForm.stadium.city}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsForm,
+                      stadium: { ...settingsForm.stadium, city: e.target.value },
+                    })
+                  }
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-neutral-300 uppercase mb-1">Capacity</label>
+                <input
+                  type="text"
+                  value={settingsForm.stadium.capacity}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsForm,
+                      stadium: { ...settingsForm.stadium, capacity: e.target.value },
+                    })
+                  }
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-white text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block font-bold text-neutral-300 uppercase mb-1">Official Phone</label>
+                <input
+                  type="text"
+                  value={settingsForm.contact.phone}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsForm,
+                      contact: { ...settingsForm.contact, phone: e.target.value },
+                    })
+                  }
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-neutral-300 uppercase mb-1">Official Email</label>
+                <input
+                  type="email"
+                  value={settingsForm.contact.email}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsForm,
+                      contact: { ...settingsForm.contact, email: e.target.value },
+                    })
+                  }
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-neutral-300 uppercase mb-1">Address</label>
+                <input
+                  type="text"
+                  value={settingsForm.contact.address}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsForm,
+                      contact: { ...settingsForm.contact, address: e.target.value },
+                    })
+                  }
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-white text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block font-bold text-neutral-300 uppercase mb-1">Telegram URL</label>
+                <input
+                  type="text"
+                  value={settingsForm.socials.telegram}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsForm,
+                      socials: { ...settingsForm.socials, telegram: e.target.value },
+                    })
+                  }
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-white text-sm"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-neutral-300 uppercase mb-1">Facebook URL</label>
+                <input
+                  type="text"
+                  value={settingsForm.socials.facebook}
+                  onChange={(e) =>
+                    setSettingsForm({
+                      ...settingsForm,
+                      socials: { ...settingsForm.socials, facebook: e.target.value },
+                    })
+                  }
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-white text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={isSavingClubSettings}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-sports font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                {isSavingClubSettings ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Saving Settings to D1...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Save Club Settings</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          <div className="p-5 rounded-xl bg-neutral-950 border border-neutral-800 space-y-3">
             <h4 className="font-sports font-bold text-lg text-white uppercase flex items-center gap-2">
               <Database className="w-5 h-5 text-emerald-400" />
-              <span>Production Database Status</span>
+              <span>Cloudflare D1 & Firebase Architecture Status</span>
             </h4>
             <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed">
-              The club portal is currently configured with high-performance persistent local storage for rapid prototype demonstration, allowing club staff to test all features (membership registrations, match schedules, league standings, news publications).
+              Public club records (matches, standings, news, squad, staff, sponsors, and club settings) are served from Cloudflare D1 (<code className="text-emerald-400">halaba-fc-db</code>). Authentication, supporter memberships, Chapa payments, donations, and jersey orders remain protected on Firebase.
             </p>
-            <div className="p-4 rounded-lg bg-neutral-900 text-xs text-neutral-300 space-y-2 border border-neutral-800">
-              <strong className="text-amber-400 block font-sports text-sm uppercase">
-                To connect a production Cloud Firestore or Cloud SQL database:
-              </strong>
-              <ol className="list-decimal list-inside space-y-1 text-neutral-400">
-                <li>Run Firebase or Cloud SQL provisioning through AI Studio's integration manager.</li>
-                <li>Configure Firestore rules: restrict membership queries to role 'admin', and allow public reads for news, fixtures, and standings.</li>
-                <li>Deploy live rules with <code className="text-red-400">deploy_firebase</code>.</li>
-              </ol>
-            </div>
           </div>
 
           {/* Reset All Data Button */}
           <div className="pt-4 border-t border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <span className="text-xs text-neutral-400">
-              Reset all club data, matches, news, and registrations back to defaults.
+              Reset local cached club data back to defaults.
             </span>
             {isConfirmResetOpen ? (
               <div className="flex items-center gap-2">

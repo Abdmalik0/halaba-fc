@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useClub } from '../../context/ClubContext';
 import { HalabaCrest } from '../HalabaCrest';
+import { resolveApiUrl } from '../../utils/api';
 import {
   Download,
   Share2,
@@ -61,7 +62,7 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
 
     const fetchLatestApk = async () => {
       try {
-        const res = await fetch('/api/latest-apk');
+        const res = await fetch(resolveApiUrl('/api/latest-apk'));
         if (res.ok) {
           const data = await res.json();
           if (data && data.downloadUrl && isMounted) {
@@ -126,7 +127,7 @@ export const AppStoreInstallCard: React.FC<AppStoreInstallCardProps> = ({
     try {
       // Perform quick verification or use existing resolved URL
       if (!targetUrl || targetUrl === '/HalabaCityFC-v1.0-debug.apk') {
-        const res = await fetch('/api/latest-apk');
+        const res = await fetch(resolveApiUrl('/api/latest-apk'));
         if (res.ok) {
           const data = await res.json();
           if (data?.downloadUrl) {
