@@ -58,10 +58,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-neutral-950/95 backdrop-blur-md border-b border-red-900/30 text-white shadow-xl">
+    <header className="sticky top-0 z-50 w-full overflow-x-clip bg-neutral-950/95 backdrop-blur-md border-b border-red-900/30 text-white shadow-xl">
       {/* Top micro bar for Ethiopian identity and quick info */}
       <div className="bg-gradient-to-r from-red-950 via-neutral-900 to-green-950 text-xs px-4 py-1.5 border-b border-neutral-800/60 hidden sm:flex justify-between items-center text-neutral-300 overflow-hidden">
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <span className="inline-flex items-center gap-1.5 font-semibold text-red-400 whitespace-nowrap shrink-0">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             {t.heroNickname}
@@ -72,7 +72,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
           <span className="text-amber-400 font-medium whitespace-nowrap shrink-0">{t.est1966}</span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           {/* Mobile App Download Trigger (Completely removed when app is already installed on mobile) */}
           {!isInstalled && onOpenInstallModal && (
             <button
@@ -112,14 +112,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
       </div>
 
       {/* Main Navigation Bar */}
-      <div className="w-full px-4">
-        <div className="flex items-center justify-between h-20 gap-2">
+      <div className="w-full px-3 sm:px-4">
+        <div className="flex items-center justify-between h-20 gap-2 xl:gap-3">
           {/* Brand Logo & Name */}
           <button
             onClick={() => handleNavClick('home')}
             className="flex items-center gap-2.5 group text-left focus:outline-none shrink-0"
           >
-            <HalabaCrest size={46} showGlow />
+            <HalabaCrest size={44} showGlow />
             <div className="flex flex-col shrink-0 min-w-max">
               <span className="font-extrabold text-lg sm:text-xl 2xl:text-2xl tracking-wider text-white group-hover:text-red-400 transition-colors uppercase font-sports whitespace-nowrap select-none">
                 HALABA CITY FC
@@ -133,27 +133,29 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
           </button>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden xl:flex items-center gap-0.5 2xl:gap-1 min-w-0">
-            {navItems.map((item) => {
-              const isActive = currentPage === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavClick(item.id)}
-                  className={`px-2 2xl:px-3 py-2 rounded-md text-xs 2xl:text-sm font-semibold transition-all duration-150 flex items-center gap-1 whitespace-nowrap shrink-0 ${
-                    isActive
-                      ? 'bg-red-600 text-white shadow-md shadow-red-900/40'
-                      : 'text-neutral-200 hover:text-white hover:bg-neutral-800/80'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
+          <nav className="hidden xl:flex items-center flex-1 min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex items-center gap-0.5 2xl:gap-1 mx-auto">
+              {navItems.map((item) => {
+                const isActive = currentPage === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavClick(item.id)}
+                    className={`px-1.5 2xl:px-3 py-2 rounded-md text-xs 2xl:text-sm font-semibold transition-all duration-150 flex items-center gap-1 whitespace-nowrap shrink-0 ${
+                      isActive
+                        ? 'bg-red-600 text-white shadow-md shadow-red-900/40'
+                        : 'text-neutral-200 hover:text-white hover:bg-neutral-800/80'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
           </nav>
 
           {/* Right Action Controls: Language & Membership */}
-          <div className="hidden sm:flex items-center gap-2 2xl:gap-2.5 shrink-0">
+          <div className="hidden sm:flex items-center gap-1.5 xl:gap-2 2xl:gap-2.5 shrink-0">
             {/* Language Dropdown */}
             <div className="relative shrink-0">
               <button
@@ -206,7 +208,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
             {/* Become a Member CTA */}
             <button
               onClick={() => handleNavClick('membership')}
-              className="px-3 2xl:px-4 py-2 rounded-md btn-membership-join font-bold text-xs 2xl:text-sm tracking-wide shadow-md shadow-red-950/60 hover:shadow-red-800/40 transition-all transform active:scale-95 flex items-center gap-1.5 font-sports uppercase whitespace-nowrap shrink-0"
+              className="px-2.5 2xl:px-4 py-2 rounded-md btn-membership-join font-bold text-xs 2xl:text-sm tracking-wide shadow-md shadow-red-950/60 hover:shadow-red-800/40 transition-all transform active:scale-95 flex items-center gap-1.5 font-sports uppercase whitespace-nowrap shrink-0"
             >
               <UserPlus className="w-4 h-4" />
               <span>{t.navJoinBtn}</span>
@@ -215,13 +217,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenInstallModal, isInstalled 
 
           {/* Mobile Menu Button */}
           <div className="flex items-center gap-2 xl:hidden shrink-0">
-            {/* Quick Language Toggle on Mobile */}
+            {/* Quick Language Toggle on Mobile (<sm) */}
             <button
               onClick={() => {
                 const nextLang: Record<Language, Language> = { en: 'am', am: 'om', om: 'en' };
                 setLanguage(nextLang[language]);
               }}
-              className="px-2.5 py-1.5 rounded bg-neutral-900 border border-neutral-700 text-xs font-bold text-emerald-400 uppercase flex items-center gap-1 shrink-0"
+              className="sm:hidden px-2.5 py-1.5 rounded bg-neutral-900 border border-neutral-700 text-xs font-bold text-emerald-400 uppercase flex items-center gap-1 shrink-0"
               title="Switch language"
             >
               <Globe className="w-3.5 h-3.5" />
