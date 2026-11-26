@@ -12,31 +12,112 @@ jobs:
   import:
     runs-on: ubuntu-latest
     steps:
-      - name: Download existing export artifact
+      - name: Download existing export artifact (or export fresh if expired)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: |
           set -e
           mkdir -p /tmp/halaba-export
 
           RUN_ID=$(gh api \
-            "repos/Abdmalik0/halaba-fc/actions/workflows/migrate-firestore-to-d1.yml/runs?per_page=50" \
-            --jq '[.workflow_runs[] | select(.conclusion=="success")][0].id')
+            "repos/Abdmalik0/halaba-fc/actions/workflows/migrate-firestore-to-d1.yml/runs?per_page=20" \
+            --jq '[.workflow_runs[] | select(.conclusion=="success")][0].id // empty')
 
-          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
-            echo "No successful export workflow run found."
+          HAS_ARTIFACT="false"
+          if [ -n "$RUN_ID" ]; then
+            HAS_ARTIFACT=$(gh api \
+              "repos/Abdmalik0/halaba-fc/actions/runs/${RUN_ID}/artifacts" \
+              --jq 'any(.artifacts[]; .name=="halaba-firestore-export" and .expired==false)')
+          fi
+
+          if [ "$HAS_ARTIFACT" = "true" ]; then
+            echo "Using non-expired export artifact from run: $RUN_ID"
+            gh run download "$RUN_ID" \
+              --repo Abdmalik0/halaba-fc \
+              --name halaba-firestore-export \
+              --dir /tmp/halaba-export
+          elif [ -n "${FIREBASE_SERVICE_ACCOUNT_JSON:-}" ]; then
+            echo "Previous export artifact missing or expired; exporting read-only from Firestore..."
+            node <<'NODE'
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+
+          async function main() {
+            const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '{}');
+            if (!sa.client_email || !sa.private_key || !sa.project_id) {
+              throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is missing required fields.');
+            }
+
+            const now = Math.floor(Date.now() / 1000);
+            const b64 = value => Buffer.from(JSON.stringify(value)).toString('base64url');
+            const header = b64({ alg: 'RS256', typ: 'JWT' });
+            const claim = b64({
+              iss: sa.client_email,
+              scope: 'https://www.googleapis.com/auth/datastore',
+              aud: 'https://oauth2.googleapis.com/token',
+              iat: now,
+              exp: now + 3600
+            });
+
+            const unsigned = `${header}.${claim}`;
+            const signature = crypto.sign('RSA-SHA256', Buffer.from(unsigned), sa.private_key).toString('base64url');
+            const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({
+                grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                assertion: `${unsigned}.${signature}`
+              })
+            });
+
+            if (!tokenResponse.ok) {
+              throw new Error(`Google authentication failed: HTTP ${tokenResponse.status}`);
+            }
+
+            const { access_token } = await tokenResponse.json();
+            const collections = ['matches', 'news', 'players', 'staff', 'sponsors'];
+            const exported = {};
+
+            for (const collection of collections) {
+              let pageToken = null;
+              const documents = [];
+              do {
+                const url = new URL(
+                  `https://firestore.googleapis.com/v1/projects/${sa.project_id}/databases/(default)/documents/${collection}`
+                );
+                url.searchParams.set('pageSize', '1000');
+                if (pageToken) url.searchParams.set('pageToken', pageToken);
+
+                const response = await fetch(url, {
+                  headers: { Authorization: `Bearer ${access_token}` }
+                });
+                if (!response.ok) {
+                  throw new Error(`Firestore read failed for ${collection}: HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                documents.push(...(data.documents || []));
+                pageToken = data.nextPageToken || null;
+              } while (pageToken);
+              exported[collection] = documents;
+              console.log(`Exported ${collection}: ${documents.length} documents`);
+            }
+
+            fs.writeFileSync('/tmp/halaba-export/firestore-export.json', JSON.stringify(exported, null, 2), { mode: 0o600 });
+          }
+
+          main().catch(error => {
+            console.error(error.message);
+            process.exit(1);
+          });
+          NODE
+          else
+            echo "No valid export artifact found (artifacts expire after 1 day) and FIREBASE_SERVICE_ACCOUNT_JSON is unset. Please run 'Validate Firestore Export' first."
             exit 1
           fi
 
-          echo "Using previous successful export run: $RUN_ID"
-
-          gh run download "$RUN_ID" \
-            --repo Abdmalik0/halaba-fc \
-            --name halaba-firestore-export \
-            --dir /tmp/halaba-export
-
           test -s /tmp/halaba-export/firestore-export.json
-          echo "Existing export downloaded successfully."
+          echo "Export ready."
 
       - name: Import and verify records in D1
         env:
@@ -95,7 +176,7 @@ jobs:
               summary_json: ['summary', 'summaryJson'],
               content_json: ['content', 'contentJson'],
               category: ['category'],
-              article_date: ['articleDate', 'date', 'createdAt'],              
+              article_date: ['articleDate', 'date', 'createdAt'],
               author: ['author'],
               image_url: ['imageUrl', 'image'],
               is_featured: ['isFeatured', 'featured'],
@@ -196,7 +277,8 @@ jobs:
               const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
-            Authorization: `Bearer ${(process.env.CLOUDFLARE_API_TOKEN || '').trim().replace(/\s+/g, '')}`,                  'Content-Type': 'application/json'
+                  Authorization: `Bearer ${(process.env.CLOUDFLARE_API_TOKEN || '').trim().replace(/\s+/g, '')}`,
+                  'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ sql })
               });
@@ -211,21 +293,21 @@ jobs:
             }
 
             // Validate the downloaded source before touching D1.
-           for (const [collection, count] of Object.entries(expected)) {
-           const actualCount = collection === 'news'
-           ? source[collection]?.filter(
-           d => !d.name?.endsWith('/n-hossana-summit-chase')
-           ).length
-           : source[collection]?.length;
+            for (const [collection, count] of Object.entries(expected)) {
+              const actualCount = collection === 'news'
+                ? source[collection]?.filter(
+                    d => !d.name?.endsWith('/n-hossana-summit-chase')
+                  ).length
+                : source[collection]?.length;
 
-           if (!Array.isArray(source[collection]) || actualCount !== count) {
-           throw new Error(
-          `Export count mismatch for ${collection}. Expected ${count}.`
-          );
-          }
+              if (!Array.isArray(source[collection]) || actualCount !== count) {
+                throw new Error(
+                  `Export count mismatch for ${collection}. Expected ${count}, got ${actualCount}.`
+                );
+              }
 
-          console.log(`Export verified: ${collection} = ${actualCount}`);
-          }
+              console.log(`Export verified: ${collection} = ${actualCount}`);
+            }
 
             const prepared = [];
 
@@ -239,76 +321,76 @@ jobs:
               const columns = schema.map(c => c.name);
 
               for (const document of source[collection]) {
-             if (
-            collection === 'news' &&
-           document.name?.endsWith('/n-hossana-summit-chase')
-         ) {
-         console.log('Skipping unwanted Hossana news article.');
-         continue;
-         }
+                if (
+                  collection === 'news' &&
+                  document.name?.endsWith('/n-hossana-summit-chase')
+                ) {
+                  console.log('Skipping unwanted Hossana news article.');
+                  continue;
+                }
 
-         const doc = {
-         id: document.name
-         ? document.name.split('/').pop()
-         : document.id,
-         ...decodeFields(document.fields || {})
-         };
+                const doc = {
+                  id: document.name
+                    ? document.name.split('/').pop()
+                    : document.id,
+                  ...decodeFields(document.fields || {})
+                };
 
-         if (!doc.id)
-         throw new Error(`Missing document ID in ${collection}.`);
+                if (!doc.id)
+                  throw new Error(`Missing document ID in ${collection}.`);
 
-         const row = { id: doc.id };
+                const row = { id: doc.id };
 
-         for (const column of columns) {
-         if (column === 'id') continue;
+                for (const column of columns) {
+                  if (column === 'id') continue;
 
-         const keys = aliases[table][column] || [column];
-         const key = keys.find(k =>
-         Object.prototype.hasOwnProperty.call(doc, k)
-         );
+                  const keys = aliases[table][column] || [column];
+                  const key = keys.find(k =>
+                    Object.prototype.hasOwnProperty.call(doc, k)
+                  );
 
-         if (key !== undefined) row[column] = doc[key];
-         }
+                  if (key !== undefined) row[column] = doc[key];
+                }
 
-         for (const col of schema) {
-         if (
-         col.notnull === 1 &&
-         col.pk === 0 &&
-         col.dflt_value === null &&
-         (row[col.name] === undefined || row[col.name] === null)
-         ) {
-         throw new Error(
-           `${collection}/${doc.id}: required field "${col.name}" is missing. No records have been imported.`
-            );
-          }
-           }
+                for (const col of schema) {
+                  if (
+                    col.notnull === 1 &&
+                    col.pk === 0 &&
+                    col.dflt_value === null &&
+                    (row[col.name] === undefined || row[col.name] === null)
+                  ) {
+                    throw new Error(
+                      `${collection}/${doc.id}: required field "${col.name}" is missing. No records have been imported.`
+                    );
+                  }
+                }
 
-          const insertColumns = columns.filter(
-          c => row[c] !== undefined
-          );
+                const insertColumns = columns.filter(
+                  c => row[c] !== undefined
+                );
 
-         const names = insertColumns.map(
-         c => `"${c.replace(/"/g, '""')}"`
-         );
+                const names = insertColumns.map(
+                  c => `"${c.replace(/"/g, '""')}"`
+                );
 
-         const values = insertColumns.map(c => quote(row[c], c));
+                const values = insertColumns.map(c => quote(row[c], c));
 
-         const updates = insertColumns
-         .filter(c => c !== 'id')
-         .map(c =>
-          `"${c.replace(/"/g, '""')}"=excluded."${c.replace(/"/g, '""')}"`
-           );
+                const updates = insertColumns
+                  .filter(c => c !== 'id')
+                  .map(c =>
+                    `"${c.replace(/"/g, '""')}"=excluded."${c.replace(/"/g, '""')}"`
+                  );
 
-          const conflict = updates.length
-          ? `DO UPDATE SET ${updates.join(',')}`
-          : 'DO NOTHING';
+                const conflict = updates.length
+                  ? `DO UPDATE SET ${updates.join(',')}`
+                  : 'DO NOTHING';
 
-          prepared.push({
-          collection,
-          id: doc.id,
-         sql: `INSERT INTO "${table}" (${names.join(',')}) VALUES (${values.join(',')}) ON CONFLICT("id") ${conflict}`
-          });
-            }
+                prepared.push({
+                  collection,
+                  id: doc.id,
+                  sql: `INSERT INTO "${table}" (${names.join(',')}) VALUES (${values.join(',')}) ON CONFLICT("id") ${conflict}`
+                });
+              }
             }
 
             console.log(
@@ -325,11 +407,11 @@ jobs:
             // Verify every source ID exists in its destination table.
             for (const [collection, table] of Object.entries(tables)) {
               const ids = source[collection]
-             .filter(d =>
-             !(collection === 'news' &&
-             d.name?.endsWith('/n-hossana-summit-chase'))
-              )
-            .map(d => d.name ? d.name.split('/').pop() : d.id);
+                .filter(d =>
+                  !(collection === 'news' &&
+                    d.name?.endsWith('/n-hossana-summit-chase'))
+                )
+                .map(d => (d.name ? d.name.split('/').pop() : d.id));
 
               for (const id of ids) {
                 const found = await query(
@@ -345,7 +427,7 @@ jobs:
             }
 
             console.log(
-              'SUCCESS: All 82 exported club records imported and verified.'
+              `SUCCESS: All ${prepared.length} exported club records imported and verified.`
             );
             console.log(
               'No payment, membership, order, donation, or authentication data was accessed.'
