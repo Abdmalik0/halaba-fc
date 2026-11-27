@@ -80,14 +80,16 @@ export const MatchDetailsModal: React.FC<MatchDetailsModalProps> = ({ match, onC
                     {t.fullTime}
                   </span>
                 </div>
-              ) : match.status === 'LIVE' && match.score ? (
+              ) : match.status === 'LIVE' ? (
                 <div className="text-center">
-                  <div className="font-sports font-black text-3xl sm:text-4xl text-emerald-400 tracking-widest bg-neutral-800 px-4 py-1 rounded-lg">
-                    {match.score.home} - {match.score.away}
+                  <div className="font-sports font-black text-3xl sm:text-4xl text-amber-400 tracking-widest bg-neutral-800 px-4 py-1 rounded-lg border border-red-700/70">
+                    {match.score?.home ?? 0} - {match.score?.away ?? 0}
                   </div>
                   <span className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-0.5 rounded text-xs font-bold uppercase bg-red-950 text-red-400 border border-red-800 animate-pulse">
                     <span className="w-2 h-2 rounded-full bg-red-500" />
-                    {t.liveNow}
+                    {match.liveMinute
+                      ? `${match.liveMinute}' • ${match.livePeriod || t.liveNow}`
+                      : match.livePeriod || t.liveNow}
                   </span>
                 </div>
               ) : (

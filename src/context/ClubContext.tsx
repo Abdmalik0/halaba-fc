@@ -229,6 +229,7 @@ export const VALID_EPL_18_TEAM_IDS = new Set<string>([
 
 try {
   if (typeof window !== 'undefined') {
+    localStorage.removeItem('halaba_official_epl_standings_v26_all18_rd6');
     localStorage.removeItem('halaba_official_epl_standings_v25_all18_verified');
     localStorage.removeItem('halaba_official_epl_standings_v22_sportsdb');
     localStorage.removeItem('halaba_official_epl_standings_v21_sportsdb');
@@ -240,6 +241,7 @@ try {
     localStorage.removeItem('halaba_official_epl_standings_v3');
     localStorage.removeItem('halaba_official_epl_standings_v2');
     localStorage.removeItem('halaba_official_epl_standings');
+    localStorage.removeItem('halaba_matches_epl_2026_27_v19');
     localStorage.removeItem('halaba_matches_epl_2026_27_v18');
     localStorage.removeItem('halaba_standings_epl_2026_27');
     localStorage.removeItem('halaba_standings_sportsdb_v2');
@@ -319,6 +321,8 @@ export function mergeMatchesPreservingCustom(
         ...incoming,
         id: current.id,
         venue: incoming.venue || current.venue,
+        liveMinute: incoming.status === 'LIVE' ? incoming.liveMinute ?? current.liveMinute : undefined,
+        livePeriod: incoming.status === 'LIVE' ? incoming.livePeriod ?? current.livePeriod : undefined,
         summary:
           transitionedToFinished || teamsChanged
             ? incoming.summary || current.summary
@@ -440,8 +444,8 @@ export function normalizeStandingsScopeRows(
 const STORAGE_KEYS = {
   LANG: 'halaba_lang',
   CLUB: 'halaba_club_info_epl_26_27',
-  MATCHES: 'halaba_matches_epl_2026_27_v19',
-  STANDINGS: 'halaba_official_epl_standings_v26_all18_rd6',
+  MATCHES: 'halaba_matches_epl_2026_27_v20',
+  STANDINGS: 'halaba_official_epl_standings_v27_all18_rd7',
   NEWS: 'halaba_news_epl_2026_27',
   PLAYERS: 'halaba_players',
   STAFF: 'halaba_staff',
@@ -2858,9 +2862,9 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Automatically update standing table and results/fixtures from SportsDB ONLY when the app opens,
-  // then uses that cache until the app is closed and reopened (persisting in sessionStorage per session).
+  // then uses that cache until the app is closed and reopened (or while a match is LIVE).
   useEffect(() => {
-    const sessionKey = 'halaba_sportsdb_app_session_synced_v24';
+    const sessionKey = 'halaba_sportsdb_app_session_synced_v25';
     const alreadySyncedThisSession = typeof window !== 'undefined' && sessionStorage.getItem(sessionKey) === 'true';
 
     if (!alreadySyncedThisSession) {
@@ -2873,6 +2877,19 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     }
   }, []);
+
+  // Poll live SportsDB updates every 45s while any match is LIVE (or Auto-Sync is enabled)
+  const hasLiveMatch = matches.some((m) => m.status === 'LIVE');
+  useEffect(() => {
+    if (!hasLiveMatch && !isAutoSyncEnabled) return;
+    const pollMs = hasLiveMatch ? 45000 : Math.max(15000, autoSyncInterval * 1000);
+    const timer = window.setInterval(() => {
+      syncNow(false).catch(() => {
+        // Silent background refresh fallback
+      });
+    }, pollMs);
+    return () => window.clearInterval(timer);
+  }, [hasLiveMatch, isAutoSyncEnabled, autoSyncInterval]);
 
   // Sponsors & Partner Posters State (Cloudflare D1 backed with localStorage fallback)
   const [sponsors, setSponsors] = useState<Sponsor[]>(() => {

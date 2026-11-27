@@ -46,7 +46,7 @@ export const initialMatches: Match[] = [
     competitionName: 'Ethiopian Premier League 2026/27 - Round 1',
     date: '2026-10-09',
     kickoffTime: '15:00',
-    venue: 'Hawassa University Stadium',
+    venue: 'Halaba Stadium, Halaba Kulito',
     homeTeam: {
       id: 'halaba',
       name: 'Halaba Ketema',
@@ -69,7 +69,7 @@ export const initialMatches: Match[] = [
       { player: 'Amanuel Tesfaye', minute: 34, team: 'home' },
       { player: 'Bereket Desta', minute: 73, team: 'away' },
     ],
-    summary: 'Halaba Ketema 1 - 1 Welwalo Adigrat University (October 9, 2026). Playmaker Amanuel Tesfaye scored the opening goal in the 34th minute before Welwalo struck back in an electric season opener.',
+    summary: 'Halaba Ketema 1 - 1 Welwalo Adigrat University (October 9, 2026). Playmaker Amanuel Tesfaye scored the opening goal in the 34th minute before Welwalo struck back at Halaba Stadium.',
   },
   // Round 2 (Completed - Oct 16, 2026) [FT]
   {
@@ -78,7 +78,7 @@ export const initialMatches: Match[] = [
     competitionName: 'Ethiopian Premier League 2026/27 - Round 2',
     date: '2026-10-16',
     kickoffTime: '15:00',
-    venue: 'Hawassa University Stadium',
+    venue: 'Halaba Stadium, Halaba Kulito',
     homeTeam: {
       id: 'halaba',
       name: 'Halaba Ketema',
@@ -100,7 +100,7 @@ export const initialMatches: Match[] = [
     scorers: [
       { player: 'Yonatan Hailu', minute: 47, team: 'home' },
     ],
-    summary: 'Halaba Ketema 1 - 0 Bahir Dar Kenema (October 16, 2026). Yonatan Hailu scored the winning goal in the 47th minute to secure Halaba Ketema’s historic first Premier League victory.',
+    summary: 'Halaba Ketema 1 - 0 Bahir Dar Kenema (October 16, 2026). Yonatan Hailu scored the winning goal in the 47th minute at Halaba Stadium to secure Halaba Ketema’s historic first Premier League victory.',
   },
   // Round 3 (Completed - Oct 20, 2026) [FT]
   {
@@ -109,7 +109,7 @@ export const initialMatches: Match[] = [
     competitionName: 'Ethiopian Premier League 2026/27 - Round 3',
     date: '2026-10-20',
     kickoffTime: '15:00',
-    venue: 'Hawassa University Stadium',
+    venue: 'Halaba Stadium, Halaba Kulito',
     homeTeam: {
       id: 'halaba',
       name: 'Halaba Ketema',
@@ -132,7 +132,7 @@ export const initialMatches: Match[] = [
       { player: 'Kaleb Amankwah', minute: 10, team: 'home' },
       { player: 'Romaric', minute: 50, team: 'away' },
     ],
-    summary: 'Halaba Ketema 1 - 1 Fasil Kenema (October 20, 2026). Kaleb Amankwah gave Halaba an early lead in the 10th minute before Romaric leveled for Fasil Kenema in a thrilling 1-1 draw.',
+    summary: 'Halaba Ketema 1 - 1 Fasil Kenema (October 20, 2026). Kaleb Amankwah gave Halaba an early lead in the 10th minute at Halaba Stadium before Romaric leveled for Fasil Kenema in a thrilling 1-1 draw.',
   },
   // Round 4 (Completed - Oct 26, 2026) [FT]
   {
@@ -159,7 +159,7 @@ export const initialMatches: Match[] = [
     round: 'Round 4',
     attendance: '12,000',
     referee: 'Hailemariam Assefa',
-    summary: 'Wolaitta Dicha 6 - 0 Halaba Ketema (October 26, 2026). Tough away fixture at Adama Science and Technology Stadium in Round 4.',
+    summary: 'Wolaitta Dicha 6 - 0 Halaba Ketema (October 26, 2026). Tough away fixture in Round 4.',
   },
   // Round 5 (Completed - Oct 30, 2026) [FT]
   {
@@ -168,7 +168,7 @@ export const initialMatches: Match[] = [
     competitionName: 'Ethiopian Premier League 2026/27 - Round 5',
     date: '2026-10-30',
     kickoffTime: '15:00',
-    venue: 'Hawassa University Stadium',
+    venue: 'Halaba Stadium, Halaba Kulito',
     homeTeam: {
       id: 'halaba',
       name: 'Halaba Ketema',
@@ -186,7 +186,7 @@ export const initialMatches: Match[] = [
     round: 'Round 5',
     attendance: '14,000',
     referee: 'Tewodros Marcos',
-    summary: 'Halaba Ketema 2 - 1 Hadiya Hosaena (October 30, 2026). The Berberewochu mounted a heroic fightback to secure all three points in Round 5!',
+    summary: 'Halaba Ketema 2 - 1 Hadiya Hosaena (October 30, 2026). The Berberewochu mounted a heroic fightback at Halaba Stadium to secure all three points in Round 5!',
   },
   // Round 6 (Completed - Nov 22, 2026) [FT]
   {
@@ -195,7 +195,7 @@ export const initialMatches: Match[] = [
     competitionName: 'Ethiopian Premier League 2026/27 - Round 6',
     date: '2026-11-22',
     kickoffTime: '15:30',
-    venue: 'Adama Science and Technology University Stadium',
+    venue: 'Addis Ababa Stadium',
     homeTeam: {
       id: 'electric',
       name: 'Ethio Electric',
@@ -211,16 +211,16 @@ export const initialMatches: Match[] = [
     status: 'FINISHED',
     score: { home: 1, away: 0 },
     round: 'Round 6',
-    summary: 'Ethio Electric 1 - 0 Halaba Ketema (November 22, 2026). Tightly contested Round 6 clash at Adama Science and Technology University Stadium.',
+    summary: 'Ethio Electric 1 - 0 Halaba Ketema (November 22, 2026). Tightly contested Round 6 clash at Addis Ababa Stadium.',
   },
-  // Round 7 (Upcoming - Nov 27, 2026)
+  // Round 7 (Completed - Nov 27, 2026) [FT]
   {
     id: 'm-epl-rd7',
     competition: 'ETHIOPIAN_PREMIER_LEAGUE',
     competitionName: 'Ethiopian Premier League 2026/27 - Round 7',
     date: '2026-11-27',
     kickoffTime: '15:30',
-    venue: 'Hawassa University Stadium',
+    venue: 'Addis Ababa Stadium',
     homeTeam: {
       id: 'bunna',
       name: 'Ethiopian Coffee SC (Bunna)',
@@ -233,9 +233,14 @@ export const initialMatches: Match[] = [
       isHalaba: true,
       logo: 'https://r2.thesportsdb.com/images/media/team/badge/ol9g9y1790265506.png',
     },
-    status: 'UPCOMING',
+    status: 'FINISHED',
+    score: { home: 1, away: 1 },
+    scorers: [
+      { player: 'Taiba Mbonyumwami', minute: 49, team: 'home' },
+      { player: 'Shimekt Gugsa', minute: 55, team: 'away' },
+    ],
     round: 'Round 7',
-    summary: 'Halaba Ketema travel to Hawassa University Stadium to face Ethiopian Coffee SC (Bunna) in Round 7 of the Ethiopian Premier League.',
+    summary: 'Ethiopian Coffee SC 1 - 1 Halaba Ketema (November 27, 2026). Shimekt Gugsa equalized from the penalty spot in the 55th minute to earn a vital away point at Addis Ababa Stadium.',
   },
   // Round 8 (Upcoming - Dec 05, 2026)
   {
@@ -244,7 +249,7 @@ export const initialMatches: Match[] = [
     competitionName: 'Ethiopian Premier League 2026/27 - Round 8',
     date: '2026-12-05',
     kickoffTime: '15:00',
-    venue: 'Abebe Bikila Stadium, Addis Ababa',
+    venue: 'Addis Ababa Stadium',
     homeTeam: {
       id: 'insurance',
       name: 'Ethiopian Medhin (Insurance)',
@@ -336,7 +341,7 @@ export const initialMatches: Match[] = [
     competitionName: 'Ethiopian Premier League 2026/27 - Round 12',
     date: '2027-01-02',
     kickoffTime: '15:00',
-    venue: 'Hawassa Stadium',
+    venue: 'Hawassa University Stadium',
     homeTeam: {
       id: 'sidama',
       name: 'Sidama Coffee SC',
@@ -428,7 +433,7 @@ export const initialMatches: Match[] = [
     competitionName: 'Ethiopian Premier League 2026/27 - Round 16',
     date: '2027-01-30',
     kickoffTime: '15:00',
-    venue: 'Hawassa Stadium',
+    venue: 'Hawassa University Stadium',
     homeTeam: {
       id: 'negelle',
       name: 'Negelle Arsi FC',
@@ -569,6 +574,22 @@ export const initialStandings: StandingTeam[] = [
   },
   {
     position: 7,
+    teamId: 'halaba',
+    teamName: 'Halaba Ketema (በርበሬዎቹ)',
+    played: 7,
+    won: 2,
+    drawn: 3,
+    lost: 2,
+    goalsFor: 6,
+    goalsAgainst: 11,
+    goalDifference: -5,
+    points: 9,
+    form: ['D', 'L', 'W', 'L', 'D'],
+    isHalaba: true,
+    badgeUrl: clubLogo,
+  },
+  {
+    position: 8,
     teamId: 'wolaitta',
     teamName: 'Wolaitta Dicha (Welayta Dicha)',
     played: 6,
@@ -584,7 +605,7 @@ export const initialStandings: StandingTeam[] = [
     badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/zveh4e1615830076.png',
   },
   {
-    position: 8,
+    position: 9,
     teamId: 'shaggar',
     teamName: 'Shaggar City FC (Sheger Ketema)',
     played: 6,
@@ -600,23 +621,23 @@ export const initialStandings: StandingTeam[] = [
     badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/shaggar_city_epl.png',
   },
   {
-    position: 9,
-    teamId: 'halaba',
-    teamName: 'Halaba Ketema (በርበሬዎቹ)',
-    played: 6,
+    position: 10,
+    teamId: 'bunna',
+    teamName: 'Ethiopian Coffee SC (Bunna)',
+    played: 7,
     won: 2,
     drawn: 2,
-    lost: 2,
+    lost: 3,
     goalsFor: 5,
-    goalsAgainst: 10,
-    goalDifference: -5,
+    goalsAgainst: 8,
+    goalDifference: -3,
     points: 8,
-    form: ['W', 'D', 'L', 'W', 'L'],
-    isHalaba: true,
-    badgeUrl: clubLogo,
+    form: ['L', 'L', 'D', 'W', 'D'],
+    isHalaba: false,
+    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/welkj51790265316.png',
   },
   {
-    position: 10,
+    position: 11,
     teamId: 'insurance',
     teamName: 'Ethiopian Medhin (Insurance)',
     played: 5,
@@ -630,22 +651,6 @@ export const initialStandings: StandingTeam[] = [
     form: ['W', 'D', 'L', 'W', 'L'],
     isHalaba: false,
     badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/oboroa1776295149.png',
-  },
-  {
-    position: 11,
-    teamId: 'bunna',
-    teamName: 'Ethiopian Coffee SC (Bunna)',
-    played: 6,
-    won: 2,
-    drawn: 1,
-    lost: 3,
-    goalsFor: 4,
-    goalsAgainst: 7,
-    goalDifference: -3,
-    points: 7,
-    form: ['W', 'L', 'L', 'D', 'W'],
-    isHalaba: false,
-    badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/welkj51790265316.png',
   },
   {
     position: 12,

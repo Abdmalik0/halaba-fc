@@ -5,6 +5,8 @@
  * Strictly filters and delivers ONLY fixtures and results involving Halaba City FC.
  */
 
+import { parseSportsDbMatchStatus, resolveAuthoritativeEplVenue } from '../../../cf-lib/sportsdb';
+
 interface TeamInfo {
   id: string;
   name: string;
@@ -24,11 +26,14 @@ interface MatchFixture {
   status: 'UPCOMING' | 'LIVE' | 'FINISHED';
   score?: { home: number; away: number };
   halftimeScore?: { home: number; away: number };
+  liveMinute?: number;
+  livePeriod?: string;
+  scorers?: { player: string; minute: number; team: 'home' | 'away' }[];
   round?: string;
   summary?: string;
 }
 
-// In-isolate cache with 3-minute TTL
+// In-isolate cache (3-minute default TTL, 30-second TTL while a match is LIVE)
 let cachedHalabaFixtures: MatchFixture[] | null = null;
 let lastFixturesSyncTime = 0;
 
@@ -36,13 +41,14 @@ export async function onRequestGet(): Promise<Response> {
   const jsonHeaders = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
-    'Cache-Control': 'public, max-age=180, s-maxage=180',
+    'Cache-Control': 'public, max-age=60, s-maxage=60',
   };
 
   try {
     const now = Date.now();
-    // Serve in-memory cache if fresh (within 3 minutes)
-    if (cachedHalabaFixtures && cachedHalabaFixtures.length > 0 && now - lastFixturesSyncTime < 180000) {
+    const hasLiveCached = Boolean(cachedHalabaFixtures?.some((m) => m.status === 'LIVE'));
+    const cacheTtlMs = hasLiveCached ? 30000 : 180000;
+    if (cachedHalabaFixtures && cachedHalabaFixtures.length > 0 && now - lastFixturesSyncTime < cacheTtlMs) {
       return new Response(
         JSON.stringify({
           success: true,
@@ -152,14 +158,14 @@ export async function onRequestGet(): Promise<Response> {
         competitionName: 'Ethiopian Premier League',
         date: '2026-10-09',
         kickoffTime: '15:00',
-        venue: 'Hawassa University Stadium',
+        venue: 'Halaba Stadium, Halaba Kulito',
         homeTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
         awayTeam: { id: 'welwalo', name: 'Welwalo Adigrat University', isHalaba: false },
         status: 'FINISHED',
         score: { home: 1, away: 1 },
         halftimeScore: { home: 1, away: 0 },
         round: 'Round 1',
-        summary: 'Round 1 opener: Halaba Ketema earned their first Ethiopian Premier League point in a hard-fought 1-1 draw with Welwalo Adigrat University.',
+        summary: 'Round 1 opener: Halaba Ketema earned their first Ethiopian Premier League point in a hard-fought 1-1 draw with Welwalo Adigrat University at Halaba Stadium.',
       },
       {
         id: 'm-epl-rd2',
@@ -167,14 +173,14 @@ export async function onRequestGet(): Promise<Response> {
         competitionName: 'Ethiopian Premier League',
         date: '2026-10-16',
         kickoffTime: '15:00',
-        venue: 'Hawassa University Stadium',
+        venue: 'Halaba Stadium, Halaba Kulito',
         homeTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
         awayTeam: { id: 'bahirdar', name: 'Bahir Dar Kenema', isHalaba: false },
         status: 'FINISHED',
         score: { home: 1, away: 0 },
         halftimeScore: { home: 0, away: 0 },
         round: 'Round 2',
-        summary: 'Historic Round 2 triumph: Halaba Ketema defeated Bahir Dar Kenema 1-0 to capture their first ever victory in the Ethiopian Premier League.',
+        summary: 'Historic Round 2 triumph: Halaba Ketema defeated Bahir Dar Kenema 1-0 at Halaba Stadium to capture their first ever victory in the Ethiopian Premier League.',
       },
       {
         id: 'm-epl-rd3',
@@ -182,14 +188,14 @@ export async function onRequestGet(): Promise<Response> {
         competitionName: 'Ethiopian Premier League',
         date: '2026-10-20',
         kickoffTime: '15:00',
-        venue: 'Hawassa University Stadium',
+        venue: 'Halaba Stadium, Halaba Kulito',
         homeTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
         awayTeam: { id: 'fasil', name: 'Fasil Kenema', isHalaba: false },
         status: 'FINISHED',
         score: { home: 1, away: 1 },
         halftimeScore: { home: 1, away: 0 },
         round: 'Round 3',
-        summary: 'Round 3: Halaba Ketema maintained their undefeated home record in an electric 1-1 thriller against powerhouse Fasil Kenema.',
+        summary: 'Round 3: Halaba Ketema maintained their undefeated home record at Halaba Stadium in an electric 1-1 thriller against Fasil Kenema.',
       },
       {
         id: 'm-epl-rd4',
@@ -203,7 +209,7 @@ export async function onRequestGet(): Promise<Response> {
         status: 'FINISHED',
         score: { home: 6, away: 0 },
         round: 'Round 4',
-        summary: 'Round 4 away trip against Wolaitta Dicha at Adama Science and Technology Stadium.',
+        summary: 'Round 4 away trip against Wolaitta Dicha.',
       },
       {
         id: 'm-epl-rd5',
@@ -211,13 +217,13 @@ export async function onRequestGet(): Promise<Response> {
         competitionName: 'Ethiopian Premier League',
         date: '2026-10-30',
         kickoffTime: '15:00',
-        venue: 'Hawassa University Stadium',
+        venue: 'Halaba Stadium, Halaba Kulito',
         homeTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
         awayTeam: { id: 'hosaena', name: 'Hadiya Hosaena', isHalaba: false },
         status: 'FINISHED',
         score: { home: 2, away: 1 },
         round: 'Round 5',
-        summary: 'Round 5 victory: The Berberewochu mounted a heroic performance to secure a 2-1 win over Hadiya Hosaena.',
+        summary: 'Round 5 victory: The Berberewochu secured a 2-1 win over Hadiya Hosaena at Halaba Stadium.',
       },
       {
         id: 'm-epl-rd6',
@@ -225,13 +231,13 @@ export async function onRequestGet(): Promise<Response> {
         competitionName: 'Ethiopian Premier League',
         date: '2026-11-22',
         kickoffTime: '15:30',
-        venue: 'Adama Science and Technology University Stadium',
+        venue: 'Addis Ababa Stadium',
         homeTeam: { id: 'electric', name: 'Ethio Electric', isHalaba: false },
         awayTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
         status: 'FINISHED',
         score: { home: 1, away: 0 },
         round: 'Round 6',
-        summary: 'Ethio Electric 1 - 0 Halaba Ketema (November 22, 2026). Tightly contested Round 6 clash at Adama Science and Technology University Stadium.',
+        summary: 'Ethio Electric 1 - 0 Halaba Ketema (November 22, 2026). Tightly contested Round 6 clash at Addis Ababa Stadium.',
       },
       {
         id: 'm-epl-rd7',
@@ -239,12 +245,17 @@ export async function onRequestGet(): Promise<Response> {
         competitionName: 'Ethiopian Premier League',
         date: '2026-11-27',
         kickoffTime: '15:30',
-        venue: 'Hawassa University Stadium',
+        venue: 'Addis Ababa Stadium',
         homeTeam: { id: 'bunna', name: 'Ethiopian Coffee SC', isHalaba: false },
         awayTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
-        status: 'UPCOMING',
+        status: 'FINISHED',
+        score: { home: 1, away: 1 },
+        scorers: [
+          { player: 'Taiba Mbonyumwami', minute: 49, team: 'home' },
+          { player: 'Shimekt Gugsa', minute: 55, team: 'away' },
+        ],
         round: 'Round 7',
-        summary: 'Round 7: Halaba Ketema travel to Hawassa University Stadium to face Ethiopian Coffee SC (Bunna).',
+        summary: 'Ethiopian Coffee SC 1 - 1 Halaba Ketema (November 27, 2026). Shimekt Gugsa converted a 55th-minute penalty to earn a valuable point at Addis Ababa Stadium.',
       },
       {
         id: 'm-epl-rd8',
@@ -252,7 +263,7 @@ export async function onRequestGet(): Promise<Response> {
         competitionName: 'Ethiopian Premier League',
         date: '2026-12-05',
         kickoffTime: '15:00',
-        venue: 'Abebe Bikila Stadium, Addis Ababa',
+        venue: 'Addis Ababa Stadium',
         homeTeam: { id: 'insurance', name: 'Ethiopian Medhin (Insurance)', isHalaba: false },
         awayTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
         status: 'UPCOMING',
@@ -300,7 +311,7 @@ export async function onRequestGet(): Promise<Response> {
         competitionName: 'Ethiopian Premier League',
         date: '2027-01-02',
         kickoffTime: '15:00',
-        venue: 'Hawassa Stadium',
+        venue: 'Hawassa University Stadium',
         homeTeam: { id: 'sidama', name: 'Sidama Coffee SC', isHalaba: false },
         awayTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
         status: 'UPCOMING',
@@ -348,7 +359,7 @@ export async function onRequestGet(): Promise<Response> {
         competitionName: 'Ethiopian Premier League',
         date: '2027-01-30',
         kickoffTime: '15:00',
-        venue: 'Hawassa Stadium',
+        venue: 'Hawassa University Stadium',
         homeTeam: { id: 'negelle', name: 'Negelle Arsi FC', isHalaba: false },
         awayTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
         status: 'UPCOMING',
@@ -373,12 +384,12 @@ export async function onRequestGet(): Promise<Response> {
 
     // Fetch live data from TheSportsDB safely (handles rate limits & fetches recent completed + upcoming Halaba rounds)
     try {
-      const [pastLeagueRes, nextRes, lastRes, round6Res, round7Res] = await Promise.allSettled([
+      const [pastLeagueRes, nextRes, lastRes, round7Res, round8Res] = await Promise.allSettled([
         fetch('https://www.thesportsdb.com/api/v1/json/123/eventspastleague.php?id=4959').then(parseSafeJson),
         fetch('https://www.thesportsdb.com/api/v1/json/123/eventsnext.php?id=' + HALABA_SPORTSDB_ID).then(parseSafeJson),
         fetch('https://www.thesportsdb.com/api/v1/json/123/eventslast.php?id=' + HALABA_SPORTSDB_ID).then(parseSafeJson),
-        fetch('https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4959&r=6&s=2026-2027').then(parseSafeJson),
         fetch('https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4959&r=7&s=2026-2027').then(parseSafeJson),
+        fetch('https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4959&r=8&s=2026-2027').then(parseSafeJson),
       ]);
 
       const rawEvents: any[] = [];
@@ -391,11 +402,11 @@ export async function onRequestGet(): Promise<Response> {
       if (lastRes.status === 'fulfilled' && Array.isArray(lastRes.value?.results)) {
         rawEvents.push(...lastRes.value.results);
       }
-      if (round6Res.status === 'fulfilled' && Array.isArray(round6Res.value?.events)) {
-        rawEvents.push(...round6Res.value.events);
-      }
       if (round7Res.status === 'fulfilled' && Array.isArray(round7Res.value?.events)) {
         rawEvents.push(...round7Res.value.events);
+      }
+      if (round8Res.status === 'fulfilled' && Array.isArray(round8Res.value?.events)) {
+        rawEvents.push(...round8Res.value.events);
       }
 
       // Deduplicate by idEvent before merging
@@ -432,7 +443,7 @@ export async function onRequestGet(): Promise<Response> {
           competitionName: 'Ethiopian Premier League',
           date: '',
           kickoffTime: '15:00',
-          venue: 'Hawassa University Stadium',
+          venue: 'Halaba Stadium, Halaba Kulito',
           homeTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
           awayTeam: { id: 'away', name: 'Away Team', isHalaba: false },
           status: 'UPCOMING' as const,
@@ -441,15 +452,8 @@ export async function onRequestGet(): Promise<Response> {
         const homeTeam = normalizeTeam(e.strHomeTeam, e.idHomeTeam);
         const awayTeam = normalizeTeam(e.strAwayTeam, e.idAwayTeam);
 
-        const isFinished =
-          e.strStatus === 'FT' ||
-          e.strStatus === 'AOT' ||
-          (e.intHomeScore !== null && e.intHomeScore !== '' && e.intAwayScore !== null && e.intAwayScore !== '');
-        const isLive = e.strStatus === '1H' || e.strStatus === '2H' || e.strStatus === 'HT';
-
-        const homeScore = isFinished || isLive ? parseInt(e.intHomeScore, 10) : undefined;
-        const awayScore = isFinished || isLive ? parseInt(e.intAwayScore, 10) : undefined;
-        const nextStatus: 'FINISHED' | 'LIVE' | 'UPCOMING' = isFinished ? 'FINISHED' : isLive ? 'LIVE' : 'UPCOMING';
+        const parsedState = parseSportsDbMatchStatus(e, now);
+        const authoritativeVenue = resolveAuthoritativeEplVenue(homeTeam.id, e.strVenue, existing.venue);
 
         fixturesMap.set(matchKey, {
           ...existing,
@@ -458,7 +462,7 @@ export async function onRequestGet(): Promise<Response> {
           competitionName: e.strLeague || 'Ethiopian Premier League',
           date: e.dateEvent || existing.date,
           kickoffTime: utcTimeToEat(e.strTime, existing.kickoffTime || '15:00'),
-          venue: e.strVenue || existing.venue || 'Hawassa University Stadium',
+          venue: authoritativeVenue,
           homeTeam: {
             ...homeTeam,
             logo: e.strHomeTeamBadge ? String(e.strHomeTeamBadge).replace('/tiny', '') : existing.homeTeam?.logo,
@@ -467,11 +471,10 @@ export async function onRequestGet(): Promise<Response> {
             ...awayTeam,
             logo: e.strAwayTeamBadge ? String(e.strAwayTeamBadge).replace('/tiny', '') : existing.awayTeam?.logo,
           },
-          status: nextStatus,
-          score:
-            (isFinished || isLive) && homeScore !== undefined && awayScore !== undefined && !isNaN(homeScore) && !isNaN(awayScore)
-              ? { home: homeScore, away: awayScore }
-              : undefined,
+          status: parsedState.status,
+          score: parsedState.score,
+          liveMinute: parsedState.liveMinute,
+          livePeriod: parsedState.livePeriod,
           round: e.intRound ? `Round ${e.intRound}` : existing.round,
           summary:
             existing.summary ||

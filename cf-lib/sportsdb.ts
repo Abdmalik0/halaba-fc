@@ -28,7 +28,7 @@ export interface FetchSportsDbStandingsResult {
   error?: string;
 }
 
-export const BASE_EPL_CUTOFF_DATE = '2026-11-25';
+export const BASE_EPL_CUTOFF_DATE = '2026-11-27';
 
 export const BASE_EPL_STANDINGS: Omit<StandingTeamRecord, 'position'>[] = [
   { teamId: 'negelle', teamName: 'Negele Arsi FC', played: 6, won: 4, drawn: 2, lost: 0, goalsFor: 8, goalsAgainst: 2, goalDifference: 6, points: 14, form: ['D', 'W', 'W', 'W', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/3vj7z31760913824.png' },
@@ -37,11 +37,11 @@ export const BASE_EPL_STANDINGS: Omit<StandingTeamRecord, 'position'>[] = [
   { teamId: 'cbe_sa', teamName: 'Ethiopia Nigd Bank (CBE SA)', played: 6, won: 3, drawn: 2, lost: 1, goalsFor: 5, goalsAgainst: 4, goalDifference: 1, points: 11, form: ['W', 'D', 'D', 'L', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/fn7am21727368578.png' },
   { teamId: 'electric', teamName: 'Ethio Electric', played: 6, won: 3, drawn: 1, lost: 2, goalsFor: 3, goalsAgainst: 2, goalDifference: 1, points: 10, form: ['D', 'W', 'W', 'L', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/nywmq91790265280.png' },
   { teamId: 'saintgeorge', teamName: 'Saint George SC (Kidus Giorgis)', played: 6, won: 2, drawn: 3, lost: 1, goalsFor: 8, goalsAgainst: 6, goalDifference: 2, points: 9, form: ['L', 'D', 'D', 'W', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/r5orqa1615830067.png' },
+  { teamId: 'halaba', teamName: 'Halaba Ketema (በርበሬዎቹ)', played: 7, won: 2, drawn: 3, lost: 2, goalsFor: 6, goalsAgainst: 11, goalDifference: -5, points: 9, form: ['D', 'L', 'W', 'L', 'D'], isHalaba: true, badgeUrl: '/images/halaba-city-fc-logo.png' },
   { teamId: 'wolaitta', teamName: 'Wolaitta Dicha (Welayta Dicha)', played: 6, won: 2, drawn: 2, lost: 2, goalsFor: 11, goalsAgainst: 6, goalDifference: 5, points: 8, form: ['D', 'L', 'W', 'W', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/zveh4e1615830076.png' },
   { teamId: 'shaggar', teamName: 'Shaggar City FC (Sheger Ketema)', played: 6, won: 2, drawn: 2, lost: 2, goalsFor: 6, goalsAgainst: 6, goalDifference: 0, points: 8, form: ['D', 'L', 'D', 'L', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/shaggar_city_epl.png' },
-  { teamId: 'halaba', teamName: 'Halaba Ketema (በርበሬዎቹ)', played: 6, won: 2, drawn: 2, lost: 2, goalsFor: 5, goalsAgainst: 10, goalDifference: -5, points: 8, form: ['W', 'D', 'L', 'W', 'L'], isHalaba: true, badgeUrl: '/images/halaba-city-fc-logo.png' },
+  { teamId: 'bunna', teamName: 'Ethiopian Coffee SC (Bunna)', played: 7, won: 2, drawn: 2, lost: 3, goalsFor: 5, goalsAgainst: 8, goalDifference: -3, points: 8, form: ['L', 'L', 'D', 'W', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/welkj51790265316.png' },
   { teamId: 'insurance', teamName: 'Ethiopian Medhin (Insurance)', played: 5, won: 2, drawn: 1, lost: 2, goalsFor: 8, goalsAgainst: 8, goalDifference: 0, points: 7, form: ['W', 'D', 'L', 'W', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/oboroa1776295149.png' },
-  { teamId: 'bunna', teamName: 'Ethiopian Coffee SC (Bunna)', played: 6, won: 2, drawn: 1, lost: 3, goalsFor: 4, goalsAgainst: 7, goalDifference: -3, points: 7, form: ['W', 'L', 'L', 'D', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/welkj51790265316.png' },
   { teamId: 'adama', teamName: 'Adama Kenema SC', played: 6, won: 1, drawn: 3, lost: 2, goalsFor: 3, goalsAgainst: 4, goalDifference: -1, points: 6, form: ['D', 'D', 'L', 'D', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/4yijrk1615830040.png' },
   { teamId: 'hawassa', teamName: 'Hawassa Kenema SC', played: 5, won: 1, drawn: 2, lost: 2, goalsFor: 5, goalsAgainst: 6, goalDifference: -1, points: 5, form: ['L', 'D', 'D', 'W', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/hawassa_city_sc.png' },
   { teamId: 'sidama', teamName: 'Sidama Coffee SC (Sidama Bunna)', played: 3, won: 1, drawn: 1, lost: 1, goalsFor: 2, goalsAgainst: 2, goalDifference: 0, points: 4, form: ['L', 'D', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/t0057h1615830065.png' },
@@ -147,6 +147,208 @@ async function parseSafeJson(response: Response): Promise<any | null> {
   }
 }
 
+export interface ParsedSportsDbMatchState {
+  status: 'UPCOMING' | 'LIVE' | 'FINISHED';
+  score?: { home: number; away: number };
+  liveMinute?: number;
+  livePeriod?: string;
+}
+
+const EXPLICIT_FINISHED_STATUSES = new Set([
+  'FT',
+  'AOT',
+  'AET',
+  'AP',
+  'FINISHED',
+  'MATCH FINISHED',
+  'AWARDED',
+  'AWD',
+]);
+
+const EXPLICIT_NOT_STARTED_STATUSES = new Set([
+  'NS',
+  'NOT STARTED',
+  'TBD',
+  'PST',
+  'POSTPONED',
+  'CANC',
+  'CANCELLED',
+  'ABD',
+  'ABANDONED',
+  'SUSP',
+  'SUSPENDED',
+]);
+
+const EXPLICIT_LIVE_STATUSES = new Set([
+  '1H',
+  '2H',
+  'HT',
+  'ET',
+  'BT',
+  'PT',
+  'LIVE',
+  'INPLAY',
+  'IN PLAY',
+  'INT',
+  'PAUSED',
+  'PEN',
+  'EXTRA TIME',
+  'HALFTIME',
+  'HALF TIME',
+]);
+
+function parseKickoffUtcMs(dateEvent?: string, strTime?: string): number | null {
+  if (!dateEvent || typeof dateEvent !== 'string') return null;
+  const cleanDate = dateEvent.trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(cleanDate)) return null;
+  const cleanTime =
+    strTime && /^\d{2}:\d{2}/.test(strTime.trim())
+      ? `${strTime.trim().slice(0, 5)}:00`
+      : '12:00:00';
+  const parsed = Date.parse(`${cleanDate}T${cleanTime}Z`);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function parseSportsDbMatchStatus(
+  ev: {
+    strStatus?: string | null;
+    strProgress?: string | null;
+    intHomeScore?: string | number | null;
+    intAwayScore?: string | number | null;
+    dateEvent?: string | null;
+    strTime?: string | null;
+  },
+  nowMs: number = Date.now()
+): ParsedSportsDbMatchState {
+  const rawStatus = String(ev?.strStatus || '').trim().toUpperCase();
+  const rawProgress = String(ev?.strProgress || '').trim().toUpperCase();
+
+  const hStr = ev?.intHomeScore === null || ev?.intHomeScore === undefined ? '' : String(ev.intHomeScore).trim();
+  const aStr = ev?.intAwayScore === null || ev?.intAwayScore === undefined ? '' : String(ev.intAwayScore).trim();
+  const homeScore = hStr !== '' ? Number.parseInt(hStr, 10) : Number.NaN;
+  const awayScore = aStr !== '' ? Number.parseInt(aStr, 10) : Number.NaN;
+  const hasValidScores = Number.isFinite(homeScore) && Number.isFinite(awayScore);
+
+  const isMinuteString = (val: string) => /^\d{1,3}(\+\d{1,2})?'?$/.test(val);
+  const extractMinute = (val: string): number | undefined => {
+    const m = val.match(/^(\d{1,3})/);
+    if (!m) return undefined;
+    const parsed = Number.parseInt(m[1], 10);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
+
+  const explicitLive =
+    EXPLICIT_LIVE_STATUSES.has(rawStatus) ||
+    isMinuteString(rawStatus) ||
+    (!EXPLICIT_FINISHED_STATUSES.has(rawStatus) &&
+      !EXPLICIT_NOT_STARTED_STATUSES.has(rawStatus) &&
+      (EXPLICIT_LIVE_STATUSES.has(rawProgress) || isMinuteString(rawProgress)));
+
+  if (explicitLive) {
+    let livePeriod: string | undefined;
+    if (rawStatus === 'HT' || rawStatus === 'HALFTIME' || rawStatus === 'HALF TIME' || rawProgress === 'HT') {
+      livePeriod = 'HT';
+    } else if (rawStatus === '1H' || rawProgress === '1H') {
+      livePeriod = '1H';
+    } else if (rawStatus === '2H' || rawProgress === '2H') {
+      livePeriod = '2H';
+    } else if (rawStatus === 'ET' || rawStatus === 'EXTRA TIME' || rawProgress === 'ET') {
+      livePeriod = 'ET';
+    } else if (rawStatus === 'PEN' || rawProgress === 'PEN') {
+      livePeriod = 'PEN';
+    } else {
+      livePeriod = 'LIVE';
+    }
+
+    const liveMinute = extractMinute(rawProgress) ?? extractMinute(rawStatus);
+    return {
+      status: 'LIVE',
+      score: hasValidScores ? { home: homeScore, away: awayScore } : { home: 0, away: 0 },
+      ...(liveMinute !== undefined ? { liveMinute } : {}),
+      ...(livePeriod ? { livePeriod } : {}),
+    };
+  }
+
+  if (EXPLICIT_FINISHED_STATUSES.has(rawStatus)) {
+    return {
+      status: 'FINISHED',
+      score: hasValidScores ? { home: homeScore, away: awayScore } : undefined,
+    };
+  }
+
+  if (!hasValidScores) {
+    return { status: 'UPCOMING' };
+  }
+
+  const kickoffMs = parseKickoffUtcMs(ev?.dateEvent || undefined, ev?.strTime || undefined);
+  const LIVE_WINDOW_MS = 135 * 60 * 1000; // 2h 15m from scheduled kickoff
+
+  if (kickoffMs !== null) {
+    if (nowMs < kickoffMs) {
+      return { status: 'UPCOMING' };
+    }
+    if (nowMs < kickoffMs + LIVE_WINDOW_MS) {
+      const elapsedMins = Math.max(1, Math.min(90, Math.floor((nowMs - kickoffMs) / 60000)));
+      return {
+        status: 'LIVE',
+        score: { home: homeScore, away: awayScore },
+        liveMinute: elapsedMins,
+        livePeriod: elapsedMins <= 45 ? '1H' : elapsedMins <= 60 ? 'HT' : '2H',
+      };
+    }
+    return {
+      status: 'FINISHED',
+      score: { home: homeScore, away: awayScore },
+    };
+  }
+
+  const todayUtc = new Date(nowMs).toISOString().slice(0, 10);
+  if (ev?.dateEvent && String(ev.dateEvent).slice(0, 10) >= todayUtc) {
+    return {
+      status: 'LIVE',
+      score: { home: homeScore, away: awayScore },
+      livePeriod: 'LIVE',
+    };
+  }
+
+  return {
+    status: 'FINISHED',
+    score: { home: homeScore, away: awayScore },
+  };
+}
+
+const ADDIS_ABABA_CLUBS = new Set([
+  'bunna',
+  'electric',
+  'saintgeorge',
+  'defence',
+  'cbe_sa',
+  'insurance',
+]);
+
+export function resolveAuthoritativeEplVenue(
+  homeTeamId: string,
+  sportsDbVenue?: string | null,
+  existingVenue?: string | null
+): string {
+  if (homeTeamId === 'halaba') {
+    return 'Halaba Stadium, Halaba Kulito';
+  }
+  if (ADDIS_ABABA_CLUBS.has(homeTeamId)) {
+    return 'Addis Ababa Stadium';
+  }
+  if (homeTeamId === 'hosaena') {
+    return existingVenue || 'Abiy Hersamo Stadium, Hossana';
+  }
+  if (homeTeamId === 'hawassa' || homeTeamId === 'sidama') {
+    return 'Hawassa University Stadium';
+  }
+  if (homeTeamId === 'gamochencha') {
+    return existingVenue || 'Arba Minch University Stadium';
+  }
+  return existingVenue || sportsDbVenue || 'Hawassa University Stadium';
+}
+
 export async function fetchOfficialSportsDbStandings(options?: {
   season?: string;
   requireLiveSuccess?: boolean;
@@ -241,13 +443,10 @@ export async function fetchOfficialSportsDbStandings(options?: {
 
       const newlyCompleted = Array.from(seenEvents.values())
         .filter((ev: any) => {
-          const isFt =
-            ev.strStatus === 'FT' ||
-            ev.strStatus === 'AOT' ||
-            (ev.intHomeScore !== null && ev.intHomeScore !== '' && ev.intAwayScore !== null && ev.intAwayScore !== '');
+          const parsedState = parseSportsDbMatchStatus(ev);
           const eventDate = String(ev.dateEvent || '');
           const evSeason = String(ev.strSeason || season);
-          return isFt && evSeason === season && eventDate > BASE_EPL_CUTOFF_DATE;
+          return parsedState.status === 'FINISHED' && evSeason === season && eventDate > BASE_EPL_CUTOFF_DATE;
         })
         .sort((a: any, b: any) => String(a.dateEvent || '').localeCompare(String(b.dateEvent || '')));
 

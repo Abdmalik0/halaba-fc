@@ -189,69 +189,97 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 3. Match Center Preview (Next Match & Latest Result) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Next Match Card */}
-          {nextMatch && (
-            <div className="rounded-2xl bg-gradient-to-br from-neutral-900 to-neutral-950 border border-red-900/40 p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group">
-              <div 
-                className="absolute top-0 right-0 w-32 h-32 pointer-events-none"
-                style={{
-                  background: 'radial-gradient(circle at top right, rgba(220, 38, 38, 0.15), transparent 70%)'
-                }}
-              />
-              
-              <div>
-                <div className="flex items-center justify-between pb-4 border-b border-neutral-800">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <h3 className="font-sports font-bold text-lg text-white uppercase tracking-wider flex items-center gap-2">
-                      <span>{t.nextHalabaGame}</span>
-                    </h3>
+          {/* Next / Live Match Card */}
+          {nextMatch && (() => {
+            const isNextMatchLive = nextMatch.status === 'LIVE';
+            return (
+              <div className={`rounded-2xl bg-gradient-to-br from-neutral-900 to-neutral-950 border p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group ${
+                isNextMatchLive ? 'border-red-500/70' : 'border-red-900/40'
+              }`}>
+                <div
+                  className="absolute top-0 right-0 w-32 h-32 pointer-events-none"
+                  style={{
+                    background: 'radial-gradient(circle at top right, rgba(220, 38, 38, 0.15), transparent 70%)'
+                  }}
+                />
+
+                <div>
+                  <div className="flex items-center justify-between pb-4 border-b border-neutral-800">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${isNextMatchLive ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                      <h3 className="font-sports font-bold text-lg text-white uppercase tracking-wider flex items-center gap-2">
+                        <span>{isNextMatchLive ? t.liveNow : t.nextHalabaGame}</span>
+                      </h3>
+                    </div>
+                    {isNextMatchLive ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-400 uppercase bg-red-950/80 border border-red-700/70 px-2.5 py-0.5 rounded font-sports animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                        {nextMatch.liveMinute ? `${nextMatch.liveMinute}'` : nextMatch.livePeriod || t.liveNow}
+                      </span>
+                    ) : (
+                      <span className="text-xs font-bold text-amber-400 uppercase bg-amber-950/60 border border-amber-800/60 px-2.5 py-0.5 rounded font-sports">
+                        {language === 'am' ? 'የኢትዮጵያ ፕሪሚየር ሊግ' : nextMatch.competitionName.split('-')[0]}
+                      </span>
+                    )}
                   </div>
-                  <span className="text-xs font-bold text-amber-400 uppercase bg-amber-950/60 border border-amber-800/60 px-2.5 py-0.5 rounded font-sports">
-                    {language === 'am' ? 'የኢትዮጵያ ፕሪሚየር ሊግ' : nextMatch.competitionName.split('-')[0]}
-                  </span>
+
+                  {/* Teams Display (Flexible 3-column layout) */}
+                  <div className="py-5 sm:py-6 flex items-center justify-between gap-2 w-full min-w-0">
+                    <div className="flex-1 min-w-0 flex flex-col items-center text-center">
+                      <EthiopianClubLogo teamId={nextMatch.homeTeam.id} teamName={homeNextTeam} size={56} priority className="shrink-0 flex-shrink-0" />
+                      <span className="font-sports font-bold text-sm sm:text-base text-white mt-2 truncate max-w-full block" title={homeNextTeam}>
+                        {homeNextShort}
+                      </span>
+                      <span className="text-xxs text-neutral-400 font-semibold uppercase">{t.home}</span>
+                    </div>
+
+                    <div className="shrink-0 flex-shrink-0 flex flex-col items-center px-1.5 sm:px-3">
+                      {isNextMatchLive ? (
+                        <>
+                          <div className="font-sports font-black text-2xl sm:text-3xl md:text-4xl text-amber-400 whitespace-nowrap bg-neutral-950 px-3.5 sm:px-5 py-1 sm:py-1.5 rounded-xl border border-red-700/70 tracking-wider flex items-center justify-center gap-2 select-none shadow-md">
+                            <span>{nextMatch.score?.home ?? 0}</span>
+                            <span className="text-neutral-500 font-normal text-xl sm:text-2xl">-</span>
+                            <span>{nextMatch.score?.away ?? 0}</span>
+                          </div>
+                          <span className="text-xxs text-red-400 mt-1 font-mono font-bold uppercase whitespace-nowrap">
+                            {nextMatch.liveMinute
+                              ? `${nextMatch.liveMinute}' • ${nextMatch.livePeriod || t.liveNow}`
+                              : nextMatch.livePeriod || t.liveNow}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-sports font-black text-xl sm:text-2xl text-neutral-500">{t.vs}</span>
+                          <span className="text-xxs font-mono font-bold text-amber-400 mt-1 bg-neutral-900 px-2 py-0.5 rounded border border-neutral-800 whitespace-nowrap">
+                            {nextMatch.kickoffTime} {t.eatTimezone}
+                          </span>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0 flex flex-col items-center text-center">
+                      <EthiopianClubLogo teamId={nextMatch.awayTeam.id} teamName={awayNextTeam} size={56} priority className="shrink-0 flex-shrink-0" />
+                      <span className="font-sports font-bold text-sm sm:text-base text-white mt-2 truncate max-w-full block" title={awayNextTeam}>
+                        {awayNextShort}
+                      </span>
+                      <span className="text-xxs text-neutral-400 font-semibold uppercase">{t.away}</span>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-neutral-400 space-y-1 bg-neutral-950/60 p-3 rounded-xl border border-neutral-800/80">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-3.5 h-3.5 text-neutral-500" />
+                      <span className="text-neutral-300 font-medium">{nextMatch.date}</span>
+                      <span>•</span>
+                      <Clock className="w-3.5 h-3.5 text-neutral-500" />
+                      <span>{nextMatch.kickoffTime}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{nextVenue}</span>
+                    </div>
+                  </div>
                 </div>
-
-                {/* Teams Display (Flexible 3-column layout) */}
-                <div className="py-5 sm:py-6 flex items-center justify-between gap-2 w-full min-w-0">
-                  <div className="flex-1 min-w-0 flex flex-col items-center text-center">
-                    <EthiopianClubLogo teamId={nextMatch.homeTeam.id} teamName={homeNextTeam} size={56} priority className="shrink-0 flex-shrink-0" />
-                    <span className="font-sports font-bold text-sm sm:text-base text-white mt-2 truncate max-w-full block" title={homeNextTeam}>
-                      {homeNextShort}
-                    </span>
-                    <span className="text-xxs text-neutral-400 font-semibold uppercase">{t.home}</span>
-                  </div>
-
-                  <div className="shrink-0 flex-shrink-0 flex flex-col items-center px-1.5 sm:px-3">
-                    <span className="font-sports font-black text-xl sm:text-2xl text-neutral-500">{t.vs}</span>
-                    <span className="text-xxs font-mono font-bold text-amber-400 mt-1 bg-neutral-900 px-2 py-0.5 rounded border border-neutral-800 whitespace-nowrap">
-                      {nextMatch.kickoffTime} {t.eatTimezone}
-                    </span>
-                  </div>
-
-                  <div className="flex-1 min-w-0 flex flex-col items-center text-center">
-                    <EthiopianClubLogo teamId={nextMatch.awayTeam.id} teamName={awayNextTeam} size={56} priority className="shrink-0 flex-shrink-0" />
-                    <span className="font-sports font-bold text-sm sm:text-base text-white mt-2 truncate max-w-full block" title={awayNextTeam}>
-                      {awayNextShort}
-                    </span>
-                    <span className="text-xxs text-neutral-400 font-semibold uppercase">{t.away}</span>
-                  </div>
-                </div>
-
-                <div className="text-xs text-neutral-400 space-y-1 bg-neutral-950/60 p-3 rounded-xl border border-neutral-800/80">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-3.5 h-3.5 text-neutral-500" />
-                    <span className="text-neutral-300 font-medium">{nextMatch.date}</span>
-                    <span>•</span>
-                    <Clock className="w-3.5 h-3.5 text-neutral-500" />
-                    <span>{nextMatch.kickoffTime}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{nextVenue}</span>
-                  </div>
-                </div>
-              </div>
 
               <div className="mt-5 pt-4 border-t border-neutral-800 flex items-center justify-between">
                 <button
@@ -270,7 +298,8 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </button>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* Latest Result Card */}
           {latestResult && (

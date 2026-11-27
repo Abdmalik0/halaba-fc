@@ -172,6 +172,7 @@ export const playerTranslations: Record<string, Record<Language, string>> = {
   'Israel Shegole': { en: 'Israel Shegole', am: 'እስራኤል ሸጎሌ', om: 'Israa’eel Shagolee' },
   'Natinael Solomon': { en: 'Natinael Solomon', am: 'ናትናኤል ሰለሞን', om: 'Naatinaa’eel Solomoon' },
   'Abdulkerim Kelifa': { en: 'Abdulkerim Kelifa', am: 'አብዱልከሪም ከሊፋ', om: 'Abdulkariim Kaliifaa' },
+  'Taiba Mbonyumwami': { en: 'Taiba Mbonyumwami', am: 'ታይባ ምቦንዩምዋሚ', om: 'Taayibaa Mbonyumwaamii' },
 
   // Management Staff
   'Dr. Kassim Ahmed': { en: 'Dr. Kassim Ahmed', am: 'ዶ/ር ቃሲም አህመድ', om: 'Dr. Qaasim Ahimad' },
@@ -223,9 +224,15 @@ export const getLocalizedDepartment = (dept: string, lang: Language = 'en'): str
 
 export const venueTranslations: Record<string, Record<Language, string>> = {
   'Halaba Stadium, Halaba Kulito': { en: 'Halaba Stadium, Halaba Kulito', am: 'ሀላባ ስታዲየም፣ ሀላባ ቁሊቶ', om: 'Istaadiyeemii Halabaa, Halaba Qulitoo' },
+  'Halaba International Stadium': { en: 'Halaba Stadium, Halaba Kulito', am: 'ሀላባ ስታዲየም፣ ሀላባ ቁሊቶ', om: 'Istaadiyeemii Halabaa, Halaba Qulitoo' },
   'Halaba Stadium': { en: 'Halaba Stadium', am: 'ሀላባ ስታዲየም', om: 'Istaadiyeemii Halabaa' },
+  'Addis Ababa Stadium': { en: 'Addis Ababa Stadium', am: 'አዲስ አበባ ስታዲየም', om: 'Istaadiyeemii Finfinnee' },
+  'Adama Science and Technology University Stadium': { en: 'Adama Science & Tech Univ. Stadium', am: 'አዳማ ሳይንስና ቴክኖሎጂ ዩኒቨርሲቲ ስታዲየም', om: 'Istaadiyeemii Yuunivarsiitii ASTU Adaamaa' },
   'Wolaita Sodo Stadium, Wolaita Sodo': { en: 'Wolaita Sodo Stadium, Wolaita Sodo', am: 'ወላይታ ሶዶ ስታዲየም፣ ወላይታ ሶዶ', om: 'Istaadiyeemii Walaayittaa Soddoo' },
   'Hawassa University Stadium': { en: 'Hawassa University Stadium', am: 'ሀዋሳ ዩኒቨርሲቲ ስታዲየም', om: 'Istaadiyeemii Yuunivarsiitii Hawaasaa' },
+  'Abiy Hersamo Stadium, Hossana': { en: 'Abiy Hersamo Stadium, Hossana', am: 'አብዩ ኤርሳሞ ስታዲየም፣ ሆሳዕና', om: 'Istaadiyeemii Abiy Hersaamoo, Hosaa’inaa' },
+  'Bahir Dar International Stadium': { en: 'Bahir Dar International Stadium', am: 'ባሕር ዳር ዓለም አቀፍ ስታዲየም', om: 'Istaadiyeemii Idil-Addunyaa Baahir Daar' },
+  'Arba Minch University Stadium': { en: 'Arba Minch University Stadium', am: 'አርባ ምንጭ ዩኒቨርሲቲ ስታዲየም', om: 'Istaadiyeemii Yuunivarsiitii Arbaa Minch' },
   'Adama Stadium': { en: 'Adama Stadium', am: 'አዳማ ስታዲየም', om: 'Istaadiyeemii Adaamaa' },
   'Adama ASTU Stadium': { en: 'Adama ASTU Stadium', am: 'አዳማ አስቱ ስታዲየም', om: 'Istaadiyeemii ASTU Adaamaa' },
   'Abebe Bikila Stadium, Addis Ababa': { en: 'Abebe Bikila Stadium, Addis Ababa', am: 'አበበ ቢቂላ ስታዲየም፣ አዲስ አበባ', om: 'Istaadiyeemii Abbabaa Biqilaa, Finfinnee' },

@@ -283,7 +283,7 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
 
                   {/* Center Score / VS (Column 2: shrink-0 flex-shrink-0) */}
                   <div className="px-1.5 sm:px-4 text-center shrink-0 flex-shrink-0 flex flex-col items-center justify-center">
-                    {(isCompleted || isLive) && match.score ? (
+                    {(isCompleted || isLive) ? (
                       <div className="flex flex-col items-center">
                         <div
                           className={`font-sports font-black text-xl sm:text-2xl md:text-3xl bg-neutral-950 px-2.5 sm:px-3.5 py-1 rounded-xl border tracking-wider whitespace-nowrap shadow-md ${
@@ -292,12 +292,14 @@ export const FixturesPage: React.FC<FixturesPageProps> = ({ onOpenMatchModal }) 
                               : 'text-emerald-400 border-neutral-800'
                           }`}
                         >
-                          {match.score.home} - {match.score.away}
+                          {match.score?.home ?? 0} - {match.score?.away ?? 0}
                         </div>
                         {isLive ? (
                           <span className="text-xxs text-red-400 mt-1 font-mono font-bold flex items-center gap-1 whitespace-nowrap">
                             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-                            {match.liveMinute}' ({match.livePeriod || t.liveNow})
+                            {match.liveMinute
+                              ? `${match.liveMinute}' (${match.livePeriod || t.liveNow})`
+                              : (match.livePeriod || t.liveNow)}
                           </span>
                         ) : match.halftimeScore ? (
                           <span className="text-xxs text-neutral-500 mt-0.5 font-mono whitespace-nowrap">
