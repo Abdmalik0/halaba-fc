@@ -28,40 +28,43 @@ export interface FetchSportsDbStandingsResult {
   error?: string;
 }
 
+export const BASE_EPL_CUTOFF_DATE = '2026-11-25';
+
 export const BASE_EPL_STANDINGS: Omit<StandingTeamRecord, 'position'>[] = [
-  { teamId: 'negelle', teamName: 'Negele Arsi FC', played: 5, won: 3, drawn: 2, lost: 0, goalsFor: 7, goalsAgainst: 2, goalDifference: 5, points: 11, form: ['D', 'D', 'W', 'W', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/3vj7z31760913824.png' },
-  { teamId: 'defence', teamName: 'Mechal (Defence Force)', played: 5, won: 3, drawn: 1, lost: 1, goalsFor: 5, goalsAgainst: 2, goalDifference: 3, points: 10, form: ['W', 'L', 'W', 'W', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/o1ig4m1760893133.png' },
-  { teamId: 'wolaitta', teamName: 'Wolaitta Dicha (Welayta Dicha)', played: 5, won: 2, drawn: 2, lost: 1, goalsFor: 10, goalsAgainst: 4, goalDifference: 6, points: 8, form: ['D', 'D', 'L', 'W', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/zveh4e1615830076.png' },
-  { teamId: 'cbe_sa', teamName: 'Ethiopia Nigd Bank (CBE SA)', played: 4, won: 2, drawn: 2, lost: 0, goalsFor: 3, goalsAgainst: 1, goalDifference: 2, points: 8, form: ['W', 'W', 'D', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/fn7am21727368578.png' },
-  { teamId: 'halaba', teamName: 'Halaba Ketema (በርበሬዎቹ)', played: 5, won: 2, drawn: 2, lost: 1, goalsFor: 5, goalsAgainst: 9, goalDifference: -4, points: 8, form: ['D', 'W', 'D', 'L', 'W'], isHalaba: true, badgeUrl: '/images/halaba-city-fc-logo.png' },
-  { teamId: 'bahirdar', teamName: 'Bahir Dar Kenema', played: 4, won: 2, drawn: 1, lost: 1, goalsFor: 6, goalsAgainst: 4, goalDifference: 2, points: 7, form: ['W', 'L', 'W', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/o25wvi1790265058.png' },
-  { teamId: 'electric', teamName: 'Ethio Electric (EEPCO)', played: 5, won: 2, drawn: 1, lost: 2, goalsFor: 2, goalsAgainst: 2, goalDifference: 0, points: 7, form: ['L', 'D', 'W', 'W', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/nywmq91790265280.png' },
-  { teamId: 'saintgeorge', teamName: 'Saint George SC (Kidus Giorgis)', played: 5, won: 1, drawn: 3, lost: 1, goalsFor: 6, goalsAgainst: 6, goalDifference: 0, points: 6, form: ['D', 'L', 'D', 'D', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/9d201v1615830018.png' },
-  { teamId: 'adama', teamName: 'Adama Kenema SC', played: 5, won: 1, drawn: 3, lost: 1, goalsFor: 2, goalsAgainst: 2, goalDifference: 0, points: 6, form: ['W', 'D', 'D', 'L', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/4yijrk1615830040.png' },
-  { teamId: 'hawassa', teamName: 'Hawassa Kenema SC', played: 4, won: 1, drawn: 2, lost: 1, goalsFor: 4, goalsAgainst: 4, goalDifference: 0, points: 5, form: ['L', 'D', 'D', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/hawassa_city_sc.png' },
-  { teamId: 'shaggar', teamName: 'Shaggar City FC (Sheger Ketema)', played: 5, won: 1, drawn: 2, lost: 2, goalsFor: 4, goalsAgainst: 5, goalDifference: -1, points: 5, form: ['W', 'D', 'L', 'D', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/shaggar_city_epl.png' },
-  { teamId: 'insurance', teamName: 'Ethiopian Medhin (Insurance)', played: 3, won: 1, drawn: 1, lost: 1, goalsFor: 4, goalsAgainst: 4, goalDifference: 0, points: 4, form: ['W', 'D', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/oboroa1776295149.png' },
-  { teamId: 'hosaena', teamName: 'Hadiya Hossana', played: 4, won: 1, drawn: 1, lost: 2, goalsFor: 3, goalsAgainst: 4, goalDifference: -1, points: 4, form: ['L', 'D', 'W', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/9f0ozj1790265391.png' },
-  { teamId: 'bunna', teamName: 'Ethiopian Coffee SC (Bunna)', played: 5, won: 1, drawn: 1, lost: 3, goalsFor: 2, goalsAgainst: 6, goalDifference: -4, points: 4, form: ['L', 'W', 'L', 'L', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/welkj51790265316.png' },
-  { teamId: 'fasil', teamName: 'Fasil Kenema', played: 4, won: 0, drawn: 3, lost: 1, goalsFor: 3, goalsAgainst: 4, goalDifference: -1, points: 3, form: ['D', 'D', 'L', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/xivgrb1790265423.png' },
-  { teamId: 'sidama', teamName: 'Sidama Coffee SC (Sidama Bunna)', played: 2, won: 0, drawn: 1, lost: 1, goalsFor: 0, goalsAgainst: 1, goalDifference: -1, points: 1, form: ['L', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/t0057h1615830065.png' },
-  { teamId: 'welwalo', teamName: 'Welwalo Adigrat Univ.', played: 2, won: 0, drawn: 1, lost: 1, goalsFor: 1, goalsAgainst: 3, goalDifference: -2, points: 1, form: ['D', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/w2p6k41790265538.png' },
-  { teamId: 'gamochencha', teamName: 'Gamo Chencha', played: 4, won: 0, drawn: 1, lost: 3, goalsFor: 1, goalsAgainst: 5, goalDifference: -4, points: 1, form: ['L', 'L', 'D', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/o3yz391790265452.png' },
+  { teamId: 'negelle', teamName: 'Negele Arsi FC', played: 6, won: 4, drawn: 2, lost: 0, goalsFor: 8, goalsAgainst: 2, goalDifference: 6, points: 14, form: ['D', 'W', 'W', 'W', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/3vj7z31760913824.png' },
+  { teamId: 'bahirdar', teamName: 'Bahir Dar Kenema', played: 6, won: 3, drawn: 2, lost: 1, goalsFor: 10, goalsAgainst: 6, goalDifference: 4, points: 11, form: ['L', 'W', 'D', 'W', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/o25wvi1790265058.png' },
+  { teamId: 'defence', teamName: 'Mechal (Defence Force)', played: 6, won: 3, drawn: 2, lost: 1, goalsFor: 5, goalsAgainst: 2, goalDifference: 3, points: 11, form: ['L', 'W', 'W', 'D', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/o1ig4m1760893133.png' },
+  { teamId: 'cbe_sa', teamName: 'Ethiopia Nigd Bank (CBE SA)', played: 6, won: 3, drawn: 2, lost: 1, goalsFor: 5, goalsAgainst: 4, goalDifference: 1, points: 11, form: ['W', 'D', 'D', 'L', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/fn7am21727368578.png' },
+  { teamId: 'electric', teamName: 'Ethio Electric', played: 6, won: 3, drawn: 1, lost: 2, goalsFor: 3, goalsAgainst: 2, goalDifference: 1, points: 10, form: ['D', 'W', 'W', 'L', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/nywmq91790265280.png' },
+  { teamId: 'saintgeorge', teamName: 'Saint George SC (Kidus Giorgis)', played: 6, won: 2, drawn: 3, lost: 1, goalsFor: 8, goalsAgainst: 6, goalDifference: 2, points: 9, form: ['L', 'D', 'D', 'W', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/r5orqa1615830067.png' },
+  { teamId: 'wolaitta', teamName: 'Wolaitta Dicha (Welayta Dicha)', played: 6, won: 2, drawn: 2, lost: 2, goalsFor: 11, goalsAgainst: 6, goalDifference: 5, points: 8, form: ['D', 'L', 'W', 'W', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/zveh4e1615830076.png' },
+  { teamId: 'shaggar', teamName: 'Shaggar City FC (Sheger Ketema)', played: 6, won: 2, drawn: 2, lost: 2, goalsFor: 6, goalsAgainst: 6, goalDifference: 0, points: 8, form: ['D', 'L', 'D', 'L', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/shaggar_city_epl.png' },
+  { teamId: 'halaba', teamName: 'Halaba Ketema (በርበሬዎቹ)', played: 6, won: 2, drawn: 2, lost: 2, goalsFor: 5, goalsAgainst: 10, goalDifference: -5, points: 8, form: ['W', 'D', 'L', 'W', 'L'], isHalaba: true, badgeUrl: '/images/halaba-city-fc-logo.png' },
+  { teamId: 'insurance', teamName: 'Ethiopian Medhin (Insurance)', played: 5, won: 2, drawn: 1, lost: 2, goalsFor: 8, goalsAgainst: 8, goalDifference: 0, points: 7, form: ['W', 'D', 'L', 'W', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/oboroa1776295149.png' },
+  { teamId: 'bunna', teamName: 'Ethiopian Coffee SC (Bunna)', played: 6, won: 2, drawn: 1, lost: 3, goalsFor: 4, goalsAgainst: 7, goalDifference: -3, points: 7, form: ['W', 'L', 'L', 'D', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/welkj51790265316.png' },
+  { teamId: 'adama', teamName: 'Adama Kenema SC', played: 6, won: 1, drawn: 3, lost: 2, goalsFor: 3, goalsAgainst: 4, goalDifference: -1, points: 6, form: ['D', 'D', 'L', 'D', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/4yijrk1615830040.png' },
+  { teamId: 'hawassa', teamName: 'Hawassa Kenema SC', played: 5, won: 1, drawn: 2, lost: 2, goalsFor: 5, goalsAgainst: 6, goalDifference: -1, points: 5, form: ['L', 'D', 'D', 'W', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/hawassa_city_sc.png' },
+  { teamId: 'sidama', teamName: 'Sidama Coffee SC (Sidama Bunna)', played: 3, won: 1, drawn: 1, lost: 1, goalsFor: 2, goalsAgainst: 2, goalDifference: 0, points: 4, form: ['L', 'D', 'W'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/t0057h1615830065.png' },
+  { teamId: 'hosaena', teamName: 'Hadiya Hossana', played: 5, won: 1, drawn: 1, lost: 3, goalsFor: 3, goalsAgainst: 6, goalDifference: -3, points: 4, form: ['L', 'D', 'W', 'L', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/9f0ozj1790265391.png' },
+  { teamId: 'fasil', teamName: 'Fasil Kenema', played: 5, won: 0, drawn: 3, lost: 2, goalsFor: 3, goalsAgainst: 5, goalDifference: -2, points: 3, form: ['D', 'D', 'L', 'D', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/xivgrb1790265423.png' },
+  { teamId: 'welwalo', teamName: 'Welwalo Adigrat Univ.', played: 4, won: 0, drawn: 3, lost: 1, goalsFor: 2, goalsAgainst: 4, goalDifference: -2, points: 3, form: ['D', 'L', 'D', 'D'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/x1aihm1727368029.png' },
+  { teamId: 'gamochencha', teamName: 'Gamo Chencha', played: 5, won: 0, drawn: 1, lost: 4, goalsFor: 1, goalsAgainst: 6, goalDifference: -5, points: 1, form: ['L', 'L', 'D', 'L', 'L'], isHalaba: false, badgeUrl: 'https://r2.thesportsdb.com/images/media/team/badge/o3yz391790265452.png' },
 ];
 
 export function normalizeEplId(strTeam: string, idTeam?: string): string {
   const s = (strTeam || '').toLowerCase();
   const id = String(idTeam || '');
-  if (s.includes('halaba') || id === '157333') return 'halaba';
-  if (s.includes('cbe') || s.includes('nigd') || id === '149377') return 'cbe_sa';
-  if (s.includes('medhin') || s.includes('insurance') || id === '146921') return 'insurance';
-  if (s.includes('adama') || id === '141024') return 'adama';
-  if (s.includes('electric') || id === '146920') return 'electric';
-  if (s.includes('bahir') || (id === '141026' && s.includes('bahir')) || id === '141025') return 'bahirdar';
-  if (s.includes('fasil') || id === '141026') return 'fasil';
-  if (s.includes('bunna') || (s.includes('coffee') && !s.includes('sidama'))) return 'bunna';
+  if (s.includes('halaba')) return 'halaba';
+  if (s.includes('cbe') || s.includes('nigd')) return 'cbe_sa';
+  if (s.includes('medhin') || s.includes('insurance')) return 'insurance';
+  if (s.includes('adama')) return 'adama';
+  if (s.includes('electric')) return 'electric';
+  if (s.includes('bahir')) return 'bahirdar';
+  if (s.includes('fasil')) return 'fasil';
+  if (s.includes('bunna') && !s.includes('sidama')) return 'bunna';
+  if (s.includes('coffee') && !s.includes('sidama')) return 'bunna';
   if (s.includes('george') || s.includes('giorgis')) return 'saintgeorge';
-  if (s.includes('defence') || s.includes('mekelakeya') || s.includes('mechal') || id === '143767') return 'defence';
+  if (s.includes('defence') || s.includes('mekelakeya') || s.includes('mechal')) return 'defence';
   if (s.includes('welwalo')) return 'welwalo';
   if (s.includes('dicha') || s.includes('wolaitta')) return 'wolaitta';
   if (s.includes('hosaena') || s.includes('hossana') || s.includes('hadiya')) return 'hosaena';
@@ -70,8 +73,48 @@ export function normalizeEplId(strTeam: string, idTeam?: string): string {
   if (s.includes('sidama')) return 'sidama';
   if (s.includes('hawassa')) return 'hawassa';
   if (s.includes('shaggar') || s.includes('sheger')) return 'shaggar';
-  if (s.includes('negelle') || s.includes('negele') || id === '153585') return 'negelle';
-  return id || s.replace(/[^a-z0-9]/g, '');
+  if (s.includes('negelle') || s.includes('negele')) return 'negelle';
+
+  switch (id) {
+    case '157333':
+      return 'halaba';
+    case '149377':
+      return 'cbe_sa';
+    case '146921':
+      return 'insurance';
+    case '141024':
+      return 'adama';
+    case '146920':
+      return 'electric';
+    case '141026':
+      return 'bahirdar';
+    case '141029':
+      return 'fasil';
+    case '141028':
+      return 'bunna';
+    case '141030':
+      return 'saintgeorge';
+    case '143767':
+      return 'defence';
+    case '149378':
+      return 'welwalo';
+    case '141032':
+      return 'wolaitta';
+    case '141033':
+      return 'hosaena';
+    case '157334':
+      return 'gamochencha';
+    case '141031':
+      return 'sidama';
+    case '141025':
+      return 'hawassa';
+    case '153586':
+      return 'shaggar';
+    case '153585':
+      return 'negelle';
+    default:
+      return id || s.replace(/[^a-z0-9]/g, '');
+  }
 }
 
 function canonicalizeTeamName(canonicalId: string, strTeam: string): string {
@@ -93,6 +136,17 @@ function canonicalizeTeamName(canonicalId: string, strTeam: string): string {
   }
 }
 
+async function parseSafeJson(response: Response): Promise<any | null> {
+  if (!response.ok) return null;
+  const text = await response.text();
+  if (!text || text.trim().startsWith('<')) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchOfficialSportsDbStandings(options?: {
   season?: string;
   requireLiveSuccess?: boolean;
@@ -104,7 +158,7 @@ export async function fetchOfficialSportsDbStandings(options?: {
 
   const standingsMap = new Map<string, StandingTeamRecord>();
   BASE_EPL_STANDINGS.forEach((fb, idx) => {
-    standingsMap.set(fb.teamId, { ...fb, position: idx + 1 });
+    standingsMap.set(fb.teamId, { ...fb, form: [...fb.form], position: idx + 1 });
   });
 
   let data: any = null;
@@ -117,7 +171,10 @@ export async function fetchOfficialSportsDbStandings(options?: {
     if (!response.ok) {
       fetchError = `Upstream SportsDB returned HTTP ${response.status}.`;
     } else {
-      data = await response.json();
+      data = await parseSafeJson(response);
+      if (!data) {
+        fetchError = 'Upstream SportsDB returned a non-JSON response.';
+      }
     }
   } catch (err: unknown) {
     fetchError = err instanceof Error ? err.message : 'Network error reaching TheSportsDB.';
@@ -150,6 +207,110 @@ export async function fetchOfficialSportsDbStandings(options?: {
     };
   }
 
+  // When TheSportsDB free tier truncates lookuptable to Top 5 teams,
+  // also pull recent finished matches beyond BASE_EPL_CUTOFF_DATE to keep clubs 6–18 live.
+  if (data.table.length <= 5) {
+    try {
+      const seenEvents = new Map<string, any>();
+      const pastRes = await doFetch(
+        'https://www.thesportsdb.com/api/v1/json/123/eventspastleague.php?id=4959'
+      );
+      const pastJson = await parseSafeJson(pastRes);
+      if (Array.isArray(pastJson?.events)) {
+        for (const ev of pastJson.events) {
+          if (ev?.idEvent) seenEvents.set(String(ev.idEvent), ev);
+        }
+      }
+
+      // Inspect Round 7 onward incrementally, stopping as soon as a round has no finished events
+      for (let r = 7; r <= 12; r++) {
+        const rRes = await doFetch(
+          `https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4959&r=${r}&s=${encodeURIComponent(season)}`
+        );
+        const rJson = await parseSafeJson(rRes);
+        const events = Array.isArray(rJson?.events) ? rJson.events : [];
+        let roundHasFinished = false;
+        for (const ev of events) {
+          if (ev?.idEvent) seenEvents.set(String(ev.idEvent), ev);
+          if (ev?.strStatus === 'FT' || ev?.strStatus === 'AOT') {
+            roundHasFinished = true;
+          }
+        }
+        if (!roundHasFinished) break;
+      }
+
+      const newlyCompleted = Array.from(seenEvents.values())
+        .filter((ev: any) => {
+          const isFt =
+            ev.strStatus === 'FT' ||
+            ev.strStatus === 'AOT' ||
+            (ev.intHomeScore !== null && ev.intHomeScore !== '' && ev.intAwayScore !== null && ev.intAwayScore !== '');
+          const eventDate = String(ev.dateEvent || '');
+          const evSeason = String(ev.strSeason || season);
+          return isFt && evSeason === season && eventDate > BASE_EPL_CUTOFF_DATE;
+        })
+        .sort((a: any, b: any) => String(a.dateEvent || '').localeCompare(String(b.dateEvent || '')));
+
+      for (const ev of newlyCompleted) {
+        const homeCId = normalizeEplId(ev.strHomeTeam, ev.idHomeTeam);
+        const awayCId = normalizeEplId(ev.strAwayTeam, ev.idAwayTeam);
+        const homeScore = Number.parseInt(String(ev.intHomeScore ?? ''), 10);
+        const awayScore = Number.parseInt(String(ev.intAwayScore ?? ''), 10);
+        if (!Number.isFinite(homeScore) || !Number.isFinite(awayScore)) continue;
+
+        const homeRec = standingsMap.get(homeCId);
+        const awayRec = standingsMap.get(awayCId);
+
+        if (homeRec) {
+          homeRec.played += 1;
+          homeRec.goalsFor += homeScore;
+          homeRec.goalsAgainst += awayScore;
+          homeRec.goalDifference = homeRec.goalsFor - homeRec.goalsAgainst;
+          if (homeScore > awayScore) {
+            homeRec.won += 1;
+            homeRec.points += 3;
+            homeRec.form = [...homeRec.form, 'W' as const].slice(-5);
+          } else if (homeScore < awayScore) {
+            homeRec.lost += 1;
+            homeRec.form = [...homeRec.form, 'L' as const].slice(-5);
+          } else {
+            homeRec.drawn += 1;
+            homeRec.points += 1;
+            homeRec.form = [...homeRec.form, 'D' as const].slice(-5);
+          }
+          if (ev.strHomeTeamBadge && !homeRec.isHalaba && !homeRec.badgeUrl?.includes('thesportsdb')) {
+            homeRec.badgeUrl = String(ev.strHomeTeamBadge).replace('/tiny', '');
+          }
+        }
+
+        if (awayRec) {
+          awayRec.played += 1;
+          awayRec.goalsFor += awayScore;
+          awayRec.goalsAgainst += homeScore;
+          awayRec.goalDifference = awayRec.goalsFor - awayRec.goalsAgainst;
+          if (awayScore > homeScore) {
+            awayRec.won += 1;
+            awayRec.points += 3;
+            awayRec.form = [...awayRec.form, 'W' as const].slice(-5);
+          } else if (awayScore < homeScore) {
+            awayRec.lost += 1;
+            awayRec.form = [...awayRec.form, 'L' as const].slice(-5);
+          } else {
+            awayRec.drawn += 1;
+            awayRec.points += 1;
+            awayRec.form = [...awayRec.form, 'D' as const].slice(-5);
+          }
+          if (ev.strAwayTeamBadge && !awayRec.isHalaba && !awayRec.badgeUrl?.includes('thesportsdb')) {
+            awayRec.badgeUrl = String(ev.strAwayTeamBadge).replace('/tiny', '');
+          }
+        }
+      }
+    } catch {
+      // Ignore supplementary round reconciliation failures
+    }
+  }
+
+  // Overlay authoritative live lookuptable rows
   data.table.forEach((item: any) => {
     const canonicalId = normalizeEplId(item.strTeam, item.idTeam);
     if (!canonicalId || canonicalId === 'diredawa') return;
@@ -201,63 +362,13 @@ export async function fetchOfficialSportsDbStandings(options?: {
       points: Number.isFinite(parsedPts) ? parsedPts : existing.points,
       form: formLetters.length > 0 ? formLetters : existing.form,
       isHalaba,
-      badgeUrl: item.strBadge ? String(item.strBadge).replace('/tiny', '') : existing.badgeUrl,
+      badgeUrl: isHalaba
+        ? existing.badgeUrl
+        : item.strBadge
+        ? String(item.strBadge).replace('/tiny', '')
+        : existing.badgeUrl,
     });
   });
-
-  if (data.table.length <= 5) {
-    try {
-      const sportsDbTeamIdToCanonical: Record<string, string> = {
-        '153585': 'negelle',
-        '143767': 'defence',
-        '141032': 'wolaitta',
-        '149377': 'cbe_sa',
-        '157333': 'halaba',
-        '141026': 'bahirdar',
-        '141024': 'adama',
-        '146921': 'insurance',
-        '153586': 'shaggar',
-        '146920': 'electric',
-        '141028': 'bunna',
-        '141029': 'fasil',
-        '141030': 'saintgeorge',
-        '141025': 'hawassa',
-        '149378': 'welwalo',
-        '141033': 'hosaena',
-        '141031': 'sidama',
-        '157334': 'gamochencha',
-      };
-
-      for (let r = 1; r <= 5; r++) {
-        const rRes = await doFetch(
-          `https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4959&r=${r}&s=${encodeURIComponent(season)}`
-        );
-        if (rRes.ok) {
-          const rJson: any = await rRes.json();
-          if (Array.isArray(rJson?.events)) {
-            rJson.events.forEach((ev: any) => {
-              if (ev.strStatus === 'FT' && ev.intHomeScore !== null && ev.intAwayScore !== null) {
-                const homeCId =
-                  sportsDbTeamIdToCanonical[String(ev.idHomeTeam)] || normalizeEplId(ev.strHomeTeam, ev.idHomeTeam);
-                const awayCId =
-                  sportsDbTeamIdToCanonical[String(ev.idAwayTeam)] || normalizeEplId(ev.strAwayTeam, ev.idAwayTeam);
-                const homeRec = standingsMap.get(homeCId);
-                const awayRec = standingsMap.get(awayCId);
-                if (homeRec && ev.strHomeTeamBadge && !homeRec.badgeUrl?.includes('thesportsdb')) {
-                  homeRec.badgeUrl = String(ev.strHomeTeamBadge).replace('/tiny', '');
-                }
-                if (awayRec && ev.strAwayTeamBadge && !awayRec.badgeUrl?.includes('thesportsdb')) {
-                  awayRec.badgeUrl = String(ev.strAwayTeamBadge).replace('/tiny', '');
-                }
-              }
-            });
-          }
-        }
-      }
-    } catch {
-      // Ignore supplementary badge enrichment failures
-    }
-  }
 
   const list = Array.from(standingsMap.values())
     .filter((t) => t.teamId !== 'diredawa')

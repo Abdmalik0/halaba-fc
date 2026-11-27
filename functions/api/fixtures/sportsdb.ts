@@ -57,28 +57,91 @@ export async function onRequestGet(): Promise<Response> {
 
     const HALABA_SPORTSDB_ID = '157333';
 
+    const parseSafeJson = async (res: Response): Promise<any | null> => {
+      if (!res.ok) return null;
+      const text = await res.text();
+      if (!text || text.trim().startsWith('<')) return null;
+      try {
+        return JSON.parse(text);
+      } catch {
+        return null;
+      }
+    };
+
+    const utcTimeToEat = (strTime?: string, fallback = '15:00'): string => {
+      if (!strTime || typeof strTime !== 'string') return fallback;
+      const match = strTime.trim().match(/^(\d{2}):(\d{2})/);
+      if (!match) return fallback;
+      const utcH = Number.parseInt(match[1], 10);
+      const m = match[2];
+      if (!Number.isFinite(utcH)) return fallback;
+      const eatH = (utcH + 3) % 24;
+      return `${String(eatH).padStart(2, '0')}:${m}`;
+    };
+
     const normalizeTeam = (name: string, id?: string): TeamInfo => {
       const s = (name || '').toLowerCase();
       const idStr = String(id || '');
-      if (s.includes('halaba') || idStr === '157333') return { id: 'halaba', name: 'Halaba Ketema (በርበሬዎቹ)', isHalaba: true };
-      if (s.includes('cbe') || s.includes('nigd') || idStr === '149377') return { id: 'cbe_sa', name: 'Ethiopia Nigd Bank (CBE SA)', isHalaba: false };
-      if (s.includes('medhin') || s.includes('insurance') || idStr === '146921') return { id: 'insurance', name: 'Ethiopian Medhin (Insurance)', isHalaba: false };
-      if (s.includes('adama') || idStr === '141024') return { id: 'adama', name: 'Adama Kenema SC', isHalaba: false };
-      if (s.includes('electric') || idStr === '146920') return { id: 'electric', name: 'Ethio Electric', isHalaba: false };
-      if (s.includes('bahir') || idStr === '141026') return { id: 'bahirdar', name: 'Bahir Dar Kenema', isHalaba: false };
-      if (s.includes('fasil') || idStr === '141029') return { id: 'fasil', name: 'Fasil Kenema', isHalaba: false };
-      if (s.includes('bunna') || (s.includes('coffee') && !s.includes('sidama'))) return { id: 'bunna', name: 'Ethiopian Coffee SC', isHalaba: false };
+      if (s.includes('halaba')) return { id: 'halaba', name: 'Halaba Ketema (በርበሬዎቹ)', isHalaba: true };
+      if (s.includes('cbe') || s.includes('nigd')) return { id: 'cbe_sa', name: 'Ethiopia Nigd Bank (CBE SA)', isHalaba: false };
+      if (s.includes('medhin') || s.includes('insurance')) return { id: 'insurance', name: 'Ethiopian Medhin (Insurance)', isHalaba: false };
+      if (s.includes('adama')) return { id: 'adama', name: 'Adama Kenema SC', isHalaba: false };
+      if (s.includes('electric')) return { id: 'electric', name: 'Ethio Electric', isHalaba: false };
+      if (s.includes('bahir')) return { id: 'bahirdar', name: 'Bahir Dar Kenema', isHalaba: false };
+      if (s.includes('fasil')) return { id: 'fasil', name: 'Fasil Kenema', isHalaba: false };
+      if (s.includes('bunna') && !s.includes('sidama')) return { id: 'bunna', name: 'Ethiopian Coffee SC', isHalaba: false };
+      if (s.includes('coffee') && !s.includes('sidama')) return { id: 'bunna', name: 'Ethiopian Coffee SC', isHalaba: false };
       if (s.includes('george') || s.includes('giorgis')) return { id: 'saintgeorge', name: 'Saint George SC', isHalaba: false };
-      if (s.includes('defence') || s.includes('mekelakeya') || s.includes('mechal') || idStr === '143767') return { id: 'defence', name: 'Mechal (Defence Force)', isHalaba: false };
-      if (s.includes('welwalo') || idStr === '149378') return { id: 'welwalo', name: 'Welwalo Adigrat University', isHalaba: false };
-      if (s.includes('dicha') || s.includes('wolaitta') || idStr === '141032') return { id: 'wolaitta', name: 'Wolaitta Dicha', isHalaba: false };
-      if (s.includes('hosaena') || s.includes('hossana') || s.includes('hadiya') || idStr === '141033') return { id: 'hosaena', name: 'Hadiya Hosaena', isHalaba: false };
+      if (s.includes('defence') || s.includes('mekelakeya') || s.includes('mechal')) return { id: 'defence', name: 'Mechal (Defence Force)', isHalaba: false };
+      if (s.includes('welwalo')) return { id: 'welwalo', name: 'Welwalo Adigrat University', isHalaba: false };
+      if (s.includes('dicha') || s.includes('wolaitta')) return { id: 'wolaitta', name: 'Wolaitta Dicha', isHalaba: false };
+      if (s.includes('hosaena') || s.includes('hossana') || s.includes('hadiya')) return { id: 'hosaena', name: 'Hadiya Hosaena', isHalaba: false };
       if (s.includes('chencha') || s.includes('gamo')) return { id: 'gamochencha', name: 'Gamo Chencha', isHalaba: false };
       if (s.includes('sidama')) return { id: 'sidama', name: 'Sidama Coffee SC', isHalaba: false };
       if (s.includes('hawassa')) return { id: 'hawassa', name: 'Hawassa Kenema SC', isHalaba: false };
       if (s.includes('shaggar') || s.includes('sheger')) return { id: 'shaggar', name: 'Shaggar City FC', isHalaba: false };
-      if (s.includes('negelle') || s.includes('negele') || idStr === '153585') return { id: 'negelle', name: 'Negelle Arsi FC', isHalaba: false };
-      return { id: idStr || s.replace(/[^a-z0-9]/g, ''), name: name || 'Team', isHalaba: false };
+      if (s.includes('negelle') || s.includes('negele')) return { id: 'negelle', name: 'Negelle Arsi FC', isHalaba: false };
+
+      switch (idStr) {
+        case '157333':
+          return { id: 'halaba', name: 'Halaba Ketema (በርበሬዎቹ)', isHalaba: true };
+        case '149377':
+          return { id: 'cbe_sa', name: 'Ethiopia Nigd Bank (CBE SA)', isHalaba: false };
+        case '146921':
+          return { id: 'insurance', name: 'Ethiopian Medhin (Insurance)', isHalaba: false };
+        case '141024':
+          return { id: 'adama', name: 'Adama Kenema SC', isHalaba: false };
+        case '146920':
+          return { id: 'electric', name: 'Ethio Electric', isHalaba: false };
+        case '141026':
+          return { id: 'bahirdar', name: 'Bahir Dar Kenema', isHalaba: false };
+        case '141029':
+          return { id: 'fasil', name: 'Fasil Kenema', isHalaba: false };
+        case '141028':
+          return { id: 'bunna', name: 'Ethiopian Coffee SC', isHalaba: false };
+        case '141030':
+          return { id: 'saintgeorge', name: 'Saint George SC', isHalaba: false };
+        case '143767':
+          return { id: 'defence', name: 'Mechal (Defence Force)', isHalaba: false };
+        case '149378':
+          return { id: 'welwalo', name: 'Welwalo Adigrat University', isHalaba: false };
+        case '141032':
+          return { id: 'wolaitta', name: 'Wolaitta Dicha', isHalaba: false };
+        case '141033':
+          return { id: 'hosaena', name: 'Hadiya Hosaena', isHalaba: false };
+        case '157334':
+          return { id: 'gamochencha', name: 'Gamo Chencha', isHalaba: false };
+        case '141031':
+          return { id: 'sidama', name: 'Sidama Coffee SC', isHalaba: false };
+        case '141025':
+          return { id: 'hawassa', name: 'Hawassa Kenema SC', isHalaba: false };
+        case '153586':
+          return { id: 'shaggar', name: 'Shaggar City FC', isHalaba: false };
+        case '153585':
+          return { id: 'negelle', name: 'Negelle Arsi FC', isHalaba: false };
+        default:
+          return { id: idStr || s.replace(/[^a-z0-9]/g, ''), name: name || 'Team', isHalaba: false };
+      }
     };
 
     // Baseline verified 2026/27 Halaba City FC EPL campaign matches
@@ -160,27 +223,28 @@ export async function onRequestGet(): Promise<Response> {
         id: 'm-epl-rd6',
         competition: 'ETHIOPIAN_PREMIER_LEAGUE',
         competitionName: 'Ethiopian Premier League',
-        date: '2026-11-20',
-        kickoffTime: '15:00',
-        venue: 'Addis Ababa Stadium',
+        date: '2026-11-22',
+        kickoffTime: '15:30',
+        venue: 'Adama Science and Technology University Stadium',
         homeTeam: { id: 'electric', name: 'Ethio Electric', isHalaba: false },
         awayTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
-        status: 'UPCOMING',
+        status: 'FINISHED',
+        score: { home: 1, away: 0 },
         round: 'Round 6',
-        summary: 'Round 6: Halaba Ketema travel to Addis Ababa to battle Ethio Electric.',
+        summary: 'Ethio Electric 1 - 0 Halaba Ketema (November 22, 2026). Tightly contested Round 6 clash at Adama Science and Technology University Stadium.',
       },
       {
         id: 'm-epl-rd7',
         competition: 'ETHIOPIAN_PREMIER_LEAGUE',
         competitionName: 'Ethiopian Premier League',
-        date: '2026-11-28',
-        kickoffTime: '15:00',
-        venue: 'Halaba Stadium, Halaba Kulito',
-        homeTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
-        awayTeam: { id: 'cbe_sa', name: 'Ethiopia Nigd Bank (CBE SA)', isHalaba: false },
+        date: '2026-11-27',
+        kickoffTime: '15:30',
+        venue: 'Hawassa University Stadium',
+        homeTeam: { id: 'bunna', name: 'Ethiopian Coffee SC', isHalaba: false },
+        awayTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
         status: 'UPCOMING',
         round: 'Round 7',
-        summary: 'Round 7: Halaba Stadium hosts league contenders Ethiopia Nigd Bank (CBE SA).',
+        summary: 'Round 7: Halaba Ketema travel to Hawassa University Stadium to face Ethiopian Coffee SC (Bunna).',
       },
       {
         id: 'm-epl-rd8',
@@ -202,7 +266,7 @@ export async function onRequestGet(): Promise<Response> {
         kickoffTime: '15:00',
         venue: 'Halaba Stadium, Halaba Kulito',
         homeTeam: { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
-        awayTeam: { id: 'bunna', name: 'Ethiopian Coffee SC', isHalaba: false },
+        awayTeam: { id: 'cbe_sa', name: 'Ethiopia Nigd Bank (CBE SA)', isHalaba: false },
         status: 'UPCOMING',
         round: 'Round 9',
       },
@@ -307,27 +371,43 @@ export async function onRequestGet(): Promise<Response> {
     const fixturesMap = new Map<string, MatchFixture>();
     baselineHalabaMatches.forEach((m) => fixturesMap.set(m.id, { ...m }));
 
-    // Fetch live data from TheSportsDB
+    // Fetch live data from TheSportsDB safely (handles rate limits & fetches recent completed + upcoming Halaba rounds)
     try {
-      const [seasonRes, nextRes, lastRes] = await Promise.allSettled([
-        fetch('https://www.thesportsdb.com/api/v1/json/123/eventsseason.php?id=4959&s=2026-2027').then((r) => r.json()),
-        fetch('https://www.thesportsdb.com/api/v1/json/123/eventsnext.php?id=' + HALABA_SPORTSDB_ID).then((r) => r.json()),
-        fetch('https://www.thesportsdb.com/api/v1/json/123/eventslast.php?id=' + HALABA_SPORTSDB_ID).then((r) => r.json()),
+      const [pastLeagueRes, nextRes, lastRes, round6Res, round7Res] = await Promise.allSettled([
+        fetch('https://www.thesportsdb.com/api/v1/json/123/eventspastleague.php?id=4959').then(parseSafeJson),
+        fetch('https://www.thesportsdb.com/api/v1/json/123/eventsnext.php?id=' + HALABA_SPORTSDB_ID).then(parseSafeJson),
+        fetch('https://www.thesportsdb.com/api/v1/json/123/eventslast.php?id=' + HALABA_SPORTSDB_ID).then(parseSafeJson),
+        fetch('https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4959&r=6&s=2026-2027').then(parseSafeJson),
+        fetch('https://www.thesportsdb.com/api/v1/json/123/eventsround.php?id=4959&r=7&s=2026-2027').then(parseSafeJson),
       ]);
 
       const rawEvents: any[] = [];
-      if (seasonRes.status === 'fulfilled' && seasonRes.value?.events) {
-        rawEvents.push(...seasonRes.value.events);
+      if (pastLeagueRes.status === 'fulfilled' && Array.isArray(pastLeagueRes.value?.events)) {
+        rawEvents.push(...pastLeagueRes.value.events);
       }
-      if (nextRes.status === 'fulfilled' && nextRes.value?.events) {
+      if (nextRes.status === 'fulfilled' && Array.isArray(nextRes.value?.events)) {
         rawEvents.push(...nextRes.value.events);
       }
-      if (lastRes.status === 'fulfilled' && lastRes.value?.results) {
+      if (lastRes.status === 'fulfilled' && Array.isArray(lastRes.value?.results)) {
         rawEvents.push(...lastRes.value.results);
+      }
+      if (round6Res.status === 'fulfilled' && Array.isArray(round6Res.value?.events)) {
+        rawEvents.push(...round6Res.value.events);
+      }
+      if (round7Res.status === 'fulfilled' && Array.isArray(round7Res.value?.events)) {
+        rawEvents.push(...round7Res.value.events);
+      }
+
+      // Deduplicate by idEvent before merging
+      const uniqueEventsMap = new Map<string, any>();
+      for (const ev of rawEvents) {
+        if (ev?.idEvent) {
+          uniqueEventsMap.set(String(ev.idEvent), ev);
+        }
       }
 
       // Filter strictly for Halaba City FC matches
-      const halabaEvents = rawEvents.filter((e) => {
+      const halabaEvents = Array.from(uniqueEventsMap.values()).filter((e) => {
         const homeId = String(e.idHomeTeam || '');
         const awayId = String(e.idAwayTeam || '');
         const homeName = String(e.strHomeTeam || '').toLowerCase();
@@ -369,6 +449,7 @@ export async function onRequestGet(): Promise<Response> {
 
         const homeScore = isFinished || isLive ? parseInt(e.intHomeScore, 10) : undefined;
         const awayScore = isFinished || isLive ? parseInt(e.intAwayScore, 10) : undefined;
+        const nextStatus: 'FINISHED' | 'LIVE' | 'UPCOMING' = isFinished ? 'FINISHED' : isLive ? 'LIVE' : 'UPCOMING';
 
         fixturesMap.set(matchKey, {
           ...existing,
@@ -376,21 +457,21 @@ export async function onRequestGet(): Promise<Response> {
           competition: 'ETHIOPIAN_PREMIER_LEAGUE',
           competitionName: e.strLeague || 'Ethiopian Premier League',
           date: e.dateEvent || existing.date,
-          kickoffTime: e.strTime ? e.strTime.substring(0, 5) : existing.kickoffTime || '15:00',
+          kickoffTime: utcTimeToEat(e.strTime, existing.kickoffTime || '15:00'),
           venue: e.strVenue || existing.venue || 'Hawassa University Stadium',
           homeTeam: {
             ...homeTeam,
-            logo: e.strHomeTeamBadge ? e.strHomeTeamBadge.replace('/tiny', '') : existing.homeTeam?.logo,
+            logo: e.strHomeTeamBadge ? String(e.strHomeTeamBadge).replace('/tiny', '') : existing.homeTeam?.logo,
           },
           awayTeam: {
             ...awayTeam,
-            logo: e.strAwayTeamBadge ? e.strAwayTeamBadge.replace('/tiny', '') : existing.awayTeam?.logo,
+            logo: e.strAwayTeamBadge ? String(e.strAwayTeamBadge).replace('/tiny', '') : existing.awayTeam?.logo,
           },
-          status: isFinished ? 'FINISHED' : isLive ? 'LIVE' : 'UPCOMING',
+          status: nextStatus,
           score:
-            homeScore !== undefined && awayScore !== undefined && !isNaN(homeScore) && !isNaN(awayScore)
+            (isFinished || isLive) && homeScore !== undefined && awayScore !== undefined && !isNaN(homeScore) && !isNaN(awayScore)
               ? { home: homeScore, away: awayScore }
-              : existing.score,
+              : undefined,
           round: e.intRound ? `Round ${e.intRound}` : existing.round,
           summary:
             existing.summary ||

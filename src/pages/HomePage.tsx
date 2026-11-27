@@ -63,10 +63,20 @@ export const HomePage: React.FC<HomePageProps> = ({
         m.awayTeam?.name?.toLowerCase().includes('halaba'))
     );
 
-  // Find next upcoming fixture of Halaba City FC (strictly UPCOMING or LIVE, sorted by date ascending)
-  const upcomingHalabaMatches = matches
+  // Find next upcoming fixture of Halaba City FC (prefer LIVE or UPCOMING >= yesterday, sorted ascending)
+  const yesterdayCutoffMs = Date.now() - 24 * 60 * 60 * 1000;
+  const allOpenHalabaMatches = matches
     .filter((m) => (m.status === 'UPCOMING' || m.status === 'LIVE') && isHalabaMatch(m))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  const currentOrFutureOpenMatches = allOpenHalabaMatches.filter((m) => {
+    if (m.status === 'LIVE') return true;
+    const matchMs = new Date(`${m.date}T${(m.kickoffTime || '23:59').slice(0, 5)}:00`).getTime();
+    return Number.isNaN(matchMs) ? true : matchMs >= yesterdayCutoffMs;
+  });
+
+  const upcomingHalabaMatches =
+    currentOrFutureOpenMatches.length > 0 ? currentOrFutureOpenMatches : allOpenHalabaMatches;
 
   const nextMatch = upcomingHalabaMatches[0] || null;
 

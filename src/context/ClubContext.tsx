@@ -21,6 +21,7 @@ import {
 } from '../types';
 import {
   initialClubInfo,
+  initialMatches,
   initialStandings,
   initialNews,
   initialPlayers,
@@ -228,6 +229,7 @@ export const VALID_EPL_18_TEAM_IDS = new Set<string>([
 
 try {
   if (typeof window !== 'undefined') {
+    localStorage.removeItem('halaba_official_epl_standings_v25_all18_verified');
     localStorage.removeItem('halaba_official_epl_standings_v22_sportsdb');
     localStorage.removeItem('halaba_official_epl_standings_v21_sportsdb');
     localStorage.removeItem('halaba_official_epl_standings_v20_sportsdb');
@@ -238,6 +240,7 @@ try {
     localStorage.removeItem('halaba_official_epl_standings_v3');
     localStorage.removeItem('halaba_official_epl_standings_v2');
     localStorage.removeItem('halaba_official_epl_standings');
+    localStorage.removeItem('halaba_matches_epl_2026_27_v18');
     localStorage.removeItem('halaba_standings_epl_2026_27');
     localStorage.removeItem('halaba_standings_sportsdb_v2');
     localStorage.removeItem('hcfc_firestore_standings_seeded');
@@ -255,8 +258,8 @@ export const normalizeEplTeamId = (rawId?: string, rawName?: string): string => 
   if (str.includes('medhin') || str.includes('insurance') || rawId === '146921') return 'insurance';
   if (str.includes('adama') || rawId === '141024') return 'adama';
   if (str.includes('electric') || rawId === '146920') return 'electric';
-  if (str.includes('fasil') || rawId === '141026') return 'fasil';
-  if (str.includes('bahir') || rawId === '141025') return 'bahirdar';
+  if (str.includes('bahir') || rawId === '141026') return 'bahirdar';
+  if (str.includes('fasil') || rawId === '141029') return 'fasil';
   if (str.includes('bunna') || (str.includes('coffee') && !str.includes('sidama'))) return 'bunna';
   if (str.includes('george') || str.includes('giorgis')) return 'saintgeorge';
   if (str.includes('defence') || str.includes('mekelakeya') || str.includes('mechal') || rawId === '143767') return 'defence';
@@ -267,7 +270,7 @@ export const normalizeEplTeamId = (rawId?: string, rawName?: string): string => 
   if (str.includes('diredawa') || str.includes('dire dawa')) return 'diredawa';
   if (str.includes('chencha') || str.includes('gamo')) return 'gamochencha';
   if (str.includes('sidama')) return 'sidama';
-  if (str.includes('hawassa')) return 'hawassa';
+  if (str.includes('hawassa') || rawId === '141025') return 'hawassa';
   if (str.includes('shaggar') || str.includes('sheger')) return 'shaggar';
   if (str.includes('negelle') || str.includes('negele')) return 'negelle';
   return (rawId || '').replace(/[^a-z0-9]/g, '') || 'unknown';
@@ -304,12 +307,22 @@ export function mergeMatchesPreservingCustom(
 
     if (existingIdx >= 0) {
       const current = merged[existingIdx];
+      const teamsChanged =
+        normalizeEplTeamId(current.homeTeam?.id, current.homeTeam?.name) !==
+          normalizeEplTeamId(incoming.homeTeam?.id, incoming.homeTeam?.name) ||
+        normalizeEplTeamId(current.awayTeam?.id, current.awayTeam?.name) !==
+          normalizeEplTeamId(incoming.awayTeam?.id, incoming.awayTeam?.name);
+      const transitionedToFinished =
+        incoming.status === 'FINISHED' && current.status !== 'FINISHED';
       const updated: Match = {
         ...current,
         ...incoming,
         id: current.id,
         venue: incoming.venue || current.venue,
-        summary: current.summary || incoming.summary,
+        summary:
+          transitionedToFinished || teamsChanged
+            ? incoming.summary || current.summary
+            : current.summary || incoming.summary,
         attendance: current.attendance || incoming.attendance,
         referee: current.referee || incoming.referee,
         scorers: current.scorers && current.scorers.length > 0 ? current.scorers : incoming.scorers,
@@ -427,8 +440,8 @@ export function normalizeStandingsScopeRows(
 const STORAGE_KEYS = {
   LANG: 'halaba_lang',
   CLUB: 'halaba_club_info_epl_26_27',
-  MATCHES: 'halaba_matches_epl_2026_27_v18',
-  STANDINGS: 'halaba_official_epl_standings_v25_all18_verified',
+  MATCHES: 'halaba_matches_epl_2026_27_v19',
+  STANDINGS: 'halaba_official_epl_standings_v26_all18_rd6',
   NEWS: 'halaba_news_epl_2026_27',
   PLAYERS: 'halaba_players',
   STAFF: 'halaba_staff',
@@ -720,16 +733,16 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Matches State (Cloudflare D1 authoritative with localStorage offline fallback)
   const [matches, setMatches] = useState<Match[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.MATCHES);
-    if (!saved) return [];
+    if (!saved) return initialMatches.filter(isHalabaMatch);
     try {
       const parsed: Match[] = JSON.parse(saved);
       const halabaOnly = parsed.filter(isHalabaMatch);
       if (halabaOnly.length > 0) {
         return halabaOnly;
       }
-      return [];
+      return initialMatches.filter(isHalabaMatch);
     } catch {
-      return [];
+      return initialMatches.filter(isHalabaMatch);
     }
   });
   const matchesRef = useRef<Match[]>(matches);
@@ -754,28 +767,43 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return [];
       }
 
+      const todayIso = new Date().toISOString().slice(0, 10);
       const liveMatches: Match[] = res.data.matches
-        .map((data: any) => ({
-          id: data.id,
-          competition: data.competition || 'ETHIOPIAN_PREMIER_LEAGUE',
-          competitionName: data.competitionName || 'Ethiopian Premier League',
-          date: data.date || '',
-          kickoffTime: data.kickoffTime || '15:00',
-          venue: data.venue || 'Hawassa University Stadium',
-          homeTeam: data.homeTeam || { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
-          awayTeam: data.awayTeam || { id: 'away', name: 'Away Team', isHalaba: false },
-          status: data.status || 'UPCOMING',
-          score: data.score,
-          halftimeScore: data.halftimeScore,
-          round: data.round,
-          attendance: data.attendance,
-          referee: data.referee,
-          scorers: data.scorers,
-          summary: data.summary || '',
-          liveMinute: data.liveMinute,
-          livePeriod: data.livePeriod,
-          liveEvents: data.liveEvents,
-        }) as Match)
+        .map((data: any) => {
+          const hasValidScore =
+            data.score &&
+            typeof data.score.home === 'number' &&
+            typeof data.score.away === 'number';
+          const normalizedStatus: Match['status'] =
+            data.status === 'UPCOMING' &&
+            hasValidScore &&
+            typeof data.date === 'string' &&
+            data.date < todayIso
+              ? 'FINISHED'
+              : data.status || 'UPCOMING';
+
+          return {
+            id: data.id,
+            competition: data.competition || 'ETHIOPIAN_PREMIER_LEAGUE',
+            competitionName: data.competitionName || 'Ethiopian Premier League',
+            date: data.date || '',
+            kickoffTime: data.kickoffTime || '15:00',
+            venue: data.venue || 'Hawassa University Stadium',
+            homeTeam: data.homeTeam || { id: 'halaba', name: 'Halaba Ketema', isHalaba: true },
+            awayTeam: data.awayTeam || { id: 'away', name: 'Away Team', isHalaba: false },
+            status: normalizedStatus,
+            score: data.score,
+            halftimeScore: data.halftimeScore,
+            round: data.round,
+            attendance: data.attendance,
+            referee: data.referee,
+            scorers: data.scorers,
+            summary: data.summary || '',
+            liveMinute: data.liveMinute,
+            livePeriod: data.livePeriod,
+            liveEvents: data.liveEvents,
+          } as Match;
+        })
         .filter(isHalabaMatch);
 
       liveMatches.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -2832,7 +2860,7 @@ export const ClubProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Automatically update standing table and results/fixtures from SportsDB ONLY when the app opens,
   // then uses that cache until the app is closed and reopened (persisting in sessionStorage per session).
   useEffect(() => {
-    const sessionKey = 'halaba_sportsdb_app_session_synced_v23';
+    const sessionKey = 'halaba_sportsdb_app_session_synced_v24';
     const alreadySyncedThisSession = typeof window !== 'undefined' && sessionStorage.getItem(sessionKey) === 'true';
 
     if (!alreadySyncedThisSession) {

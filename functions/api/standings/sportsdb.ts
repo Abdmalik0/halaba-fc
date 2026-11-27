@@ -33,6 +33,8 @@ export async function onRequestGet(context?: PagesContext): Promise<Response> {
       cachedSeason === season &&
       now - lastStandingsSyncTime < 180000
     ) {
+      const cachedHalaba = cachedStandings.find((t) => t.isHalaba || t.teamId === 'halaba');
+      const cachedRound = `Round ${cachedHalaba?.played || 6} Completed`;
       return new Response(
         JSON.stringify({
           success: true,
@@ -41,7 +43,7 @@ export async function onRequestGet(context?: PagesContext): Promise<Response> {
           league: 'Ethiopian Premier League',
           leagueId: '4959',
           season,
-          round: 'Round 5 Completed',
+          round: cachedRound,
           count: cachedStandings.length,
           standings: cachedStandings,
         }),
@@ -77,6 +79,9 @@ export async function onRequestGet(context?: PagesContext): Promise<Response> {
       lastStandingsSyncTime = Date.now();
     }
 
+    const liveHalaba = result.standings.find((t) => t.isHalaba || t.teamId === 'halaba');
+    const liveRound = `Round ${liveHalaba?.played || 6} Completed`;
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -85,7 +90,7 @@ export async function onRequestGet(context?: PagesContext): Promise<Response> {
         league: 'Ethiopian Premier League',
         leagueId: '4959',
         season,
-        round: 'Round 5 Completed',
+        round: liveRound,
         count: result.standings.length,
         standings: result.standings,
       }),
