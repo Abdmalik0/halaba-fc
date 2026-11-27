@@ -12,23 +12,36 @@ import { AppStartupLoader } from './components/AppStartupLoader';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PageFallbackLoader } from './components/PageFallbackLoader';
 
+function lazyWithRetry<T extends React.ComponentType<any>>(
+  factory: () => Promise<{ default: T }>
+) {
+  return lazy(async () => {
+    try {
+      return await factory();
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      return await factory();
+    }
+  });
+}
+
 // Code-split heavy routes to keep initial bundle tiny (<250KB) on low-RAM phones & 3G networks
-const FixturesPage = lazy(() => import('./pages/FixturesPage').then((m) => ({ default: m.FixturesPage })));
-const StandingsPage = lazy(() => import('./pages/StandingsPage').then((m) => ({ default: m.StandingsPage })));
-const NewsPage = lazy(() => import('./pages/NewsPage').then((m) => ({ default: m.NewsPage })));
-const MembershipPage = lazy(() => import('./pages/MembershipPage').then((m) => ({ default: m.MembershipPage })));
-const AboutPage = lazy(() => import('./pages/AboutPage').then((m) => ({ default: m.AboutPage })));
-const ContactPage = lazy(() => import('./pages/ContactPage').then((m) => ({ default: m.ContactPage })));
-const AdminPage = lazy(() => import('./pages/AdminPage').then((m) => ({ default: m.AdminPage })));
-const ShopPage = lazy(() => import('./pages/ShopPage').then((m) => ({ default: m.ShopPage })));
+const FixturesPage = lazyWithRetry(() => import('./pages/FixturesPage').then((m) => ({ default: m.FixturesPage })));
+const StandingsPage = lazyWithRetry(() => import('./pages/StandingsPage').then((m) => ({ default: m.StandingsPage })));
+const NewsPage = lazyWithRetry(() => import('./pages/NewsPage').then((m) => ({ default: m.NewsPage })));
+const MembershipPage = lazyWithRetry(() => import('./pages/MembershipPage').then((m) => ({ default: m.MembershipPage })));
+const AboutPage = lazyWithRetry(() => import('./pages/AboutPage').then((m) => ({ default: m.AboutPage })));
+const ContactPage = lazyWithRetry(() => import('./pages/ContactPage').then((m) => ({ default: m.ContactPage })));
+const AdminPage = lazyWithRetry(() => import('./pages/AdminPage').then((m) => ({ default: m.AdminPage })));
+const ShopPage = lazyWithRetry(() => import('./pages/ShopPage').then((m) => ({ default: m.ShopPage })));
 
 // Code-split modals so they only load when requested
-const MatchDetailsModal = lazy(() => import('./components/MatchDetailsModal').then((m) => ({ default: m.MatchDetailsModal })));
-const ArticleModal = lazy(() => import('./components/ArticleModal').then((m) => ({ default: m.ArticleModal })));
-const ClubDossierModal = lazy(() => import('./components/ClubDossierModal').then((m) => ({ default: m.ClubDossierModal })));
-const DonationModal = lazy(() => import('./components/DonationModal').then((m) => ({ default: m.DonationModal })));
-const JerseyCheckoutModal = lazy(() => import('./components/JerseyCheckoutModal').then((m) => ({ default: m.JerseyCheckoutModal })));
-const AppStoreInstallCard = lazy(() => import('./components/pwa/AppStoreInstallCard').then((m) => ({ default: m.default || m.AppStoreInstallCard })));
+const MatchDetailsModal = lazyWithRetry(() => import('./components/MatchDetailsModal').then((m) => ({ default: m.MatchDetailsModal })));
+const ArticleModal = lazyWithRetry(() => import('./components/ArticleModal').then((m) => ({ default: m.ArticleModal })));
+const ClubDossierModal = lazyWithRetry(() => import('./components/ClubDossierModal').then((m) => ({ default: m.ClubDossierModal })));
+const DonationModal = lazyWithRetry(() => import('./components/DonationModal').then((m) => ({ default: m.DonationModal })));
+const JerseyCheckoutModal = lazyWithRetry(() => import('./components/JerseyCheckoutModal').then((m) => ({ default: m.JerseyCheckoutModal })));
+const AppStoreInstallCard = lazyWithRetry(() => import('./components/pwa/AppStoreInstallCard').then((m) => ({ default: m.default || m.AppStoreInstallCard })));
 
 const MainApp: React.FC = () => {
   const { currentPage, matches, news, isDossierOpen, closeDossier, isDonationModalOpen, isCheckoutModalOpen } = useClub();
